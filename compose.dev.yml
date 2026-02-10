@@ -1,7 +1,7 @@
-name: oos-detection
+name: oos_detection
 services:
   backend:
-    container_name: oos-detection-backend
+    container_name: oos_detection-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -28,23 +28,23 @@ services:
             - "**/.idea/**"
             - "**/.vscode/**"
   db:
-    container_name: pg-oos-detection
+    container_name: pg-oos_detection
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: oos-detection
-      POSTGRES_USER: oos-detection
-      POSTGRES_PASSWORD: oos-detection_dev_password
+      POSTGRES_DB: oos_detection
+      POSTGRES_USER: oos_detection
+      POSTGRES_PASSWORD: oos_detection_dev_password
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - oos-detection-vol:/var/lib/postgresql/data
+      - oos_detection-vol:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "oos-detection"]
+      test: ["CMD", "pg_isready", "-U", "oos_detection"]
       interval: 10s
       timeout: 5s
       retries: 5
   frontend:
-    container_name: oos-detection-frontend
+    container_name: oos_detection-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -67,4 +67,4 @@ services:
           path: ./frontend/package.json
 
 volumes:
-  oos-detection-vol:
+  oos_detection-vol:

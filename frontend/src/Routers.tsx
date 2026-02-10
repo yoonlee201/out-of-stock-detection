@@ -37,7 +37,7 @@ function Routers() {
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
-                    <Route path="/" element={<div>Hello</div>} />
+                    <Route path="/" element={<div>Unprotected Route</div>} />
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<div>Protected Route</div>} />
                     </Route>

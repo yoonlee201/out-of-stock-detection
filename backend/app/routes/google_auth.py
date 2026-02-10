@@ -99,7 +99,7 @@ def google_callback():
                     drive_service = GoogleDriveService(credentials)
                     
                     # Create folder with user's name or email
-                    folder_name = "oos-detection"
+                    folder_name = "oos_detection"
                     folder = drive_service.get_or_create_folder(folder_name)
                     
                     print(f"   ✅ Folder created: {folder['name']}")

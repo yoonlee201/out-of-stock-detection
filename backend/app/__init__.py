@@ -36,12 +36,7 @@ def create_app():
 
     app.register_blueprint(default_blueprint, url_prefix=f"/")
     app.register_blueprint(users_blueprint, url_prefix=f"{prefix}/users")
-    app.register_blueprint(websites_blueprint, url_prefix=f"{prefix}/websites")
-    app.register_blueprint(webdatabase_bp, url_prefix=f"{prefix}/webdatabases")
-    app.register_blueprint(userdatabases_blueprint, url_prefix=f"{prefix}/userdatabases")
     app.register_blueprint(google_auth_bp, url_prefix=f"{prefix}/auth/google")
     app.register_blueprint(google_drive_bp, url_prefix=f"{prefix}/drive")
-    app.register_blueprint(chat_bp, url_prefix=f"{prefix}/chat")
-    app.register_blueprint(categories, url_prefix=f"{prefix}/categories")
 
     return app

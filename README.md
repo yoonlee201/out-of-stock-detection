@@ -1,4 +1,4 @@
-# oos-detection
+# oos_detection
 Project Structure
 
 Your folder structure should look like this:
@@ -206,20 +206,17 @@ cd ..
 Run this when:
 - changes in .env
 - error in backend
+
 ```
 docker build -t oos_detection_backend ./backend
 ```
-### for changes to the sql
+<!-- ### for changes to the sql
+
 ```
-docker cp ./data.sql pg-oos-detection:/data.sql
+docker cp ./data.sql pg-oos_detection:/data.sql
 docker exec -it pg-oos_detection psql -U oos_detection -f data.sql 
-```
-docker cp ./db/init.sql pg-oos-detection:/db/init.sql
-docker exec -it pg-oos_detection psql -U oos_detection -f db/init.sql 
-```
-docker cp ./addData.sql pg-oos-detection:/addData.sql
-docker exec -it pg-oos_detection psql -U oos_detection -f addData.sql 
-```
+``` -->
+
 ### for changes to just the py files
 ```
 docker compose -f compose.dev.yml up --build
