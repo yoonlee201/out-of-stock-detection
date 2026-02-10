@@ -37,9 +37,9 @@ function Routers() {
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
-                    <Route path="/" element={<div>Unprotected Route</div>} />
+                    <Route path="/" element={<div className="text-blue-950 bg-amber-300">Unprotected Route</div>} />
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/dashboard" element={<div>Protected Route</div>} />
+                        <Route path="/dashboard" element={<div className="text-white bg-blue-700">Protected Route</div>} />
                     </Route>
                 </Routes>
             </AuthProvider>
