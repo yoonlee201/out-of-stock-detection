@@ -1,0 +1,70 @@
+name: oos-detection
+services:
+  backend:
+    container_name: oos-detection-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: ./backend/.env
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend/app
+          target: /usr/src/app/app
+          ignore:
+            - "**/__pycache__/**"
+            - "**/*.pyc"
+            - "**/*.pyo"
+            - "**/.pytest_cache/**"
+            - "**/.mypy_cache/**"
+            - "**/.venv/**"
+            - "**/venv/**"
+            - "**/.git/**"
+            - "**/.idea/**"
+            - "**/.vscode/**"
+  db:
+    container_name: pg-oos-detection
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: oos-detection
+      POSTGRES_USER: oos-detection
+      POSTGRES_PASSWORD: oos-detection_dev_password
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - oos-detection-vol:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "oos-detection"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  frontend:
+    container_name: oos-detection-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file: ./frontend/.env
+    restart: unless-stopped
+    ports:
+      - "5173:5173" # or "3000:3000" if Next.js
+    depends_on:
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /usr/src/app/src
+          ignore:
+            - "**/.git/**"
+            - "**/.idea/**"
+            - "**/.vscode/**"
+        - action: rebuild
+          path: ./frontend/package.json
+
+volumes:
+  oos-detection-vol:
