@@ -216,3 +216,42 @@ docker compose -f compose.dev.yml watch backend frontend db
 docker cp ./data.sql pg-oos_detection:/data.sql
 docker exec -it pg-oos_detection psql -U oos_detection -f data.sql 
 ``` -->
+
+## YOLOv8 Setup
+
+1) YOLO-only dependencies are in:
+- `backend/requirements.yolo.txt`
+
+2) Create and activate a virtual environment, then install dependencies:
+
+**macOS / Linux**
+```bash
+cd backend
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -r requirements.yolo.txt
+```
+
+**Windows (PowerShell)**
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -r requirements.yolo.txt
+```
+
+3) Quick verify YOLO + OpenCV install:
+
+```bash
+python -c "from ultralytics import YOLO; import cv2; YOLO('yolov8n.pt'); print('YOLOv8 + OpenCV ready')"
+```
+
+If you use Docker for backend, rebuild the backend image so the new dependency is installed:
+
+```bash
+docker compose -f compose.dev.yml up --build backend
+```
