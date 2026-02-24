@@ -2,6 +2,7 @@
 import { BrowserRouter, Route, Navigate, Routes, Outlet } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
+import AuthPage from "./AuthPage";
 
 const ProtectedRoute = () => {
     const { user, loading } = useAuth();
@@ -37,10 +38,14 @@ function Routers() {
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
-                    <Route path="/" element={<div className="text-blue-950 bg-amber-300">Unprotected Route</div>} />
+                    <Route path="/login" element={<AuthPage />} />
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/dashboard" element={<div className="text-white bg-blue-700">Protected Route</div>} />
+                        <Route
+                            path="/dashboard"
+                            element={<div className="bg-blue-700 text-white">Protected Route</div>}
+                        />
                     </Route>
+                    <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>

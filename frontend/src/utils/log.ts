@@ -1,42 +1,42 @@
-type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
 
 class BrowserLogger {
-  private isDevelopment: boolean;
+    private isDevelopment: boolean;
 
-  constructor() {
-    this.isDevelopment = import.meta.env.MODE === 'development';
-  }
-
-  private write(level: LogLevel, ...args: any[]): void {
-    // Only log in development mode
-    if (!this.isDevelopment) {
-      return;
+    constructor() {
+        this.isDevelopment = import.meta.env.MODE === "development";
     }
 
-    // Log to console in development mode
-    const consoleMethod = console[level.toLowerCase() as 'info' | 'warn' | 'error' | 'debug'] || console.log;
-    consoleMethod(...args);
-  }
+    private write(level: LogLevel, ...args: any[]): void {
+        // Only log in development mode
+        if (!this.isDevelopment) {
+            return;
+        }
 
-  public log(...args: any[]): void {
-    this.write('INFO', ...args);
-  }
+        // Log to console in development mode
+        const consoleMethod = console[level.toLowerCase() as "info" | "warn" | "error" | "debug"] || console.log;
+        consoleMethod(...args);
+    }
 
-  public info(...args: any[]): void {
-    this.write('INFO', ...args);
-  }
+    public log(...args: any[]): void {
+        this.write("INFO", ...args);
+    }
 
-  public warn(...args: any[]): void {
-    this.write('WARN', ...args);
-  }
+    public info(...args: any[]): void {
+        this.write("INFO", ...args);
+    }
 
-  public error(...args: any[]): void {
-    this.write('ERROR', ...args);
-  }
+    public warn(...args: any[]): void {
+        this.write("WARN", ...args);
+    }
 
-  public debug(...args: any[]): void {
-    this.write('DEBUG', ...args);
-  }
+    public error(...args: any[]): void {
+        this.write("ERROR", ...args);
+    }
+
+    public debug(...args: any[]): void {
+        this.write("DEBUG", ...args);
+    }
 }
 
 // Create a default logger instance
