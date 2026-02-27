@@ -18,9 +18,8 @@ def generate_token(user):
     print(f"Token expires: {expires}")
     
     token = Tokens(
-        id=uuid.uuid4(),  # ✅ Don't convert to string
+        id=token_value,  # ✅ Don't convert to string
         user_id=user.id,  # ✅ Don't convert to string
-        token=token_value,
         expires=expires
     )
     
@@ -28,3 +27,7 @@ def generate_token(user):
     db.session.commit()
     
     return str(token_value)  # ✅ Convert to string only when returning to frontend
+
+def check_password(user, password):
+    """Check if the provided password matches the stored hash."""
+    return user.check_password(password)

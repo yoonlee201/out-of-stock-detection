@@ -210,12 +210,13 @@ docker compose -f compose.dev.yml up --build
 ```
 docker compose -f compose.dev.yml watch backend frontend db
 ```
-<!-- ### for changes to the sql
+
+### for changes to the sql
 
 ```
-docker cp ./data.sql pg-oos_detection:/data.sql
-docker exec -it pg-oos_detection psql -U oos_detection -f data.sql 
-``` -->
+docker cp ./data.sql pg-oos_detection:/sample_data.sql
+docker exec -it pg-oos_detection psql -U oos_detection -f sample_data.sql 
+```
 
 ## YOLOv8 Setup
 

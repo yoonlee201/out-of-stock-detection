@@ -1,5 +1,4 @@
 ultralytics==8.3.187
+torch==2.10.0
 opencv-python-headless==4.12.0.88
-torch==2.8.1
-torchvision==0.15.2
 openai==2.8.1
