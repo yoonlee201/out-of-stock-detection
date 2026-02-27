@@ -7,8 +7,6 @@ from app.core.db import db
 
 from .routes.default import default_blueprint
 from .routes.users import users_blueprint
-from .routes.google_auth import google_auth_bp
-from .routes.google_drive import google_drive_bp
 from app.core.config import config
 load_dotenv()
 
@@ -36,7 +34,5 @@ def create_app():
 
     app.register_blueprint(default_blueprint, url_prefix=f"/")
     app.register_blueprint(users_blueprint, url_prefix=f"{prefix}/users")
-    app.register_blueprint(google_auth_bp, url_prefix=f"{prefix}/auth/google")
-    app.register_blueprint(google_drive_bp, url_prefix=f"{prefix}/drive")
 
     return app
