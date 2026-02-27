@@ -1,9 +1,11 @@
 // Routers.tsx
-import { BrowserRouter, Route, Navigate, Routes, Outlet } from "react-router-dom";
+//import { BrowserRouter, Route, Navigate, Routes, Outlet } from "react-router-dom";
+import { BrowserRouter, Route, Navigate, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthProvider";
-import { useAuth } from "./hooks/useAuth";
+// import { useAuth } from "./hooks/useAuth";
 import AuthPage from "./AuthPage";
-
+import Dashboard from "./_components/Dashboard";
+/*
 const ProtectedRoute = () => {
     const { user, loading } = useAuth();
 
@@ -32,6 +34,7 @@ const ProtectedRoute = () => {
 
     return <Outlet />;
 };
+*/
 
 function Routers() {
     return (
@@ -39,12 +42,15 @@ function Routers() {
             <AuthProvider>
                 <Routes>
                     <Route path="/login" element={<AuthPage />} />
+
+                    {/*
                     <Route element={<ProtectedRoute />}>
-                        <Route
-                            path="/dashboard"
-                            element={<div className="bg-blue-700 text-white">Protected Route</div>}
-                        />
+                        <Route path="/dashboard" element={<Dashboard />} />
                     </Route>
+                    */}
+
+                    <Route path="/dashboard" element={<Dashboard />} />
+
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </AuthProvider>

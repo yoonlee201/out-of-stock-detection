@@ -1,0 +1,7 @@
+SQLINSERT INTO suppliers (email, phone_number) VALUES ('supplier@example.com', '123-456-7890');
+
+INSERT INTO products (name, type, qrcode, quantity_in_store, shelf, aisle, supplier_id) 
+VALUES ('Milk', 'diary', 'QR123', 10, 'Shelf 1', 'Aisle 3', 1);
+
+INSERT INTO users (first_name, last_name, phone, role, email) 
+VALUES ('John', 'Doe', '555-1234', 'associate', 'john@example.com');
