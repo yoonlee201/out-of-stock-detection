@@ -12,7 +12,13 @@ users_blueprint = Blueprint('users', __name__)
 @users_blueprint.route('', methods=['GET'])
 def get_all_users():
     users = Users.query.all()
-    return {"users": [{"id": user.id, "name": user.name, "email": user.email, "created_at": user.created_at} for user in users]}
+    return {
+        "users": [{
+            "id": user.id, 
+            "name": user.name, 
+            "email": user.email, 
+            "created_at": user.created_at
+        } for user in users]}
 
 @users_blueprint.route('/user', methods=['POST'])
 @users_blueprint.route('/user/', methods=['POST'])
