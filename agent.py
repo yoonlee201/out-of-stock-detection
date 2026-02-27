@@ -3,8 +3,8 @@ import openai
 import psycopg2
 from psycopg2 import sql
 
-# Set your OpenAI API key
-openai.api_key = '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'
+#OpenAI API key
+openai.api_key = ''
 
 # DB connection (update with db credentials)
 DB_PARAMS = {
