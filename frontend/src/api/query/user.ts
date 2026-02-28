@@ -28,7 +28,8 @@ export const apiRegisterUser = async ({
         return data;
     } catch (error: unknown) {
         if (isAxiosError(error)) {
-            const message = "Registration failed: " + error.response?.data?.message || "Registration failed. Please try again.";
+            const message =
+                "Registration failed: " + error.response?.data?.message || "Registration failed. Please try again.";
             logger.error("Registration failed:", message);
             throw new Error(message);
         }

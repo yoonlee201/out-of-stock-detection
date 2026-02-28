@@ -1,4 +1,7 @@
+import { useAuth } from "../hooks/useAuth";
+
 const Dashboard = () => {
+    const { logout } = useAuth();
     const products = [
         { name: "Milk", type: "Dairy", qty: 0, aisle: "A2", shelf: "S1" },
         { name: "Coke", type: "Beverage", qty: 3, aisle: "A5", shelf: "S2" },
@@ -16,6 +19,10 @@ const Dashboard = () => {
                     <li className="cursor-pointer hover:text-gray-300">Alerts</li>
                     <li className="cursor-pointer hover:text-gray-300">Reorders</li>
                     <li className="cursor-pointer hover:text-gray-300">Suppliers</li>
+                    <li className="cursor-pointer hover:text-gray-300">Settings</li>
+                    <li className="cursor-pointer hover:text-gray-300">
+                        <button onClick={logout}>Logout</button>
+                    </li>
                 </ul>
             </div>
 

@@ -4,7 +4,6 @@ import { AuthContext } from "./AuthContext";
 import type { User } from "../types/db";
 import { apiLoginUser, apiLogoutUser, apiValidateUser } from "../api/query/user";
 import logger from "../utils/log";
-
 interface AuthProviderProps {
     children: React.ReactNode;
 }
