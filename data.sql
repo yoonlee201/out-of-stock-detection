@@ -1,5 +1,5 @@
 -- Create the database
-CREATE DATABASE shelf_monitor_db;
+DROP DATABASE IF EXISTS shelf_monitor_db;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS suppliers CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
