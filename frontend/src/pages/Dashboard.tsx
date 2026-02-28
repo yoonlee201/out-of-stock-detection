@@ -6,26 +6,25 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-100 flex">
-
+        <div className="flex min-h-screen bg-gray-100">
             {/* Sidebar */}
-            <div className="w-64 bg-blue-900 text-white p-6">
-                <h2 className="text-2xl font-bold mb-6">Stock Detection</h2>
+            <div className="w-64 bg-blue-900 p-6 text-white">
+                <h2 className="mb-6 text-2xl font-bold">Stock Detection</h2>
                 <ul className="space-y-4">
-                    <li className="hover:text-gray-300 cursor-pointer">Dashboard</li>
-                    <li className="hover:text-gray-300 cursor-pointer">Products</li>
-                    <li className="hover:text-gray-300 cursor-pointer">Alerts</li>
-                    <li className="hover:text-gray-300 cursor-pointer">Reorders</li>
-                    <li className="hover:text-gray-300 cursor-pointer">Suppliers</li>
+                    <li className="cursor-pointer hover:text-gray-300">Dashboard</li>
+                    <li className="cursor-pointer hover:text-gray-300">Products</li>
+                    <li className="cursor-pointer hover:text-gray-300">Alerts</li>
+                    <li className="cursor-pointer hover:text-gray-300">Reorders</li>
+                    <li className="cursor-pointer hover:text-gray-300">Suppliers</li>
                 </ul>
             </div>
 
             {/* Main Content */}
             <div className="flex-1 p-8">
-                <h1 className="text-3xl font-semibold mb-8">Dashboard Overview</h1>
+                <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
 
                 {/* Stats */}
-                <div className="grid grid-cols-4 gap-6 mb-8">
+                <div className="mb-8 grid grid-cols-4 gap-6">
                     <StatCard title="Total Products" value="120" color="text-blue-600" />
                     <StatCard title="Out of Stock" value="12" color="text-red-600" />
                     <StatCard title="Low Stock" value="8" color="text-yellow-500" />
@@ -33,8 +32,8 @@ const Dashboard = () => {
                 </div>
 
                 {/* Products Table */}
-                <div className="bg-white shadow rounded-xl p-6">
-                    <h2 className="text-xl font-semibold mb-4">Products</h2>
+                <div className="rounded-xl bg-white p-6 shadow">
+                    <h2 className="mb-4 text-xl font-semibold">Products</h2>
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b">
@@ -56,9 +55,9 @@ const Dashboard = () => {
                                     <td>{p.shelf}</td>
                                     <td>
                                         {p.qty === 0 ? (
-                                            <span className="text-red-600 font-semibold">Out of Stock</span>
+                                            <span className="font-semibold text-red-600">Out of Stock</span>
                                         ) : (
-                                            <span className="text-green-600 font-semibold">In Stock</span>
+                                            <span className="font-semibold text-green-600">In Stock</span>
                                         )}
                                     </td>
                                 </tr>
@@ -78,7 +77,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, color }: StatCardProps) => (
-    <div className="bg-white shadow rounded-xl p-6">
+    <div className="rounded-xl bg-white p-6 shadow">
         <h4 className="text-gray-500">{title}</h4>
         <h2 className={`text-3xl font-bold ${color}`}>{value}</h2>
     </div>

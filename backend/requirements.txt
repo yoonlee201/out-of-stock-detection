@@ -4,4 +4,4 @@ flask_cors
 flask_sqlalchemy
 pydantic_settings
 psycopg2-binary
-
+bcrypt

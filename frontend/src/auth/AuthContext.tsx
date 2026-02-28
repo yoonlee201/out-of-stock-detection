@@ -3,7 +3,7 @@ import type { User } from "../types/db";
 
 export interface AuthContextType {
     user: User | null;
-    login: (email: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     loading: boolean;
     checkAuth: () => Promise<void>;

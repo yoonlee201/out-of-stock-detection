@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
 
 class BrowserLogger {

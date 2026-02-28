@@ -1,18 +1,38 @@
+import React from "react";
 import Input from "./Input";
 
-interface FieldProps {
+type FieldProps = {
     label: string;
     labelClassName?: string;
     inputClassName?: string;
     type?: string;
     icon?: React.ReactNode;
     placeholder?: string;
-}
+} & React.InputHTMLAttributes<HTMLInputElement>;
 
-const Field = ({ label, labelClassName, inputClassName, type = "text", icon, placeholder }: FieldProps) => (
-    <div className="mb-4">
-        <label className={`mb-1 block text-sm font-semibold ${labelClassName ?? ""}`}>{label}</label>
-        <Input type={type} icon={icon} placeholder={placeholder ?? label} className={inputClassName} />
+const Field = ({
+    label,
+    labelClassName,
+    inputClassName,
+    type = "text",
+    icon,
+    placeholder,
+    required,
+    ...rest
+}: FieldProps) => (
+    <div>
+        <label className={`mb-1 block text-sm font-semibold ${labelClassName ?? ""}`}>
+            {label}
+            <span className="text-red-500">{required && " *"}</span>
+        </label>
+        <Input
+            type={type}
+            icon={icon}
+            placeholder={placeholder ?? label}
+            className={inputClassName}
+            required={required}
+            {...rest}
+        />
     </div>
 );
 
