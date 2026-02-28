@@ -6,41 +6,47 @@ import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import logger from "../utils/log";
 import RegisterSuccess from "../_components/RegisterSuccess";
+import Loading from "../_components/Loading";
+import { useForm } from "react-hook-form";
+
+type LoginForm = {
+    email: string;
+    password: string;
+};
 
 const Login = () => {
     const { login, user, loading } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const [visible, setVisible] = useState(false);
 
     const isRegisterSuccess = searchParams.get("register") === "success";
     const firstName = searchParams.get("firstName") || "";
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [visible, setVisible] = useState(false);
+    const {
+        register,
+        handleSubmit,
+        setError,
+        formState: { errors, isSubmitting },
+    } = useForm<LoginForm>();
 
     useEffect(() => {
-        // Trigger entrance animation
         const t = setTimeout(() => setVisible(true), 50);
         return () => clearTimeout(t);
     }, []);
 
     useEffect(() => {
-        if (!loading && user) {
-            navigate("/dashboard");
-        }
+        if (!loading && user) navigate("/dashboard");
     }, [user, loading, navigate]);
 
-    const handleLogin = async () => {
-        setError("");
+    const onSubmit = async (data: LoginForm) => {
         try {
-            await login(email, password);
+            await login(data.email, data.password);
             navigate("/dashboard");
         } catch (err: unknown) {
             logger.error("Login error:", err);
             const message = err instanceof Error ? err.message : "Login failed.";
-            setError(message);
+            setError("root", { message });
         }
     };
 
@@ -48,13 +54,7 @@ const Login = () => {
         navigate("/login", { replace: true });
     };
 
-    if (loading) {
-        return (
-            <div className="page-center">
-                <div>Loading...</div>
-            </div>
-        );
-    }
+    if (loading) return <Loading message="Checking authentication..." />;
 
     if (isRegisterSuccess) {
         return <RegisterSuccess firstName={firstName} onContinue={handleDismissSuccess} />;
@@ -73,14 +73,11 @@ const Login = () => {
                 }
             `}</style>
 
-            <div
+            <form
+                onSubmit={handleSubmit(onSubmit)}
                 className="flex w-full max-w-sm flex-col gap-3"
-                style={{
-                    opacity: visible ? 1 : 0,
-                    transition: "opacity 0.3s ease",
-                }}
+                style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease" }}
             >
-                {/* Each item staggers in */}
                 <h1
                     className="anim-item text-primary mb-5 text-center text-4xl font-bold"
                     style={{ animationDelay: "0.05s" }}
@@ -88,41 +85,40 @@ const Login = () => {
                     Login
                 </h1>
 
-                <div className="anim-item" style={{ animationDelay: "0.15s" }}>
-                    <Field
-                        required
-                        label="Email"
-                        labelClassName="text-gray-600"
-                        inputClassName="border-gray-400"
-                        icon={<UserIcon />}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
-
-                <div className="anim-item" style={{ animationDelay: "0.22s" }}>
-                    <Field
-                        required
-                        label="Password"
-                        labelClassName="text-gray-600"
-                        inputClassName="border-gray-400"
-                        type="password"
-                        icon={<LockIcon />}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
+                <Field
+                    required
+                    label="Email"
+                    icon={<UserIcon />}
+                    animationDelay="0.15s"
+                    error={errors.email?.message}
+                    {...register("email", {
+                        required: "Email is required",
+                        pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address" },
+                    })}
+                />
+                <Field
+                    required
+                    label="Password"
+                    type="password"
+                    icon={<LockIcon />}
+                    animationDelay="0.22s"
+                    error={errors.password?.message}
+                    {...register("password", { required: "Password is required" })}
+                />
 
                 <div className="anim-item mt-4" style={{ animationDelay: "0.30s" }}>
                     <Button
-                        onClick={handleLogin}
-                        className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full text-white"
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full text-white disabled:opacity-60"
                     >
-                        Log In
+                        {isSubmitting ? "Logging in..." : "Log In"}
                     </Button>
                 </div>
 
-                {error && (
+                {errors.root && (
                     <p className="text-sm text-red-600" style={{ animation: "fadeSlideUp 0.3s ease forwards" }}>
-                        {error}
+                        {errors.root.message}
                     </p>
                 )}
 
@@ -142,7 +138,7 @@ const Login = () => {
                         </a>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     );
 };

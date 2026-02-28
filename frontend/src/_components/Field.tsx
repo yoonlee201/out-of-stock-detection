@@ -8,6 +8,8 @@ type FieldProps = {
     type?: string;
     icon?: React.ReactNode;
     placeholder?: string;
+    animationDelay?: string;
+    error?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 const Field = ({
@@ -17,11 +19,15 @@ const Field = ({
     type = "text",
     icon,
     placeholder,
-    required,
+    required=false,
+    animationDelay,
+    error,
     ...rest
 }: FieldProps) => (
-    <div>
-        <label className={`mb-1 block text-sm font-semibold ${labelClassName ?? ""}`}>
+    <div className='anim-item' style={{ animationDelay: animationDelay ?? "0s" }}>
+        <style>{`
+            `}</style>
+        <label className={`mb-1 block text-sm font-semibold text-gray-600 ${labelClassName ?? ""}`}>
             {label}
             <span className="text-red-500">{required && " *"}</span>
         </label>
@@ -33,6 +39,7 @@ const Field = ({
             required={required}
             {...rest}
         />
+        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
 );
 
