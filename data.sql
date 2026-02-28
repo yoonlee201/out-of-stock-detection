@@ -15,9 +15,10 @@ CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL,  -- Store hashed passwords
     phone VARCHAR(20),
     role VARCHAR(50) NOT NULL,  -- e.g., 'associate', 'manager', 'customer'
-    email VARCHAR(100) UNIQUE NOT NULL
+    email VARCHAR(100) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -67,7 +68,7 @@ CREATE TABLE inventory_logs (
 );
 
 CREATE TABLE tokens (
-    token_id SERIAL PRIMARY KEY,
+    token_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires TIMESTAMP NOT NULL

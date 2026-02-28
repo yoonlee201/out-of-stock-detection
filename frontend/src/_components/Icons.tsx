@@ -43,4 +43,30 @@ const EyeClosedIcon = () => (
     </svg>
 );
 
-export { UserIcon, LockIcon, EyeOpenIcon, EyeClosedIcon };
+const CheckIcon = () => (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+        <polyline
+            className="rs-check-path"
+            points="20 6 9 17 4 12"
+            stroke="var(--color-primary-500, #059669)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+const WavingHandIcon = () => (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+        <path
+            className="ls-wave-path"
+            d="M7 11V7a2 2 0 0 1 4 0v4M11 7V5a2 2 0 0 1 4 0v6M15 8a2 2 0 0 1 4 0v5a7 7 0 0 1-14 0v-4a2 2 0 0 1 4 0"
+            stroke="var(--color-primary-500, #059669)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+export { UserIcon, LockIcon, EyeOpenIcon, EyeClosedIcon, CheckIcon, WavingHandIcon };

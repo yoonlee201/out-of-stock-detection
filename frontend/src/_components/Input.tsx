@@ -9,13 +9,13 @@ type InputProps = {
 } & InputHTMLAttributes<HTMLInputElement>;
 
 const Input = ({ className, icon, type = "text", visible, placeholder, ...props }: InputProps) => {
-    const [show, setShow] = useState<boolean>(visible ?? true);
+    const [show, setShow] = useState<boolean>(visible ?? false);
     const isPassword = type === "password";
 
     return (
         <div
             className={twMerge(
-                "focus-within:border-primary flex items-center gap-2 rounded border-2 border-transparent bg-white px-3 py-2.5 transition-colors",
+                "border-gray-400 focus-within:border-primary flex items-center gap-2 rounded border-2 bg-white px-3 py-2.5 transition-colors",
                 className,
             )}
         >
