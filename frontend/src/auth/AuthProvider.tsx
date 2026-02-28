@@ -4,7 +4,6 @@ import { AuthContext } from "./AuthContext";
 import type { User } from "../types/db";
 import { apiLoginUser, apiLogoutUser, apiValidateUser } from "../api/query/user";
 import logger from "../utils/log";
-
 interface AuthProviderProps {
     children: React.ReactNode;
 }
@@ -35,15 +34,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         checkAuth();
     }, []);
 
-    const login = async (email: string): Promise<void> => {
+    const login = async (email: string, password: string): Promise<void> => {
         try {
-            const data = await apiLoginUser({ email });
+            const data = await apiLoginUser({ email, password });
             if (data) {
                 await checkAuth();
             }
         } catch (error) {
-            logger.error("Login error:", error);
-            throw error;
+            const message = error instanceof Error ? error.message : "Login failed.";
+            return Promise.reject(new Error(message));
         }
     };
 
@@ -57,5 +56,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
     };
 
-    return <AuthContext.Provider value={{ user, login, logout, loading, checkAuth }}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                login,
+                logout,
+                loading,
+                checkAuth,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 };
