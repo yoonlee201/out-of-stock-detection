@@ -1,3 +1,6 @@
 [submodule "GroceryStoreDataset"]
 	path = GroceryStoreDataset
 	url = https://github.com/marcusklasson/GroceryStoreDataset.git
+[submodule "SKU110K_CVPR19"]
+	path = SKU110K_CVPR19
+	url = https://github.com/eg4000/SKU110K_CVPR19.git
