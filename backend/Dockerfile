@@ -36,7 +36,7 @@ RUN chown -R appuser /usr/src/app
 
 USER appuser
 
-EXPOSE 5001
+EXPOSE ${BACKEND_PORT}
 
 
 ENV PYTHONPATH=/usr/src/app
