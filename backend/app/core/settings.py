@@ -17,8 +17,13 @@ class Settings(BaseSettings):
         description="Frontend application URL"
     )
 
+    BACKEND_PORT: int = Field(
+        default=int(os.getenv("BACKEND_PORT", 5000)),
+        description="Port for the backend server"
+    )
+    
     SERVER_API_URL: str = Field(
-        default=os.getenv("SERVER_API_URL", "http://localhost:5000"),
+        default=os.getenv("SERVER_API_URL", f"http://localhost:{BACKEND_PORT}"),
         description="Backend API URL"
     )
 
@@ -27,24 +32,6 @@ class Settings(BaseSettings):
         default=os.getenv("SQLALCHEMY_DATABASE_URI"),
         description="Database connection URI"
     )
-    
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str | None = Field(default=None)
-    GOOGLE_CLIENT_SECRET: str | None = Field(default=None)
-    
-    print(f"SERVER: {SERVER_API_URL.default}{PRODUCTION.default and '/api/v1' or ''}/auth/google/callback")
-    
-    GOOGLE_REDIRECT_URI: str = Field(
-        default=f"{SERVER_API_URL.default}{PRODUCTION.default and '/api/v1' or ''}/auth/google/callback",
-        description="Google OAuth redirect URI"
-    )
-    # Google Drive scopes
-    GOOGLE_SCOPES: list[str] = [
-        'openid',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/drive.file',
-    ]
   
     OPENAI_API_KEY: str | None = Field(
         default=os.getenv("OPENAI_API_KEY"),
