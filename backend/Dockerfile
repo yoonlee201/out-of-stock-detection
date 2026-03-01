@@ -36,7 +36,7 @@ RUN chown -R appuser /usr/src/app
 
 USER appuser
 
-EXPOSE 5000
+EXPOSE 5001
 
 
 ENV PYTHONPATH=/usr/src/app
