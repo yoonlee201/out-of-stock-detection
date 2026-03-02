@@ -1,12 +1,40 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { axiosDefault } from "../api";
+
+interface Product {
+    id: number;
+    name: string;
+    type: string;
+    quantity: number;
+    aisle: string;
+    shelf: string;
+}
 
 const Dashboard = () => {
     const { logout } = useAuth();
-    const products = [
-        { name: "Milk", type: "Dairy", qty: 0, aisle: "A2", shelf: "S1" },
-        { name: "Coke", type: "Beverage", qty: 3, aisle: "A5", shelf: "S2" },
-        { name: "Bread", type: "Bakery", qty: 8, aisle: "A1", shelf: "S3" },
-    ];
+
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await axiosDefault.get("/products");
+                setProducts(response.data);
+            } catch (error) {
+                console.error("Failed to fetch products:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
+    const totalProducts = products.length;
+    const outOfStock = products.filter(p => p.quantity === 0).length;
+    const lowStock = products.filter(p => p.quantity > 0 && p.quantity < 5).length;
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -30,48 +58,54 @@ const Dashboard = () => {
             <div className="flex-1 p-8">
                 <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
 
-                {/* Stats */}
-                <div className="mb-8 grid grid-cols-4 gap-6">
-                    <StatCard title="Total Products" value="120" color="text-blue-600" />
-                    <StatCard title="Out of Stock" value="12" color="text-red-600" />
-                    <StatCard title="Low Stock" value="8" color="text-yellow-500" />
-                    <StatCard title="Active Alerts" value="5" color="text-green-600" />
-                </div>
+                {loading ? (
+                    <p>Loading products...</p>
+                ) : (
+                    <>
+                        {/* Stats */}
+                        <div className="mb-8 grid grid-cols-4 gap-6">
+                            <StatCard title="Total Products" value={String(totalProducts)} color="text-blue-600" />
+                            <StatCard title="Out of Stock" value={String(outOfStock)} color="text-red-600" />
+                            <StatCard title="Low Stock" value={String(lowStock)} color="text-yellow-500" />
+                            <StatCard title="Active Alerts" value="--" color="text-green-600" />
+                        </div>
 
-                {/* Products Table */}
-                <div className="rounded-xl bg-white p-6 shadow">
-                    <h2 className="mb-4 text-xl font-semibold">Products</h2>
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b">
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Quantity</th>
-                                <th>Aisle</th>
-                                <th>Shelf</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.map((p, i) => (
-                                <tr key={i} className="border-b hover:bg-gray-50">
-                                    <td>{p.name}</td>
-                                    <td>{p.type}</td>
-                                    <td>{p.qty}</td>
-                                    <td>{p.aisle}</td>
-                                    <td>{p.shelf}</td>
-                                    <td>
-                                        {p.qty === 0 ? (
-                                            <span className="font-semibold text-red-600">Out of Stock</span>
-                                        ) : (
-                                            <span className="font-semibold text-green-600">In Stock</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                        {/* Products Table */}
+                        <div className="rounded-xl bg-white p-6 shadow">
+                            <h2 className="mb-4 text-xl font-semibold">Products</h2>
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Quantity</th>
+                                        <th>Aisle</th>
+                                        <th>Shelf</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {products.map((p) => (
+                                        <tr key={p.id} className="border-b hover:bg-gray-50">
+                                            <td>{p.name}</td>
+                                            <td>{p.type}</td>
+                                            <td>{p.quantity}</td>
+                                            <td>{p.aisle}</td>
+                                            <td>{p.shelf}</td>
+                                            <td>
+                                                {p.quantity === 0 ? (
+                                                    <span className="font-semibold text-red-600">Out of Stock</span>
+                                                ) : (
+                                                    <span className="font-semibold text-green-600">In Stock</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

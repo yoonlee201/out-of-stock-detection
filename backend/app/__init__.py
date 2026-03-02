@@ -9,6 +9,7 @@ from .routes.default import default_blueprint
 from .routes.users import users_blueprint
 from app.core.config import config
 load_dotenv()
+from .routes.products import products_blueprint
 
 def create_app():
     app = Flask(__name__)
@@ -34,5 +35,6 @@ def create_app():
 
     app.register_blueprint(default_blueprint, url_prefix=f"/")
     app.register_blueprint(users_blueprint, url_prefix=f"{prefix}/users")
+    app.register_blueprint(products_blueprint, url_prefix=f"{prefix}/products")
 
     return app
