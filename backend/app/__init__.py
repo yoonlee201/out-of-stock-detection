@@ -12,7 +12,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    frontend_url = ["http://localhost:5173", "127.0.0.1"] #config.FRONTEND_URL or "http://localhost:5173"
+    frontend_url = ["http://localhost:5173", "http://127.0.0.1:5173"] #config.FRONTEND_URL or "http://localhost:5173"
     
     
     if config.FRONTEND_URL != "":

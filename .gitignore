@@ -1,0 +1,4 @@
+SKU110K_CVPR19/
+backend/.venv/
+*.pt
+!backend/space_detection/best.pt

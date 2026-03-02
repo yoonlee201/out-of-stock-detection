@@ -8,6 +8,18 @@ from app.services.user_services import generate_token, check_password
 
 users_blueprint = Blueprint('users', __name__)
 
+
+def _extract_auth_token():
+    cookie_token = request.cookies.get('authToken')
+    if cookie_token:
+        return cookie_token
+
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.lower().startswith('bearer '):
+        return auth_header[7:].strip()
+
+    return None
+
 @users_blueprint.route('/', methods=['GET'])
 @users_blueprint.route('', methods=['GET'])
 def get_all_users():
@@ -135,7 +147,7 @@ def login():
 @users_blueprint.route('/validate', methods=['GET'])
 @users_blueprint.route('/validate/', methods=['GET'])
 def validate():
-    token = request.cookies.get('authToken')
+    token = _extract_auth_token()
     
     if not token:
         return jsonify({
@@ -184,7 +196,7 @@ def validate():
 @users_blueprint.route('/logout', methods=['POST'])
 @users_blueprint.route('/logout/', methods=['POST'])
 def logout():
-    token = request.cookies.get('authToken')
+    token = _extract_auth_token()
     
     try:
         # Delete token from database
