@@ -1,4 +1,5 @@
 import { useAuth } from "../hooks/useAuth";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
     const { logout } = useAuth();
@@ -14,7 +15,16 @@ const Dashboard = () => {
             <div className="w-64 bg-blue-900 p-6 text-white">
                 <h2 className="mb-6 text-2xl font-bold">Stock Detection</h2>
                 <ul className="space-y-4">
-                    <li className="cursor-pointer hover:text-gray-300">Dashboard</li>
+                    <li>
+                        <Link to="/dashboard" className="cursor-pointer font-semibold text-yellow-300">
+                            Dashboard
+                        </Link>
+                    </li>
+                    <li>
+                        <Link to="/space-detection" className="cursor-pointer hover:text-gray-300">
+                            Space Detection
+                        </Link>
+                    </li>
                     <li className="cursor-pointer hover:text-gray-300">Products</li>
                     <li className="cursor-pointer hover:text-gray-300">Alerts</li>
                     <li className="cursor-pointer hover:text-gray-300">Reorders</li>

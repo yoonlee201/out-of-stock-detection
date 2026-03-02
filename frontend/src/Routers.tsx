@@ -5,6 +5,7 @@ import { useAuth } from "./hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import SpaceDetection from "./pages/SpaceDetection";
 
 const ProtectedRoute = () => {
     const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function Routers() {
                     <Route path="/register" element={<Register />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/space-detection" element={<SpaceDetection />} />
                     </Route>
                     {/* <Route path="/dashboard" element={<Dashboard />} /> */}
 
