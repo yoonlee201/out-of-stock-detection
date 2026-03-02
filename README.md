@@ -304,3 +304,51 @@ If you use Docker for backend, rebuild the backend image so the new dependency i
 ```bash
 docker compose -f compose.dev.yml up --build backend
 ```
+
+## Space Detection
+
+Quick start for `backend/space_detection`:
+
+```bash
+cd backend/space_detection
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install ultralytics roboflow matplotlib pillow pyyaml
+export ROBOFLOW_API_KEY="<your_key>"
+```
+
+Train:
+
+```bash
+python3 train_pipeline.py \
+  --download-location ./downloads \
+  --combined-root ./combined_dataset \
+  --runs-root ./runs \
+  --workers 1 \
+  --output-best ./best.pt
+```
+
+Post-training checks:
+
+```bash
+python3 verify_model_hash.py ./best.pt ./runs/emptyspace_p2_finetune/weights/best.pt
+```
+
+```bash
+python3 - <<'PY'
+from ultralytics import YOLO
+m = YOLO("./best.pt")
+metrics = m.val(data="./combined_dataset/data.yaml", split="test", workers=1)
+print("mAP50:", metrics.box.map50)
+print("mAP50-95:", metrics.box.map)
+print("Precision:", metrics.box.mp)
+print("Recall:", metrics.box.mr)
+PY
+```
+
+Inference:
+
+```bash
+python3 predict.py ./combined_dataset/valid/images/ds1_1252.jpg --model ./best.pt --conf 0.25 --output ./output.jpg
+```
