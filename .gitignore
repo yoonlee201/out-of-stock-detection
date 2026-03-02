@@ -1,4 +1,50 @@
+
+# Project
 SKU110K_CVPR19/
 backend/.venv/
+backend/venv/
 *.pt
 !backend/space_detection/best.pt
+
+# General
+.DS_Store
+.env
+*.log
+*.sqlite3
+*.pyc
+__pycache__/
+
+# Python
+backend/.venv/
+backend/venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.DS_Store
+
+# VSCode
+.vscode/
+
+# Docker
+**/data/
+**/output/
+
+# OS
+Thumbs.db
+
+# Jupyter
+*.ipynb_checkpoints/
+
+# Misc
+*.bak
+*.swp
+*.swo
+
+# Ignore model weights and large files
+backend/space_detection/*.pt
+backend/space_detection/runs/
+
+# Ignore database dumps
+*.sql
