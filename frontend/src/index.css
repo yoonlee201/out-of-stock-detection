@@ -1,10 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-    --color-primary: #3a56b8;
-    --color-primary-hover: #23398c;
-    --color-primary-active: #142861;
-    --color-secondary: #ffc106;
+    --color-primary: #1c1c20;
+    --color-primary-hover: #31353f;
+    --color-primary-active: #4a505f;
+    --color-secondary: #cd1a1a;
+    --color-tertiary: #940000;
+    --color-blue: #3a56b8;
+    --color-yellow: #ffc106;
+    --color-red: #940000;
+    --color-green: #148f4e;
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
@@ -36,10 +41,15 @@
     scrollbar-width: none; /* Hides the scrollbar visually */
 }
 
-
 @keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 .anim-item {
     opacity: 0;

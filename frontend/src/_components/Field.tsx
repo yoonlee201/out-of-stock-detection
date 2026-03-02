@@ -19,12 +19,12 @@ const Field = ({
     type = "text",
     icon,
     placeholder,
-    required=false,
+    required = false,
     animationDelay,
     error,
     ...rest
 }: FieldProps) => (
-    <div className='anim-item' style={{ animationDelay: animationDelay ?? "0s" }}>
+    <div className="anim-item" style={{ animationDelay: animationDelay ?? "0s" }}>
         <style>{`
             `}</style>
         <label className={`mb-1 block text-sm font-semibold text-gray-600 ${labelClassName ?? ""}`}>

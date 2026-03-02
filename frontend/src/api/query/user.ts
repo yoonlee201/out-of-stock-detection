@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { axiosAuth, axiosDefault } from "..";
-import type { User } from "../../types/db";
+import { getUserRole, UserRole, type User } from "../../types/db";
 import logger from "../../utils/log";
 
 export const apiRegisterUser = async ({
@@ -82,6 +82,9 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
             if (!user || !user.email) {
                 return undefined;
             }
+
+            logger.info("User validation successful:", user.role, UserRole[user.role as keyof typeof UserRole]);
+
             return {
                 firstName: user.first_name,
                 lastName: user.last_name,
@@ -89,7 +92,7 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
                 email: user.email,
                 phone: user.phone,
 
-                role: user.role,
+                role: getUserRole(user.role),
                 createdAt: user.created_at,
                 id: user.id,
             };

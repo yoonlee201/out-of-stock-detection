@@ -164,11 +164,11 @@ def validate():
             'user': {
                 'id': user.user_id,
                 'email': user.email,
-                'firstName': user.first_name,
-                'lastName': user.last_name,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
                 'role': user.role,
                 'phone': user.phone,
-                'createdAt': user.created_at.isoformat()
+                'created_at': user.created_at.isoformat()
             }
         })
         
