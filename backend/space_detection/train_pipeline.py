@@ -1,64 +1,27 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 from pipeline_utils import (
     check_cuda,
-    combine_datasets,
     copy_file,
-    download_datasets,
     evaluate_model,
     file_md5,
-    print_versions_for_specs,
-    sanity_check_datasets,
     show_samples,
     train_two_phase,
     visualize_predictions,
-    write_data_yaml,
 )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the full space-detection workflow."
-    )
-    parser.add_argument(
-        "--api-key",
-        default=os.getenv("ROBOFLOW_API_KEY"),
-        help="Roboflow API key. Defaults to ROBOFLOW_API_KEY env var.",
-    )
-    parser.add_argument(
-        "--skip-download",
-        action="store_true",
-        help="Skip Roboflow download step and use --dataset-path inputs.",
-    )
-    parser.add_argument(
-        "--list-versions",
-        action="store_true",
-        help="List available versions for configured Roboflow projects and exit.",
-    )
-    parser.add_argument(
-        "--skip-sanity-check",
-        action="store_true",
-        help="Skip dataset sanity checks (data.yaml + label file checks).",
-    )
-    parser.add_argument(
-        "--dataset-path",
-        action="append",
-        default=[],
-        help="Path to an existing Roboflow YOLO dataset (repeatable).",
-    )
-    parser.add_argument(
-        "--download-location",
-        default=None,
-        help="Optional directory where Roboflow datasets are downloaded.",
+        description="Train/evaluate space-detection using a restored combined dataset."
     )
     parser.add_argument(
         "--combined-root",
         default="combined_dataset",
-        help="Output folder for merged dataset.",
+        help="Existing merged dataset folder (must contain data.yaml).",
     )
     parser.add_argument(
         "--runs-root",
@@ -92,64 +55,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_data_yaml(combined_root: Path) -> Path:
+    """Return data.yaml path and fail with actionable guidance if missing."""
+    data_yaml_path = combined_root / "data.yaml"
+    if not data_yaml_path.exists():
+        raise SystemExit(
+            "Missing dataset at "
+            f"{data_yaml_path}. Restore it first with:\n"
+            "python3 dataset_sync.py download "
+            "--repo-id <your-username>/oos-combined-dataset "
+            f"--destination {combined_root} --force"
+        )
+    return data_yaml_path
+
+
 def main() -> None:
     args = parse_args()
 
-    if args.list_versions:
-        if not args.api_key:
-            raise SystemExit(
-                "Missing Roboflow API key. Set ROBOFLOW_API_KEY or pass --api-key."
-            )
-        print_versions_for_specs(api_key=args.api_key)
-        return
-
     check_cuda()
-
-    dataset_paths = [Path(path) for path in args.dataset_path]
-    if not dataset_paths and not args.skip_download:
-        if not args.api_key:
-            raise SystemExit(
-                "Missing Roboflow API key. Set ROBOFLOW_API_KEY or pass --api-key."
-            )
-        dataset_paths = [
-            Path(path)
-            for path in download_datasets(
-                api_key=args.api_key,
-                download_location=args.download_location,
-            )
-        ]
-
-    if not dataset_paths:
-        raise SystemExit(
-            "No datasets available. Provide --dataset-path or run without --skip-download."
-        )
-
-    # Remove duplicates while preserving order.
-    dataset_paths = list(dict.fromkeys(dataset_paths))
-
-    if not args.skip_sanity_check:
-        summaries = sanity_check_datasets(dataset_paths)
-        unusable = [
-            summary
-            for summary in summaries
-            if not summary.get("usable_for_empty_space_merge", False)
-        ]
-        if unusable:
-            print("\nWarning: one or more datasets may be unusable for merge/remap:")
-            for summary in unusable:
-                print(f"  - {summary['dataset_root']}")
-            print("You can still continue, or replace those datasets.")
 
     combined_root = Path(args.combined_root)
     runs_root = Path(args.runs_root)
-
-    counts = combine_datasets(dataset_paths=dataset_paths, combined_root=combined_root)
-    if counts.get("train_images", 0) == 0:
-        raise SystemExit(
-            "Merged dataset has 0 training images. Check download paths and dataset extraction."
-        )
-
-    data_yaml_path = write_data_yaml(combined_root=combined_root)
+    data_yaml_path = resolve_data_yaml(combined_root=combined_root)
 
     if args.preview_train > 0:
         show_samples(
