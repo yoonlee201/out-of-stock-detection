@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS reorders CASCADE;
 DROP TABLE IF EXISTS alerts CASCADE;
 DROP TABLE IF EXISTS inventory_logs CASCADE;
 DROP TABLE IF EXISTS tokens CASCADE;
+DROP TABLE IF EXISTS employee CASCADE;
 
 -- Connect to it: \c shelf_monitor_db
 
@@ -73,6 +74,14 @@ CREATE TABLE tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires TIMESTAMP NOT NULL
 );
+
+CREATE TABLE employee (
+    employee_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'inactive'  -- e.g., 'active', 'inactive', 'pending'
+)
+
 -- Optional: Indexes for faster queries
 CREATE INDEX idx_product_name ON products(name);
 CREATE INDEX idx_alerts_user ON alerts(user_id);

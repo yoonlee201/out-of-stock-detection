@@ -110,7 +110,7 @@ const Login = () => {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full text-white disabled:opacity-60"
+                        className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active w-full text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Logging in..." : "Log In"}
                     </Button>

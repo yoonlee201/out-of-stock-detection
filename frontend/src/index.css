@@ -4,8 +4,10 @@
     --color-primary: #1c1c20;
     --color-primary-hover: #31353f;
     --color-primary-active: #4a505f;
-    --color-secondary: #cd1a1a;
-    --color-tertiary: #940000;
+    --color-secondary: #7a131b;
+    --color-secondary-hover: #9e1c24;
+    --color-secondary-active: #c41e2b;
+    --color-tertiary: #8c7b21;
     --color-blue: #3a56b8;
     --color-yellow: #ffc106;
     --color-red: #940000;

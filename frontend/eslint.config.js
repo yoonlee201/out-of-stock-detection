@@ -23,6 +23,7 @@ export default defineConfig([
             // "@typescript-eslint/no-explicit-any": "off",
             // "eslint-disable react-hooks/exhaustive-deps": "off",
             // "eslint-disable-next-line react-hooks/exhaustive-deps": "off",
+            "eslint-disable-next-line @typescript-eslint/no-unused-expressions": "off",
         },
     },
 ]);
