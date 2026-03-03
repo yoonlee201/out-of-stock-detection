@@ -45,6 +45,8 @@ Thumbs.db
 # Ignore model weights and large files
 backend/space_detection/*.pt
 backend/space_detection/runs/
+backend/space_detection/combined_dataset/
+backend/space_detection/downloads/
 
 # Ignore database dumps
 *.sql

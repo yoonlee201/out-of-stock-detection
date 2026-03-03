@@ -25,6 +25,58 @@ Your folder structure should look like this:
 
 ---
 
+## Restore Repo (Fresh Machine)
+
+Use this when you are setting up the project again on a new laptop/VM.
+
+1) Clone the repository:
+
+```bash
+git clone https://github.com/yoonlee201/out-of-stock-shelf-intelligence.git
+cd out-of-stock-shelf-intelligence
+```
+
+2) Set up backend dependencies:
+
+```bash
+cd backend
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -r requirements.yolo.txt
+touch .env
+echo SQLALCHEMY_DATABASE_URI=postgresql://oos_detection:oos_detection_dev_password@db:5432/oos_detection > .env
+cd ..
+```
+
+3) Set up frontend dependencies:
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+4) Restore the merged YOLO dataset cache from Hugging Face:
+
+```bash
+source backend/.venv/bin/activate
+cd backend/space_detection
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py download \
+  --repo-id <your-username>/oos-combined-dataset \
+  --destination ./combined_dataset \
+  --force
+cd ../..
+```
+
+5) Start the full stack:
+
+```bash
+docker compose -f compose.dev.yml up --build
+```
+
 ## Github Setup
 
 ### Clone the Repository
@@ -314,19 +366,47 @@ cd backend/space_detection
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install ultralytics roboflow matplotlib pillow pyyaml
-export ROBOFLOW_API_KEY="<your_key>"
+pip install ultralytics matplotlib pillow huggingface_hub
 ```
 
-Train:
+Restore `./combined_dataset` from Hugging Face:
+
+```bash
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py download \
+  --repo-id <your-username>/oos-combined-dataset \
+  --destination ./combined_dataset \
+  --force
+```
+
+Train using the restored dataset:
 
 ```bash
 python3 train_pipeline.py \
-  --download-location ./downloads \
   --combined-root ./combined_dataset \
   --runs-root ./runs \
   --workers 1 \
   --output-best ./best.pt
+```
+
+Publish an updated merged dataset to Hugging Face (maintainers only):
+
+```bash
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py upload \
+  --repo-id <your-username>/oos-combined-dataset \
+  --source ./combined_dataset \
+  --private
+```
+
+Kaggle alternative (manual workflow):
+
+```bash
+kaggle datasets init -p ./combined_dataset
+# Edit combined_dataset/dataset-metadata.json with your owner + title
+kaggle datasets create -p ./combined_dataset
+# For updates:
+kaggle datasets version -p ./combined_dataset -m "Update combined dataset"
 ```
 
 Post-training checks:
