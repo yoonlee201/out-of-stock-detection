@@ -24,3 +24,10 @@ export function getUserRole(value: string): UserRole {
     if (valid.includes(value)) return value as UserRole;
     return UserRole.CUSTOMER; // default fallback
 }
+
+export type EmployeeStatus = "active" | "inactive" | "pending";
+
+export interface Employee extends User {
+    status: EmployeeStatus;
+    joinedAt: string;
+}

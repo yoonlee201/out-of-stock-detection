@@ -105,10 +105,37 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
     }
 };
 
+export const apiGetUsers = async () => {
+    try {
+        const { data } = await axiosAuth.get("/users");
+        return data.users as { id: number; first_name: string; last_name: string; email: string; created_at: string }[];
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to fetch users.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to fetch users.");
+    }
+};
+
+export const apiSendInvitation = async (email: string, role: "associate" | "manager") => {
+    try {
+        const { data } = await axiosAuth.patch(`/users/send_invitation`, { email, role });
+        return data as { message: string; invitation_link: string; expires_in_hours: number };
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to send invitation.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to send invitation.");
+    }
+};
+
 export const apiGetEmployees = async () => {
     try {
         const { data } = await axiosAuth.get("/users/employees");
-        return data.users as {
+
+        const employees = data.users as {
             id: number;
             first_name: string;
             last_name: string;
@@ -120,6 +147,17 @@ export const apiGetEmployees = async () => {
             joined_at: string;
             created_at: string;
         }[];
+        return employees.map((e) => ({
+            id: e.id,
+            firstName: e.first_name,
+            lastName: e.last_name,
+            email: e.email,
+            role: getUserRole(e.role),
+            phone: e.phone || "",
+            status: e.status,
+            joinedAt: e.joined_at,
+            createdAt: e.created_at,
+        }));
     } catch (error: unknown) {
         if (isAxiosError(error)) {
             const message = error.response?.data?.message || "Failed to fetch employees.";

@@ -247,15 +247,16 @@ def employees():
     }
 
 
-@users_blueprint.route('/<int:user_id>/send_invitation', methods=['PATCH'])
-@users_blueprint.route('/<int:user_id>/send_invitation/', methods=['PATCH'])
-def send_invitation(user_id):
+@users_blueprint.route('/send_invitation', methods=['PATCH'])
+@users_blueprint.route('/send_invitation/', methods=['PATCH'])
+def send_invitation():
     data = request.get_json(silent=True) or {}
     invited_role = data.get("role", "associate")
+    email = data.get("email")
     if invited_role not in EMPLOYEE_ROLES:
         return {"message": "Invalid role for invitation. Must be 'associate' or 'manager'"}, 400
 
-    user = get_user_by_id(user_id)
+    user = get_user_by_email(email)
     if not user:
         return {"message": "User not found"}, 404
     if user.role != "customer":
