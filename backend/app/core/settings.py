@@ -42,6 +42,31 @@ class Settings(BaseSettings):
         description="OpenAI API Model"
     )
     
+    # Alerting
+    GMAIL_ADDRESS: str = Field(
+        default=os.getenv("GMAIL_ADDRESS", ""),
+        description="Gmail address for sending alerts"
+    )
+    
+    GMAIL_PASSWORD: str = Field(
+        default=os.getenv("GMAIL_PASSWORD", ""),
+        description="Gmail app password for sending alerts"
+    )
+    
+    NUMVERIFY_API_KEY: str = Field(
+        default=os.getenv("NUMVERIFY_API_KEY", ""),
+        description="API key for NumVerify phone number validation"
+    )
+
+    SECRET_KEY: str = Field(
+        default=os.getenv("SECRET_KEY", "dev-secret-key"),
+        description="Secret key for signing tokens"
+    )
+
+    INVITATION_SECRET_KEY: str = Field(
+        default=os.getenv("INVITATION_SECRET_KEY", ""),
+        description="Secret key for signing invitation tokens (falls back to SECRET_KEY)"
+    )
 
     class Config:
         env_file = ".env"

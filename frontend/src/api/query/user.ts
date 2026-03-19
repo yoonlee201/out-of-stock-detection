@@ -104,3 +104,67 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
         return undefined;
     }
 };
+
+export const apiGetEmployees = async () => {
+    try {
+        const { data } = await axiosAuth.get("/users/employees");
+        return data.users as {
+            id: number;
+            first_name: string;
+            last_name: string;
+            email: string;
+            role: string;
+            phone: string | null;
+            carrier: string | null;
+            status: "active" | "inactive" | "pending";
+            joined_at: string;
+            created_at: string;
+        }[];
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to fetch employees.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to fetch employees.");
+    }
+};
+
+export const apiVerifyInvitation = async (token: string) => {
+    try {
+        const { data } = await axiosDefault.get("/users/invitation/verify", {
+            params: { token },
+        });
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to verify invitation.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to verify invitation.");
+    }
+};
+
+export const apiCompleteInvitation = async ({
+    token,
+    phone,
+    carrier,
+}: {
+    token: string;
+    phone: string;
+    carrier: string;
+}) => {
+    try {
+        const { data } = await axiosDefault.post("/users/invitation/complete", {
+            token,
+            phone,
+            carrier,
+        });
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to complete invitation.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to complete invitation.");
+    }
+};

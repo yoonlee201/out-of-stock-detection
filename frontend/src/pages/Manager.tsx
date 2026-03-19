@@ -4,6 +4,7 @@ import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import Checkbox from "../_components/Checkbox";
+import { apiGetEmployees } from "../api/query/user";
 
 type EmployeeStatus = "active" | "inactive" | "pending";
 
@@ -11,86 +12,6 @@ interface Employee extends User {
     status: EmployeeStatus;
     joinedAt: string;
 }
-
-const MOCK_EMPLOYEES: Employee[] = [
-    {
-        id: "1",
-        firstName: "James",
-        lastName: "Harmon",
-        email: "j.harmon@usmc.mil",
-        phone: "+1 703 555 0101",
-        role: "associate",
-        createdAt: "2024-01-10",
-        status: "active",
-        joinedAt: "2024-01-15",
-    },
-    {
-        id: "2",
-        firstName: "Maria",
-        lastName: "Delgado",
-        email: "m.delgado@usmc.mil",
-        phone: "+1 703 555 0102",
-        role: "manager",
-        createdAt: "2024-01-12",
-        status: "active",
-        joinedAt: "2024-01-20",
-    },
-    {
-        id: "3",
-        firstName: "Troy",
-        lastName: "Sutton",
-        email: "t.sutton@usmc.mil",
-        phone: "+1 703 555 0103",
-        role: "associate",
-        createdAt: "2024-02-01",
-        status: "inactive",
-        joinedAt: "2024-02-05",
-    },
-    {
-        id: "4",
-        firstName: "Dana",
-        lastName: "Kowalski",
-        email: "d.kowalski@usmc.mil",
-        phone: "+1 703 555 0104",
-        role: "associate",
-        createdAt: "2024-03-15",
-        status: "pending",
-        joinedAt: "2024-03-20",
-    },
-    {
-        id: "5",
-        firstName: "Dana",
-        lastName: "Kim",
-        email: "d.kim@usmc.mil",
-        phone: "+1 703 555 0106",
-        role: "associate",
-        createdAt: "2024-04-01",
-        status: "active",
-        joinedAt: "2024-04-05",
-    },
-    {
-        id: "6",
-        firstName: "Leon",
-        lastName: "Pierce",
-        email: "l.pierce@usmc.mil",
-        phone: "+1 703 555 0107",
-        role: "associate",
-        createdAt: "2024-04-05",
-        status: "pending",
-        joinedAt: "2024-04-10",
-    },
-    {
-        id: "7",
-        firstName: "Anna",
-        lastName: "Ruiz",
-        email: "a.ruiz@usmc.mil",
-        phone: "+1 703 555 0108",
-        role: "manager",
-        createdAt: "2024-05-01",
-        status: "inactive",
-        joinedAt: "2024-05-05",
-    },
-];
 
 const STATUS_STYLES: Record<EmployeeStatus, string> = {
     active: "bg-green/10 text-green",
@@ -123,8 +44,9 @@ const ChevronIcon = ({ dir }: { dir: SortDir }) => (
 );
 
 const Manager = () => {
-    const [employees, setEmployees] = useState<Employee[]>(MOCK_EMPLOYEES);
-    const [loading, setLoading] = useState(false);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [fetching, setFetching] = useState(true);
+    const [inviteLoading, setInviteLoading] = useState(false);
     const [openInvite, setOpenInvite] = useState(false);
     const [newEmail, setNewEmail] = useState("");
     const [search, setSearch] = useState("");
@@ -139,6 +61,27 @@ const Manager = () => {
     // Edit dialog
     const [editTarget, setEditTarget] = useState<Employee | null>(null);
     const [editForm, setEditForm] = useState<Partial<Employee>>({});
+
+    useEffect(() => {
+        apiGetEmployees()
+            .then((rows) =>
+                setEmployees(
+                    rows.map((r) => ({
+                        id: String(r.id),
+                        firstName: r.first_name,
+                        lastName: r.last_name,
+                        email: r.email,
+                        phone: r.phone ?? "—",
+                        role: r.role as UserRole,
+                        createdAt: r.created_at,
+                        status: r.status,
+                        joinedAt: r.joined_at,
+                    })),
+                ),
+            )
+            .catch(() => setMessage({ text: "Failed to load employees.", type: "error" }))
+            .finally(() => setFetching(false));
+    }, []);
 
     useEffect(() => {
         if (message) {
@@ -178,14 +121,14 @@ const Manager = () => {
         groupBy === "none"
             ? { all: filtered }
             : groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
+                ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-              : STATUSES.reduce(
+                : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -201,14 +144,22 @@ const Manager = () => {
     const toggleAll = () => {
         setSelected((prev) => {
             const next = new Set(prev);
-            allChecked ? filtered.forEach((e) => next.delete(e.id!)) : filtered.forEach((e) => next.add(e.id!));
+            if (allChecked) {
+                filtered.forEach((e) => next.delete(e.id!));
+            } else {
+                filtered.forEach((e) => next.add(e.id!));
+            }
             return next;
         });
     };
     const toggleOne = (id: string) => {
         setSelected((prev) => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
             return next;
         });
     };
@@ -238,7 +189,7 @@ const Manager = () => {
 
     const handleInvite = () => {
         if (!newEmail) return;
-        setLoading(true);
+        setInviteLoading(true);
         setTimeout(() => {
             setEmployees((prev) => [
                 ...prev,
@@ -257,7 +208,7 @@ const Manager = () => {
             setMessage({ text: "Invitation sent successfully", type: "success" });
             setNewEmail("");
             setOpenInvite(false);
-            setLoading(false);
+            setInviteLoading(false);
         }, 800);
     };
 
@@ -426,11 +377,10 @@ const Manager = () => {
                 {/* Toast */}
                 {message && (
                     <div
-                        className={`mx-8 mt-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
-                            message.type === "error"
+                        className={`mx-8 mt-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${message.type === "error"
                                 ? "border-red/20 bg-red/5 text-red"
                                 : "border-green/20 bg-green/5 text-green"
-                        }`}
+                            }`}
                     >
                         {message.text}
                         <button onClick={() => setMessage(null)} className="ml-auto opacity-60 hover:opacity-100">
@@ -455,7 +405,13 @@ const Manager = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.length === 0 ? (
+                            {fetching ? (
+                                <tr>
+                                    <td colSpan={8} className="py-20 text-center text-gray-400">
+                                        Loading employees…
+                                    </td>
+                                </tr>
+                            ) : filtered.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-20 text-center text-gray-400">
                                         No employees found.
@@ -511,10 +467,10 @@ const Manager = () => {
                     </button>
                     <button
                         onClick={handleInvite}
-                        disabled={!newEmail || loading}
+                        disabled={!newEmail || inviteLoading}
                         className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                        {loading ? "Sending…" : "Send Invitation"}
+                        {inviteLoading ? "Sending…" : "Send Invitation"}
                     </button>
                 </div>
             </Dialog>
@@ -553,8 +509,7 @@ const Manager = () => {
                     />
                 </div>
                 <div className="mt-3">
-                    {" "}
-                    a<label className="mb-1 block text-xs font-medium text-gray-600">Phone</label>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Phone</label>
                     <input
                         value={editForm.phone ?? ""}
                         onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
