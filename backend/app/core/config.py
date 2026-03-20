@@ -19,5 +19,10 @@ class Config:
     
     SECRET_KEY = settings.SECRET_KEY
     INVITATION_SECRET_KEY = settings.INVITATION_SECRET_KEY
+    
+    PRODUCTION = settings.PRODUCTION == 'production'
+    
+    def check_production(self):
+        return self.PRODUCTION == 'production'
 
 config = Config()

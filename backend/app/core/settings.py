@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
     
     FRONTEND_URL: str = Field(
-        default=os.getenv("FRONTEND_URL", ""),
+        default=os.getenv("FRONTEND_URL", "http://localhost:5173"),
         description="Frontend application URL"
     )
 
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     )
 
     INVITATION_SECRET_KEY: str = Field(
-        default=os.getenv("INVITATION_SECRET_KEY", ""),
+        default=os.getenv("INVITATION_SECRET_KEY", SECRET_KEY),
         description="Secret key for signing invitation tokens (falls back to SECRET_KEY)"
     )
 
