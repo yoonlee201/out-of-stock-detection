@@ -12,6 +12,7 @@ from app.util.send import (
 )
 from datetime import datetime, timedelta
 import uuid
+import secrets
 
 ALLOWED_ROLES = ('customer', 'associate', 'manager')
 EMPLOYEE_ROLES = ('associate', 'manager')
@@ -124,6 +125,22 @@ def update_user_role(user_id, new_role):
     db.session.commit()
     return user
 
+def update_employee_status(user_id, new_status):
+    """Update an employee's status. Raises LookupError if not found, ValueError if user is not an employee."""
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
+
+    if user.role not in EMPLOYEE_ROLES:
+        raise ValueError("User is not an employee")
+
+    employee = Employee.query.filter_by(user_id=user_id).first()
+    if not employee:
+        raise LookupError("Employee record not found")
+
+    employee.status = new_status
+    db.session.commit()
+    return employee
 
 def get_all_employees():
     """Return list of (Users, Employee) tuples for all employees."""
@@ -208,26 +225,55 @@ def verify_email_token(token):
 
 # --- Invitation helpers ---
 
-def send_invitation_email(user, invited_role, email=None):
-    """Send an invitation email. Returns the invitation link."""
+def prepare_invitation(email):
+    """Find or create a pending user+employee for the given email.
+
+    Returns (user, is_new).
+    Raises ValueError if the email belongs to an existing employee.
+    """
+    user = Users.query.filter_by(email=email).first()
     is_new = user is None
-    to_address = email if is_new else user.email
+
+    if not is_new and user.role in EMPLOYEE_ROLES:
+        raise ValueError("User is already an employee")
+
+    if is_new:
+        user = Users(
+            first_name="",
+            last_name="",
+            email=email,
+            role="customer",
+            is_verified=False,
+        )
+        user.set_password(secrets.token_hex(32))
+        db.session.add(user)
+        db.session.flush()
+
+    employee = Employee.query.filter_by(user_id=user.user_id).first()
+    if employee is None:
+        employee = Employee(user_id=user.user_id, status="pending")
+        db.session.add(employee)
+    else:
+        employee.status = "pending"
+
+    db.session.commit()
+    return user, is_new
+
+
+def send_invitation_email(user, invited_role, is_new=False):
+    """Send an invitation email. Returns the invitation link."""
     greeting = "there" if is_new else user.first_name
 
     serializer = invite_serializer()
     payload = {
         "purpose": "employee_invitation",
-        "user_id": None if is_new else user.user_id,
+        "user_id": user.user_id,
         "role": invited_role,
+        "is_new": is_new,
     }
-    if is_new:
-        payload["status"] = "new"
-        payload["email"] = to_address
 
     token = serializer.dumps(payload)
     invitation_link = f"{config.FRONTEND_URL.rstrip('/')}/continue?token={token}"
-    if is_new:
-        invitation_link += "&status=new"
 
     html = render_email(f"""
       <p>Hi <strong>{greeting}</strong>,</p>
@@ -240,7 +286,7 @@ def send_invitation_email(user, invited_role, email=None):
     """)
 
     send_email(
-        to_address=to_address,
+        to_address=user.email,
         subject="You're Invited to Join Our Team!",
         body=f"Hi {greeting}, you've been invited as a {invited_role}. Accept here: {invitation_link} (expires in 7 days)",
         html=html,
@@ -249,73 +295,45 @@ def send_invitation_email(user, invited_role, email=None):
 
 
 def verify_invitation_token(token):
-    """Return (user_or_None, role, email_or_None).
-    Raises SignatureExpired, BadSignature, or LookupError — caught by the route.
-    """
+    """Return (user, role, is_new). Raises on invalid/expired token or missing user."""
     payload = load_invitation_payload(token)
-    user_id = payload.get("user_id")
-    role = payload.get("role", "associate")
-
-    if user_id is None:
-        return None, role, payload.get("email")
-
-    user = Users.query.get(user_id)
+    user = Users.query.get(payload.get("user_id"))
     if not user:
         raise LookupError("User not found")
-
-    return user, role, None
+    return user, payload.get("role", "associate"), payload.get("is_new", False)
 
 
 def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
-    """Complete an employee invitation.
-    Raises SignatureExpired, BadSignature, ValueError, or LookupError — caught by the route.
-    """
+    """Complete an invitation. For new users, fills in name/password on the placeholder account."""
     payload = load_invitation_payload(token)
     invited_role = payload.get("role", "associate")
     if invited_role not in EMPLOYEE_ROLES:
         raise ValueError("Invalid invited role")
 
-    user_id = payload.get("user_id")
+    user = Users.query.get(payload.get("user_id"))
+    if not user:
+        raise LookupError("User not found")
 
-    if user_id is None:
-        # New user — create account from invitation
-        email = payload.get("email")
-        if not email:
-            raise ValueError("Email not found in invitation token")
+    if payload.get("is_new", False):
         if not first_name or not last_name:
             raise ValueError("First name and last name are required")
         if not password:
             raise ValueError("Password is required")
-
-        user = Users(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            phone=phone,
-            carrier=lookup_carrier(phone),
-            role=invited_role,
-            is_verified=True,
-        )
+        user.first_name = first_name
+        user.last_name = last_name
         user.set_password(password)
-        db.session.add(user)
-        db.session.flush()
-        employee = Employee(user_id=user.user_id, status='active')
+        user.is_verified = True
+
+    user.phone = phone
+    user.carrier = lookup_carrier(phone)
+    user.role = invited_role
+
+    employee = Employee.query.filter_by(user_id=user.user_id).first()
+    if employee is None:
+        employee = Employee(user_id=user.user_id, status="active")
         db.session.add(employee)
     else:
-        user = Users.query.get(user_id)
-        if not user:
-            raise LookupError("User not found")
-
-        user.phone = phone
-        user.carrier = lookup_carrier(phone)
-        user.role = invited_role
-
-        employee = Employee.query.filter_by(user_id=user.user_id).first()
-        if employee is None:
-            employee = Employee(user_id=user.user_id, status='active')
-            db.session.add(employee)
-        else:
-            employee.status = 'active'
+        employee.status = "active"
 
     db.session.commit()
     return user

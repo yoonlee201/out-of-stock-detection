@@ -16,6 +16,7 @@ from app.services.user_services import (
     update_user_role,
     deactivate_employee,
 
+    prepare_invitation,
     send_invitation_email,
     verify_invitation_token,
     complete_invitation,
@@ -250,12 +251,13 @@ def send_invitation(session):
     if not email:
         return {"message": "Email is required"}, 400
 
-    user = get_user_by_email(email)
-    if user and user.role != "customer":
-        return {"message": "User is already an employee"}, 422
+    try:
+        user, is_new = prepare_invitation(email)
+    except ValueError as e:
+        return {"message": str(e)}, 422
 
     try:
-        invitation_link = send_invitation_email(user, invited_role, email=email)
+        invitation_link = send_invitation_email(user, invited_role, is_new=is_new)
     except Exception:
         return {"message": "Failed to send invitation email"}, 500
 
@@ -270,7 +272,7 @@ def verify_invitation():
         return {"message": "Invitation token is required"}, 400
 
     try:
-        user, invited_role, new_email = verify_invitation_token(token)
+        user, invited_role, is_new = verify_invitation_token(token)
     except SignatureExpired:
         return {"message": "Invitation link has expired"}, 410
     except BadSignature:
@@ -278,17 +280,9 @@ def verify_invitation():
     except LookupError as e:
         return {"message": str(e)}, 404
 
-    if user is None:
-        return {
-            "message":      "Invitation is valid",
-            "is_new":       True,
-            "email":        new_email,
-            "invited_role": invited_role,
-        }, 200
-
     return {
         "message":      "Invitation is valid",
-        "is_new":       False,
+        "is_new":       is_new,
         "invited_role": invited_role,
         "user": {
             "id":         user.user_id,

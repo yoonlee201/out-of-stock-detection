@@ -5,6 +5,12 @@ import Field from "../_components/Field";
 import { LockIcon, UserIcon } from "../_components/Icons";
 import { apiCompleteInvitation, apiVerifyInvitation } from "../api/query/user";
 
+type VerifyResponse = {
+    invited_role: "associate" | "manager";
+    is_new: boolean;
+    user: { first_name: string; last_name: string; email: string; phone?: string };
+};
+
 type Form = {
     invitedRole: "associate" | "manager";
     isNew: boolean;
@@ -40,14 +46,14 @@ const Invitation = () => {
         }
 
         apiVerifyInvitation(invitationToken)
-            .then((data) => {
+            .then((data: VerifyResponse) => {
                 setForm({
                     invitedRole: data.invited_role,
                     isNew: data.is_new,
-                    firstName: data.user?.first_name ?? "",
-                    lastName: data.user?.last_name ?? "",
-                    email: data.is_new ? (data.email ?? "") : (data.user?.email ?? ""),
-                    phone: data.user?.phone ?? "",
+                    firstName: data.user.first_name,
+                    lastName: data.user.last_name,
+                    email: data.user.email,
+                    phone: data.user.phone ?? "",
                     password: "",
                 });
             })
