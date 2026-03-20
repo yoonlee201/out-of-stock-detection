@@ -50,23 +50,28 @@ _EMAIL_BASE = """
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ margin: 0; padding: 0; background: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; }}
-    .wrapper {{ max-width: 560px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }}
-    .header {{ background: #1e293b; padding: 32px 40px; text-align: center; }}
-    .header h1 {{ margin: 0; color: #f8fafc; font-size: 22px; font-weight: 600; letter-spacing: -.3px; }}
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {{ margin: 0; padding: 0; background: #f4f4f5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #111827; -webkit-font-smoothing: antialiased; }}
+    .wrapper {{ max-width: 560px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.06); }}
+    .header {{ background: #1c1c20; padding: 28px 40px; display: flex; align-items: center; gap: 10px; }}
+    .header-dot {{ width: 8px; height: 8px; border-radius: 50%; background: #7a131b; flex-shrink: 0; }}
+    .header h1 {{ margin: 0; color: #f8fafc; font-size: 18px; font-weight: 600; letter-spacing: -.2px; }}
     .body {{ padding: 40px; }}
     .body p {{ margin: 0 0 16px; line-height: 1.6; font-size: 15px; color: #374151; }}
     .body p.muted {{ font-size: 13px; color: #9ca3af; }}
-    .btn {{ display: inline-block; margin: 8px 0 24px; padding: 14px 32px; background: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; letter-spacing: .2px; }}
-    .btn:hover {{ background: #1d4ed8; }}
+    .btn {{ display: inline-block; margin: 8px 0 24px; padding: 13px 28px; background: #1c1c20; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; letter-spacing: .1px; }}
     .divider {{ border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }}
-    .footer {{ padding: 24px 40px; background: #f8fafc; text-align: center; }}
+    .footer {{ padding: 20px 40px; background: #f9f9f9; border-top: 1px solid #e5e7eb; text-align: center; }}
     .footer p {{ margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.6; }}
+    .accent {{ color: #7a131b; font-weight: 600; }}
   </style>
 </head>
 <body>
   <div class="wrapper">
-    <div class="header"><h1>ShelfMonitor</h1></div>
+    <div class="header">
+      <div class="header-dot"></div>
+      <h1>ShelfMonitor</h1>
+    </div>
     <div class="body">
       {content}
     </div>
@@ -143,7 +148,7 @@ def lookup_carrier(phone_number: str) -> str | None:
 # ── Core SMTP helper ──────────────────────────────────────────────────────────
 def _send_via_gmail(to_address: str, subject: str, body: str, html: str = None) -> None:
     msg = MIMEMultipart("alternative")
-    msg["From"]    = "MCPS Shelf Monitor"
+    msg["From"]    = config.GMAIL_ADDRESS
     msg["To"]      = to_address
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
@@ -152,7 +157,7 @@ def _send_via_gmail(to_address: str, subject: str, body: str, html: str = None) 
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(config.GMAIL_ADDRESS, config.GMAIL_PASSWORD)
-        server.sendmail(config.GMAIL_ADDRESS, to_address, msg.as_string())
+        server.sendmail("MCPS Shelf Monitor", to_address, msg.as_string())
 
 
 # ── Email ─────────────────────────────────────────────────────────────────────

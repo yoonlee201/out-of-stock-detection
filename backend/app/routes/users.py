@@ -224,13 +224,15 @@ def send_invitation(session):
     if not role_is_employee(role=invited_role):
         return {"message": "Invalid role for invitation. Must be 'associate' or 'manager'"}, 400
 
+    if not email:
+        return {"message": "Email is required"}, 400
+
     user = get_user_by_email(email)
-    if not user:
-        return {"message": "User not found"}, 404
-    if user.role != "customer":
+    if user and user.role != "customer":
         return {"message": "User is already an employee"}, 422
 
-    invitation_link = send_invitation_email(user, invited_role)
+    # user=None means the email isn't registered yet — new user invitation
+    invitation_link = send_invitation_email(user, invited_role, email=email)
     return {"message": "Invitation sent", "invitation_link": invitation_link, "expires_in_hours": 168}, 200
 
 @users_blueprint.route('/invitation/verify', methods=['GET'])
@@ -241,9 +243,18 @@ def verify_invitation():
     if not token:
         return {"message": "Invitation token is required"}, 400
 
-    user, invited_role = verify_invitation_token(token)
+    user, invited_role, new_email = verify_invitation_token(token)
+    if user is None:
+        return {
+            "message": "Invitation is valid",
+            "is_new": True,
+            "email": new_email,
+            "invited_role": invited_role,
+        }, 200
+
     return {
         "message": "Invitation is valid",
+        "is_new": False,
         "user": {
             "id": user.user_id,
             "first_name": user.first_name,
@@ -251,9 +262,9 @@ def verify_invitation():
             "email": user.email,
             "phone": user.phone,
             "carrier": user.carrier,
-            "role": user.role
+            "role": user.role,
         },
-        "invited_role": invited_role
+        "invited_role": invited_role,
     }, 200
 
 @users_blueprint.route('/invitation/complete', methods=['POST', 'OPTIONS'])
@@ -272,8 +283,26 @@ def finish_invitation():
         return {"message": "Invitation token is required"}, 400
     if not phone:
         return {"message": "Phone number is required"}, 400
-
-    user = complete_invitation(token, phone)
+    
+    
+    is_new = data.get("is_new", False)
+    
+    if is_new:
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        password = data.get("password")
+        
+        if not first_name:
+            return {"message": "First name is required for new users"}, 400
+        if not last_name:
+            return {"message": "Last name is required for new users"}, 400
+        if not password:
+            return {"message": "Password is required for new users"}, 400
+        
+        user = complete_invitation(token, phone, first_name=first_name, last_name=last_name, password=password)
+    else:
+        user = complete_invitation(token, phone)
+    
     return {
         "message": "Invitation completed successfully",
         "user": {

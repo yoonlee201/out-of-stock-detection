@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Manager from "./pages/Manager";
-import ContinueInvitation from "./pages/ContinueInvitation";
+import Invitation from "./pages/Invitation";
 import VerifyEmail from "./pages/VerifyEmail";
 
 const ProtectedRoute = () => {
@@ -46,7 +46,7 @@ function Routers() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
-                    <Route path="/continue" element={<ContinueInvitation />} />
+                    <Route path="/continue" element={<Invitation />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/employee-management" element={<Manager />} />

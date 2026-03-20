@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 import uuid
 
 from itsdangerous import SignatureExpired, BadSignature
-from sqlalchemy.exc import IntegrityError
 
 ALLOWED_ROLES = ('customer', 'associate', 'manager')
 EMPLOYEE_ROLES = ('associate', 'manager')
@@ -218,50 +217,57 @@ def verify_email_token(token):
 
 
 # --- Invitation helpers ---
-def send_invitation_email(user, invited_role):
-    serializer = invite_serializer()
-    token = serializer.dumps({
-        "purpose": "employee_invitation",
-        "user_id": user.user_id,
-        "role": invited_role
-    })
+def send_invitation_email(user, invited_role, email=None):
+    is_new = user is None
+    to_address = email if is_new else user.email
+    greeting = "there" if is_new else user.first_name
 
-    invitation_link = f"{config.FRONTEND_URL}/continue?token={token}"
+    serializer = invite_serializer()
+    payload = {
+        "purpose": "employee_invitation",
+        "user_id": None if is_new else user.user_id,
+        "role": invited_role,
+    }
+    if is_new:
+        payload["status"] = "new"
+        payload["email"] = to_address
+
+    token = serializer.dumps(payload)
+    invitation_link = f"{config.FRONTEND_URL.rstrip('/')}/continue?token={token}"
+    if is_new:
+        invitation_link += "&status=new"
 
     html = render_email(f"""
-      <p>Hi <strong>{user.first_name}</strong>,</p>
+      <p>Hi <strong>{greeting}</strong>,</p>
       <p>You've been invited to join the team as a <strong>{invited_role.capitalize()}</strong>.</p>
       <p>Click the button below to accept your invitation and set up your account.</p>
-            <p>
-                <a
-                    href="{invitation_link}"
-                    style="display:inline-block;margin:8px 0 24px;padding:14px 32px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;"
-                >
-                    Accept Invitation
-                </a>
-            </p>
+      <p><a class="btn" href="{invitation_link}">Accept Invitation</a></p>
       <hr class="divider">
       <p>This link expires in <strong>7 days</strong>.</p>
       <p class="muted">Or copy this link into your browser:<br>{invitation_link}</p>
     """)
 
     send_email(
-        to_address=user.email,
+        to_address=to_address,
         subject="You're Invited to Join Our Team!",
-        body=f"Hi {user.first_name}, you've been invited as a {invited_role}. Accept here: {invitation_link} (expires in 7 days)",
+        body=f"Hi {greeting}, you've been invited as a {invited_role}. Accept here: {invitation_link} (expires in 7 days)",
         html=html,
     )
     return invitation_link
 
 
 def verify_invitation_token(token):
-    # Return (user, invited_role)
+    """Return (user_or_None, role, email_or_None). Raises on invalid/expired token."""
     try:
         payload = load_invitation_payload(token)
-        user = Users.query.get(payload.get("user_id"))
+        user_id = payload.get("user_id")
+        role = payload.get("role", "associate")
+        if user_id is None:
+            return None, role, payload.get("email")
+        user = Users.query.get(user_id)
         if not user:
             raise LookupError("User not found")
-        return user, payload.get("role", "associate")
+    
     except LookupError as e:
         return {"message": str(e)}, 404
     except SignatureExpired:
@@ -269,16 +275,44 @@ def verify_invitation_token(token):
     except BadSignature:
         return {"message": "Invalid invitation token"}, 400
 
+    return user, role, None
 
-def complete_invitation(token, phone):
-    try:
-    # Complete an employee invitation. Raises on invalid token or missing user.
-        payload = load_invitation_payload(token)
-        invited_role = payload.get("role", "associate")
-        if invited_role not in EMPLOYEE_ROLES:
-            raise ValueError("Invalid invited role")
 
-        user = Users.query.get(payload.get("user_id"))
+def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
+    """Complete an employee invitation. Raises on invalid token, missing user, or bad data."""
+    payload = load_invitation_payload(token)
+    invited_role = payload.get("role", "associate")
+    if invited_role not in EMPLOYEE_ROLES:
+        raise ValueError("Invalid invited role")
+
+    user_id = payload.get("user_id")
+
+    if user_id is None:
+        # New user — create account from invitation
+        email = payload.get("email")
+        if not email:
+            raise ValueError("Email not found in invitation token")
+        if not first_name or not last_name:
+            raise ValueError("First name and last name are required")
+        if not password:
+            raise ValueError("Password is required")
+
+        user = Users(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            carrier=lookup_carrier(phone),
+            role=invited_role,
+            is_verified=True,
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush()
+        employee = Employee(user_id=user.user_id, status='active')
+        db.session.add(employee)
+    else:
+        user = Users.query.get(user_id)
         if not user:
             raise LookupError("User not found")
 
@@ -292,22 +326,6 @@ def complete_invitation(token, phone):
             db.session.add(employee)
         else:
             employee.status = 'active'
-        
-        db.session.commit()
-    except LookupError as e:
-        return {"message": str(e)}, 404
-    except ValueError as e:
-        return {"message": str(e)}, 400
-    except SignatureExpired:
-        return {"message": "Invitation link has expired"}, 410
-    except BadSignature:
-        return {"message": "Invalid invitation token"}, 400
-    except IntegrityError:
-        db.session.rollback()
-        return {"message": "Phone number already in use"}, 409
-    except Exception as error:
-        db.session.rollback()
-        print(f"Error completing invitation: {error}")
-        return {"message": "Internal server error"}, 500
 
+    db.session.commit()
     return user

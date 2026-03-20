@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { apiGetEmployees, apiSendInvitation } from "../api/query/user";
+import { formatDate } from "../utils/functions";
+// type
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
+// components
 import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
-import Checkbox from "../_components/Checkbox";
-import { apiGetEmployees, apiSendInvitation } from "../api/query/user";
-import { toast } from "sonner";
-import { formatDate } from "../utils/functions";
+import { ChevronIcon } from "../_components/Icons";
+// 
+
 
 const STATUS_STYLES: Record<EmployeeStatus, string> = {
     active: "bg-green/10 text-green",
@@ -27,21 +31,9 @@ type GroupBy = "none" | "role" | "status";
 const EMPLOYEE_ROLES: UserRole[] = ["associate", "manager"];
 const STATUSES: EmployeeStatus[] = ["active", "pending", "inactive"];
 
-const ChevronIcon = ({ dir }: { dir: SortDir }) => (
-    <svg
-        className={`ml-1 inline h-3 w-3 transition-transform ${dir === "desc" ? "rotate-180" : ""}`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-    >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-    </svg>
-);
-
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [fetching, setFetching] = useState(true);
-    const [selected, setSelected] = useState<Set<string>>(new Set());
     const [filters, setFilters] = useState({
         search: "",
         role: "all" as "all" | UserRole,
@@ -117,33 +109,6 @@ const Manager = () => {
 
     const groupKeys = filters.groupBy === "none" ? ["all"] : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
-    // Check if all/some rows are selected for bulk actions
-    const allChecked = filtered.length > 0 && filtered.every((e) => selected.has(e.id!));
-    const someChecked = filtered.some((e) => selected.has(e.id!));
-
-    const toggleAll = () => {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (allChecked) {
-                filtered.forEach((e) => next.delete(e.id!));
-            } else {
-                filtered.forEach((e) => next.add(e.id!));
-            }
-            return next;
-        });
-    };
-    const toggleOne = (id: string) => {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    };
-
     const toggleStatus = (id: string) => {
         setEmployees((prev) =>
             prev.map((e) => {
@@ -188,11 +153,8 @@ const Manager = () => {
         rows.map((e) => (
             <tr
                 key={e.id}
-                className={`border-b border-gray-100 transition-colors hover:bg-gray-50 ${selected.has(e.id!) ? "bg-tertiary/5" : ""}`}
+                className="border-b border-gray-100 transition-colors hover:bg-gray-50"
             >
-                <td className="px-8 py-4">
-                    <Checkbox checked={selected.has(e.id!)} onChange={() => toggleOne(e.id!)} />
-                </td>
                 <td className="hover:text-primary cursor-pointer px-4 py-4 font-medium text-gray-900 underline underline-offset-2 transition-colors">
                     {e.firstName} {e.lastName}
                 </td>
@@ -234,9 +196,7 @@ const Manager = () => {
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
-
             <div className="flex flex-1 flex-col">
-                {/* Top bar */}
                 <div className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
                     <span className="text-sm font-medium text-gray-700">Employees ({filtered.length})</span>
                     <button
@@ -249,20 +209,7 @@ const Manager = () => {
                         Invite Employee
                     </button>
                 </div>
-
-                {/* Filter toolbar */}
                 <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-8 py-3">
-                    <label className="mr-2 flex cursor-pointer items-center gap-2 text-sm text-gray-600 select-none">
-                        <Checkbox
-                            checked={allChecked}
-                            indeterminate={someChecked && !allChecked}
-                            onChange={toggleAll}
-                        />
-                        {selected.size > 0 ? `${selected.size} Selected` : "0 Selected"}
-                    </label>
-
-                    <div className="h-4 w-px bg-gray-200" />
-
                     <Dropdown
                         label="Role"
                         sectionLabel="Filter by role"
@@ -335,7 +282,6 @@ const Manager = () => {
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="border-b border-gray-200">
-                                <th className="w-10 px-8 py-3" />
                                 {[
                                     { field: "firstName" as SortField, label: "Name" },
                                     { field: "email" as SortField, label: "Email" },
@@ -350,7 +296,7 @@ const Manager = () => {
                                         className="cursor-pointer px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase transition-colors select-none hover:text-gray-600"
                                     >
                                         {label}
-                                        {filters.sortField === field && <ChevronIcon dir={filters.sortDir} />}
+                                        {filters.sortField === field && <ChevronIcon className={filters.sortDir == 'desc' ? 'rotate-180' : ''} />}
                                     </th>
                                 ))}
                                 <th className="px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
@@ -361,13 +307,13 @@ const Manager = () => {
                         <tbody>
                             {fetching ? (
                                 <tr>
-                                    <td colSpan={8} className="py-20 text-center text-gray-400">
+                                    <td colSpan={7} className="py-20 text-center text-gray-400">
                                         Loading employees…
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-20 text-center text-gray-400">
+                                    <td colSpan={7} className="py-20 text-center text-gray-400">
                                         No employees found.
                                     </td>
                                 </tr>
@@ -379,7 +325,7 @@ const Manager = () => {
                                         <React.Fragment key={key}>
                                             <tr className="border-b border-gray-100 bg-gray-50">
                                                 <td
-                                                    colSpan={8}
+                                                    colSpan={7}
                                                     className="px-8 py-2 text-xs font-bold tracking-wider text-gray-400 uppercase"
                                                 >
                                                     {key} ({grouped[key].length})

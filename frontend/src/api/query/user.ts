@@ -119,11 +119,8 @@ export const apiGetUsers = async () => {
 };
 
 export const apiSendInvitation = async (email: string, role: "associate" | "manager") => {
-    const users = await apiGetUsers();
-    const match = users.find((u) => u.email === email);
-    if (!match) throw new Error("No user found with that email address.");
     try {
-        const { data } = await axiosAuth.patch(`/users/${match.id}/send_invitation`, { role });
+        const { data } = await axiosAuth.patch(`/users/send_invitation`, { role, email });
         return data as { message: string; invitation_link: string; expires_in_hours: number };
     } catch (error: unknown) {
         if (isAxiosError(error)) {
@@ -187,15 +184,27 @@ export const apiVerifyInvitation = async (token: string) => {
 
 export const apiCompleteInvitation = async ({
     token,
-    phone
+    phone,
+    firstName,
+    lastName,
+    password,
+    isNew,
 }: {
     token: string;
     phone: string;
+    firstName?: string;
+    lastName?: string;
+        password?: string;
+    isNew: boolean;
 }) => {
     try {
         const { data } = await axiosDefault.post("/users/invitation/complete", {
             token,
             phone,
+            first_name: firstName,
+            last_name: lastName,
+            password,
+            is_new: isNew,
         });
         return data;
     } catch (error: unknown) {
