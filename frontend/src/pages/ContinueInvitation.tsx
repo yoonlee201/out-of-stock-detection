@@ -28,7 +28,6 @@ const ContinueInvitation = () => {
     const [details, setDetails] = useState<InvitationDetails | null>(null);
 
     const [phone, setPhone] = useState("");
-    const [carrier, setCarrier] = useState("");
 
     useEffect(() => {
         const invitationToken = searchParams.get("token") || "";
@@ -45,7 +44,6 @@ const ContinueInvitation = () => {
                 const data = await apiVerifyInvitation(invitationToken);
                 setDetails(data);
                 setPhone(data.user?.phone || "");
-                setCarrier(data.user?.carrier || "");
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to verify invitation.");
             } finally {
@@ -71,17 +69,11 @@ const ContinueInvitation = () => {
             return;
         }
 
-        if (!carrier.trim()) {
-            setError("Carrier is required.");
-            return;
-        }
-
         setSubmitting(true);
         try {
             await apiCompleteInvitation({
                 token,
-                phone: phone.trim(),
-                carrier: carrier.trim(),
+                phone: phone.trim()
             });
             setSuccess("Your invitation is complete. You can now log in.");
             setTimeout(() => navigate("/login"), 1200);
@@ -113,13 +105,6 @@ const ContinueInvitation = () => {
                                 required
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
-                            />
-                            <Field
-                                label="Carrier"
-                                icon={<UserIcon />}
-                                required
-                                value={carrier}
-                                onChange={(e) => setCarrier(e.target.value)}
                             />
                             <Button
                                 type="submit"

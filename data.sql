@@ -108,6 +108,6 @@ INSERT INTO users (first_name, last_name, password, phone, carrier, role, email,
 ('Charlie', 'Brown', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0105', 'AT&T', 'customer', 'charlie.brown@example.com', TRUE);
 
 INSERT INTO employee (user_id, status) VALUES
-(1, 'pending'),
-(2, 'inactive'),
+(1, 'active'),
+(2, 'pending'),
 (3, 'inactive');

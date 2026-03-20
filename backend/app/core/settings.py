@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     )
 
     INVITATION_SECRET_KEY: str = Field(
-        default=os.getenv("INVITATION_SECRET_KEY", SECRET_KEY),
+        default=os.getenv("INVITATION_SECRET_KEY", "dev-secret-key"),
         description="Secret key for signing invitation tokens (falls back to SECRET_KEY)"
     )
 

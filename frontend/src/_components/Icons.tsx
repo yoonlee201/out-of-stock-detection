@@ -56,6 +56,7 @@ const CheckIcon = () => (
     </svg>
 );
 
+
 const WavingHandIcon = () => (
     <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
         <path

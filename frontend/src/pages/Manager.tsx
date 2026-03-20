@@ -6,6 +6,7 @@ import Dropdown from "../_components/Dropdown";
 import Checkbox from "../_components/Checkbox";
 import { apiGetEmployees, apiSendInvitation } from "../api/query/user";
 import { toast } from "sonner";
+import { formatDate } from "../utils/functions";
 
 const STATUS_STYLES: Record<EmployeeStatus, string> = {
     active: "bg-green/10 text-green",
@@ -63,7 +64,7 @@ const Manager = () => {
     // Get, filter, sort, and group employees for display
     useEffect(() => {
         apiGetEmployees()
-            .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id) }))))
+            .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id), phone: e.phone ?? "" }))))
             .catch(() => toast.error("Failed to load employees."))
             .finally(() => setFetching(false));
     }, []);
@@ -86,13 +87,13 @@ const Manager = () => {
                 !q ||
                 `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
                 e.email.toLowerCase().includes(q) ||
-                e.phone.includes(q)
+                (e.phone ?? "").includes(q)
             );
         })
         .sort((a, b) => {
-            const av = filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : a[filters.sortField];
-            const bv = filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : b[filters.sortField];
-            return filters.sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+            const av = filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
+            const bv = filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
+            return filters.sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
         });
 
     const grouped: Record<string, Employee[]> =
@@ -344,6 +345,7 @@ const Manager = () => {
                                     { field: "joinedAt" as SortField, label: "Joined" },
                                 ].map(({ field, label }) => (
                                     <th
+                                        key={field}
                                         onClick={() => handleSort(field)}
                                         className="cursor-pointer px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase transition-colors select-none hover:text-gray-600"
                                     >

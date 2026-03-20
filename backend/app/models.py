@@ -41,7 +41,7 @@ class Employee(db.Model):
     joined_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     status = db.Column(db.String(20), nullable=False, default='inactive')
     
-    user = db.relationship('Users', backref='employee', lazy=True)
+    user = db.relationship('Users', backref=db.backref('employee', uselist=False), lazy=True)
 
 class Suppliers(db.Model):
     __tablename__ = 'suppliers'

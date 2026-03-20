@@ -150,6 +150,7 @@ def validate(session):
 def logout(session):
     if request.method == 'OPTIONS':
         return '', 204
+    
     token = request.cookies.get('authToken')
     delete_token(token)
     response = make_response(jsonify({'success': True, 'message': 'Logged out successfully'}))

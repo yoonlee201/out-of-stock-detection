@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Manager from "./pages/Manager";
 import ContinueInvitation from "./pages/ContinueInvitation";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const ProtectedRoute = () => {
     const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function Routers() {
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/continue" element={<ContinueInvitation />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
