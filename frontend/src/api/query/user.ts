@@ -194,7 +194,7 @@ export const apiCompleteInvitation = async ({
     phone: string;
     firstName?: string;
     lastName?: string;
-        password?: string;
+    password?: string;
     isNew: boolean;
 }) => {
     try {
@@ -228,5 +228,18 @@ export const apiVerifyEmail = async (token: string) => {
             throw new Error(message);
         }
         throw new Error("Failed to verify email.");
+    }
+};
+
+export const apiDeactivateEmployee = async (employeeId: number) => {
+    try {
+        const { data } = await axiosAuth.patch(`/users/${employeeId}/deactivate`);
+        return data as { message: string };
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to deactivate employee.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to deactivate employee.");
     }
 };

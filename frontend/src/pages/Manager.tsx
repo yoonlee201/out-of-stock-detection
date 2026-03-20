@@ -1,35 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { apiGetEmployees, apiSendInvitation } from "../api/query/user";
+import { apiGetEmployees, apiSendInvitation, apiDeactivateEmployee } from "../api/query/user";
 import { formatDate } from "../utils/functions";
 // type
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
+import {
+    EMPLOYEE_ROLES,
+    ROLE_STYLES,
+    STATUS_STYLES,
+    STATUSES,
+} from "../utils/constants";
 // components
 import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import { ChevronIcon } from "../_components/Icons";
-// 
-
-
-const STATUS_STYLES: Record<EmployeeStatus, string> = {
-    active: "bg-green/10 text-green",
-    inactive: "bg-gray-100 text-gray-400",
-    pending: "bg-yellow/10 text-yellow",
-};
-
-const ROLE_STYLES: Record<UserRole, string> = {
-    associate: "bg-blue/10 text-blue",
-    manager: "bg-primary/10 text-primary",
-    customer: "bg-red/10 text-red",
-};
 
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
 type GroupBy = "none" | "role" | "status";
-
-const EMPLOYEE_ROLES: UserRole[] = ["associate", "manager"];
-const STATUSES: EmployeeStatus[] = ["active", "pending", "inactive"];
 
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -39,7 +28,7 @@ const Manager = () => {
         role: "all" as "all" | UserRole,
         status: "active" as "all" | EmployeeStatus,
         sortField: "status" as SortField,
-        sortDir: "asc" as SortDir,
+        sortDir: 'asc' as SortDir,
         groupBy: "none" as GroupBy,
     });
     const [invite, setInvite] = useState({
@@ -83,23 +72,27 @@ const Manager = () => {
             );
         })
         .sort((a, b) => {
-            const av = filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
-            const bv = filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
-            return filters.sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+            const av =
+                filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
+            const bv =
+                filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
+            return filters.sortDir === "asc"
+                ? String(av).localeCompare(String(bv))
+                : String(bv).localeCompare(String(av));
         });
 
     const grouped: Record<string, Employee[]> =
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
+                ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-              : STATUSES.reduce(
+                : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -109,14 +102,19 @@ const Manager = () => {
 
     const groupKeys = filters.groupBy === "none" ? ["all"] : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
-    const toggleStatus = (id: string) => {
-        setEmployees((prev) =>
-            prev.map((e) => {
-                if (e.id !== id) return e;
-                return { ...e, status: e.status === "active" ? "inactive" : "active" };
-            }),
-        );
-        toast.success("Status updated.");
+    const handleDeactivate = async (id: string) => {
+        try {
+            await apiDeactivateEmployee(Number(id));
+            setEmployees((prev) =>
+                prev.map((e) => {
+                    if (e.id !== id) return e;
+                    return { ...e, status: "inactive", role: "customer" };
+                }),
+            );
+            toast.success("Employee deactivated successfully.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to deactivate employee.");
+        }
     };
 
     // Edit employee details
@@ -151,10 +149,7 @@ const Manager = () => {
 
     const renderRows = (rows: Employee[]) =>
         rows.map((e) => (
-            <tr
-                key={e.id}
-                className="border-b border-gray-100 transition-colors hover:bg-gray-50"
-            >
+            <tr key={e.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
                 <td className="hover:text-primary cursor-pointer px-4 py-4 font-medium text-gray-900 underline underline-offset-2 transition-colors">
                     {e.firstName} {e.lastName}
                 </td>
@@ -296,7 +291,9 @@ const Manager = () => {
                                         className="cursor-pointer px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase transition-colors select-none hover:text-gray-600"
                                     >
                                         {label}
-                                        {filters.sortField === field && <ChevronIcon className={filters.sortDir == 'desc' ? 'rotate-180' : ''} />}
+                                        {filters.sortField === field && (
+                                            <ChevronIcon className={filters.sortDir == "desc" ? "rotate-180" : ""} />
+                                        )}
                                     </th>
                                 ))}
                                 <th className="px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
@@ -443,7 +440,7 @@ const Manager = () => {
                         </div>
                         <button
                             onClick={() => {
-                                toggleStatus(edit.target!.id!);
+                                handleDeactivate(edit.target!.id!);
                                 setEdit({ target: null, form: {} });
                             }}
                             className="bg-red/10 text-red hover:bg-red/20 ml-4 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"

@@ -56,7 +56,6 @@ const CheckIcon = () => (
     </svg>
 );
 
-
 const WavingHandIcon = () => (
     <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
         <path
@@ -81,7 +80,6 @@ const LogoutIcon = () => (
     </svg>
 );
 
-
 const ChevronIcon = ({ className = "" }: { className?: string }) => (
     <svg
         className={`ml-1 inline h-3 w-3 transition-transform ${className}`}
@@ -92,6 +90,5 @@ const ChevronIcon = ({ className = "" }: { className?: string }) => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
     </svg>
 );
-
 
 export { UserIcon, LockIcon, EyeOpenIcon, EyeClosedIcon, CheckIcon, WavingHandIcon, LogoutIcon, ChevronIcon };

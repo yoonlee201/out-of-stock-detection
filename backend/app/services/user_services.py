@@ -2,19 +2,16 @@ from app.core.config import config
 from app.core.db import db
 from app.models import Tokens, Users, Employee
 from app.util.send import (
-    lookup_carrier, 
+    lookup_carrier,
     send_email,
-    
     render_email,
-    verification_serializer, 
+    verification_serializer,
     invite_serializer,
     load_verification_payload,
     load_invitation_payload,
 )
 from datetime import datetime, timedelta
 import uuid
-
-from itsdangerous import SignatureExpired, BadSignature
 
 ALLOWED_ROLES = ('customer', 'associate', 'manager')
 EMPLOYEE_ROLES = ('associate', 'manager')
@@ -24,7 +21,9 @@ def _resolve_role(user=None, role=None):
         return role
     return getattr(user, 'role', None)
 
+
 # --- Token helpers ---
+
 def generate_token(user):
     if not user.user_id:
         raise ValueError("User ID is None")
@@ -32,25 +31,20 @@ def generate_token(user):
     token_value = uuid.uuid4()
     expires = datetime.utcnow() + timedelta(days=7)
 
-    token = Tokens(
-        token_id=token_value,
-        user_id=user.user_id,
-        expires=expires
-    )
+    token = Tokens(token_id=token_value, user_id=user.user_id, expires=expires)
     db.session.add(token)
     db.session.commit()
     return str(token_value)
+
 
 def get_user_by_token(token):
     stored_token = Tokens.query.filter(Tokens.token_id == token).first()
     if not stored_token:
         return None
-    # delete expired tokens
     if stored_token.expires <= datetime.utcnow():
         db.session.delete(stored_token)
         db.session.commit()
         return None
-
     return Users.query.get(stored_token.user_id)
 
 
@@ -80,8 +74,10 @@ def get_all_users():
 def is_email_verified(user):
     return user.is_verified
 
+
 def role_is_allowed(user=None, role=None):
     return _resolve_role(user=user, role=role) in ALLOWED_ROLES
+
 
 def role_is_employee(user=None, role=None):
     return _resolve_role(user=user, role=role) in EMPLOYEE_ROLES
@@ -90,60 +86,42 @@ def role_is_employee(user=None, role=None):
 def role_is_manager(user=None, role=None):
     return _resolve_role(user=user, role=role) == 'manager'
 
+
 def create_user(first_name, last_name, role, email, password, phone=None, carrier=None):
     """Create and persist a new user. Raises ValueError if email is already taken."""
-    try:
-        if Users.query.filter_by(email=email).first():
-            raise ValueError("Email already registered")
+    if Users.query.filter_by(email=email).first():
+        raise ValueError("Email already registered")
 
-        user = Users(
-            first_name=first_name,
-            last_name=last_name,
-            phone=phone,
-            carrier=carrier,
-            role=role,
-            email=email,
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+    user = Users(
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        carrier=carrier,
+        role=role,
+        email=email,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
 
-        send_verification_email(user)
-    except ValueError as e:
-        return {"message": str(e)}, 409
-    except Exception as error:
-        print(f"Error during registration: {error}")
-        import traceback
-        traceback.print_exc()
-        return {"message": "Internal server error"}, 500
-
+    send_verification_email(user)
     return user
 
 
 def update_user_role(user_id, new_role):
-    """Update a user's role. Raises LookupError if user not found, ValueError if missing phone/carrier."""
-    try: 
-        user = Users.query.get(user_id)
-        if not user:
-            raise LookupError("User not found")
+    """Update a user's role. Raises LookupError if not found, ValueError if missing phone/carrier."""
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
 
-        if new_role in EMPLOYEE_ROLES:
-            if not user.phone:
-                raise ValueError("User must have a phone number before being assigned an employee role")
-            if not user.carrier:
-                raise ValueError("User must have a carrier before being assigned an employee role")
+    if new_role in EMPLOYEE_ROLES:
+        if not user.phone:
+            raise ValueError("User must have a phone number before being assigned an employee role")
+        if not user.carrier:
+            raise ValueError("User must have a carrier before being assigned an employee role")
 
-        user.role = new_role
-        db.session.commit()
-    
-    except LookupError as e:
-        return {"message": str(e)}, 404
-    except ValueError as e:
-        return {"message": str(e)}, 422
-    except Exception as error:
-        print(f"Error updating role: {error}")
-        return {"message": "Internal server error"}, 500
-    
+    user.role = new_role
+    db.session.commit()
     return user
 
 
@@ -155,6 +133,7 @@ def get_all_employees():
         .all()
     )
 
+
 def get_all_active_employees():
     """Return list of (Users, Employee) tuples for active employees."""
     return (
@@ -164,25 +143,41 @@ def get_all_active_employees():
         .all()
     )
 
-# --- Invitation helpers ---
+
+def deactivate_employee(user_id):
+    """Deactivate an employee. Raises LookupError if user or employee record not found."""
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
+
+    employee = Employee.query.filter_by(user_id=user_id).first()
+    if not employee:
+        raise LookupError("Employee record not found")
+
+    user.role = 'customer'
+    employee.status = 'inactive'
+    db.session.commit()
+
+
+# --- Verification helpers ---
+
 def send_verification_email(user):
-    # Send an email verification link to the user.
+    """Send an email verification link to the user."""
     serializer = verification_serializer()
     token = serializer.dumps({"purpose": "email_verification", "user_id": user.user_id})
-
     verify_link = f"{config.FRONTEND_URL}/verify-email?token={token}"
 
     html = render_email(f"""
       <p>Hi <strong>{user.first_name}</strong>,</p>
       <p>Thanks for signing up! Please verify your email address to activate your account.</p>
-            <p>
-                <a
-                    href="{verify_link}"
-                    style="display:inline-block;margin:8px 0 24px;padding:14px 32px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;"
-                >
-                    Verify Email Address
-                </a>
-            </p>
+      <p>
+        <a
+          href="{verify_link}"
+          style="display:inline-block;margin:8px 0 24px;padding:14px 32px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;"
+        >
+          Verify Email Address
+        </a>
+      </p>
       <hr class="divider">
       <p>This link expires in <strong>24 hours</strong>.</p>
       <p class="muted">Or copy this link into your browser:<br>{verify_link}</p>
@@ -197,27 +192,24 @@ def send_verification_email(user):
 
 
 def verify_email_token(token):
-    # Validate an email verification token and mark the user as verified.
-    try:
-        payload = load_verification_payload(token)
+    """Validate an email verification token and mark the user as verified.
+    Raises SignatureExpired, BadSignature, or LookupError — caught by the route.
+    """
+    payload = load_verification_payload(token)
 
-        user = Users.query.get(payload.get("user_id"))
-        if not user:
-            raise LookupError("User not found")
+    user = Users.query.get(payload.get("user_id"))
+    if not user:
+        raise LookupError("User not found")
 
-        user.is_verified = True
-        db.session.commit()
-    except SignatureExpired:
-        return {"message": "Verification link has expired"}, 410
-    except BadSignature:
-        return {"message": "Invalid verification token"}, 400
-    except LookupError as e:
-        return {"message": str(e)}, 404
+    user.is_verified = True
+    db.session.commit()
     return user
 
 
 # --- Invitation helpers ---
+
 def send_invitation_email(user, invited_role, email=None):
+    """Send an invitation email. Returns the invitation link."""
     is_new = user is None
     to_address = email if is_new else user.email
     greeting = "there" if is_new else user.first_name
@@ -257,29 +249,27 @@ def send_invitation_email(user, invited_role, email=None):
 
 
 def verify_invitation_token(token):
-    """Return (user_or_None, role, email_or_None). Raises on invalid/expired token."""
-    try:
-        payload = load_invitation_payload(token)
-        user_id = payload.get("user_id")
-        role = payload.get("role", "associate")
-        if user_id is None:
-            return None, role, payload.get("email")
-        user = Users.query.get(user_id)
-        if not user:
-            raise LookupError("User not found")
-    
-    except LookupError as e:
-        return {"message": str(e)}, 404
-    except SignatureExpired:
-        return {"message": "Invitation link has expired"}, 410
-    except BadSignature:
-        return {"message": "Invalid invitation token"}, 400
+    """Return (user_or_None, role, email_or_None).
+    Raises SignatureExpired, BadSignature, or LookupError — caught by the route.
+    """
+    payload = load_invitation_payload(token)
+    user_id = payload.get("user_id")
+    role = payload.get("role", "associate")
+
+    if user_id is None:
+        return None, role, payload.get("email")
+
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
 
     return user, role, None
 
 
 def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
-    """Complete an employee invitation. Raises on invalid token, missing user, or bad data."""
+    """Complete an employee invitation.
+    Raises SignatureExpired, BadSignature, ValueError, or LookupError — caught by the route.
+    """
     payload = load_invitation_payload(token)
     invited_role = payload.get("role", "associate")
     if invited_role not in EMPLOYEE_ROLES:
