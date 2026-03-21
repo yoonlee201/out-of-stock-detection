@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { apiGetEmployees, apiSendInvitation, apiUpdateEmployee, apiDeactivateEmployee, apiDeleteEmployee } from "../api/query/user";
+import {
+    apiGetEmployees,
+    apiSendInvitation,
+    apiUpdateEmployee,
+    apiDeactivateEmployee,
+    apiDeleteEmployee,
+} from "../api/query/user";
 import { formatDate } from "../utils/functions";
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
-import { EMPLOYEE_ROLES, ROLE_STYLES, STATUSES, STATUS_STYLES } from "../utils/constants";
+import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
 import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
@@ -77,14 +83,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-                ? EMPLOYEE_ROLES.reduce(
+              ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-                : STATUSES.reduce(
+              : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -160,28 +166,25 @@ const Manager = () => {
     const renderRows = (rows: Employee[]) =>
         rows.map((e) => (
             <tr key={e.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
-                <td className="px-4 py-3 w-1/4">
+                {/* Name + email stacked */}
+                <td className="px-4 py-3">
                     <p className="text-sm font-medium text-gray-900">
                         {e.firstName} {e.lastName}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400">{e.email}</p>
                 </td>
+                {/* Role — plain text, no capsule */}
+                <td className="px-4 py-3 text-sm text-gray-600 capitalize">{e.role}</td>
+                {/* Status — dot + text, no capsule */}
                 <td className="px-4 py-3">
-                    <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_STYLES[e.role]}`}
-                    >
-                        {e.role}
-                    </span>
-                </td>
-                <td className="px-4 py-3">
-                    <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[e.status]}`}
-                    >
-                        {e.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
+                        <span className="text-sm text-gray-600">{STATUS_TEXT[e.status]}</span>
+                    </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-500">{e.phone}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{formatDate(e.joinedAt)}</td>
+                {/* Actions — kebab / edit button */}
                 <td className="px-4 py-3 text-right">
                     <button
                         onClick={() => openEdit(e)}
@@ -217,7 +220,7 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="bg-secondary hover:bg-secondary-hover inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
@@ -225,15 +228,16 @@ const Manager = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
-                    <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
+                    <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-1">
                         {(["all", ...STATUSES] as const).map((s) => (
                             <button
                                 key={s}
                                 onClick={() => setFilters((f) => ({ ...f, status: s }))}
-                                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${filters.status === s
+                                className={`rounded-sm px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                                    filters.status === s
                                         ? "bg-gray-900 text-white"
                                         : "text-gray-500 hover:text-gray-800"
-                                    }`}
+                                }`}
                             >
                                 {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                             </button>

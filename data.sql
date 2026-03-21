@@ -18,9 +18,9 @@ DROP TABLE IF EXISTS tokens CASCADE;
 DROP TABLE IF EXISTS employee CASCADE;
 
 -- Connect to it: \c shelf_monitor_db
-DROP TYPE IF EXISTS role_enum CASCADE;
+DROP TYPE IF EXISTS user_role_enum CASCADE;
 DROP TYPE IF EXISTS employee_status_enum CASCADE;
-CREATE TYPE role_enum AS ENUM ('customer', 'associate', 'supervisor', 'manager');
+CREATE TYPE user_role_enum AS ENUM ('customer', 'associate', 'supervisor', 'manager');
 CREATE TYPE employee_status_enum AS ENUM ('active', 'inactive', 'pending');
 
 -- Users table
@@ -31,7 +31,7 @@ CREATE TABLE users (
     password VARCHAR(128) NOT NULL,
     phone VARCHAR(20) UNIQUE,
     carrier VARCHAR(50),
-    role role_enum NOT NULL DEFAULT 'customer',
+    role user_role_enum NOT NULL DEFAULT 'customer',
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     email VARCHAR(120) UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP

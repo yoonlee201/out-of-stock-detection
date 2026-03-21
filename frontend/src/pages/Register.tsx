@@ -67,17 +67,17 @@ const Register = () => {
         <div className="flex h-screen w-screen flex-1 items-center justify-center px-8 py-12">
             <form
                 onSubmit={handleSubmit(onSubmit)}
-                className="flex w-full max-w-sm flex-col gap-3"
+                className="flex w-full max-w-md flex-col gap-3"
                 style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease" }}
             >
                 <h1 className="text-primary mb-8 text-center text-4xl font-bold">Register</h1>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full justify-between">
                     <Field
                         required
                         label="First Name"
                         icon={<UserIcon />}
-                        animationDelay="0.10s"
+                        animationDelay="0.15s"
                         error={errors.firstName?.message}
                         {...register("firstName", { required: "First name is required" })}
                     />
@@ -90,6 +90,19 @@ const Register = () => {
                         {...register("lastName", { required: "Last name is required" })}
                     />
                 </div>
+                <Field
+                    required
+                    label="Email"
+                    type="email"
+                    icon={<UserIcon />}
+                    animationDelay="0.20s"
+                    error={errors.email?.message}
+                    {...register("email", {
+                        required: "Email is required",
+                        pattern: { value: /^\S+@\S+$/i, message: "Invalid email address" },
+                        setValueAs: (v) => v.trim(),
+                    })}
+                />
                 <Field
                     required
                     label="Password"

@@ -11,36 +11,36 @@
 -- Mock data for users
 -- password for all users is 12345678
 INSERT INTO users (first_name, last_name, password, phone, role, email, is_verified) VALUES
-('Maria',    'Gonzalez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-0123', 'supervisor', 'one@example.com', TRUE),
-('James',    'Carter',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-0198', 'manager',   'james.carter@mccs.mil', TRUE),
-('Michael',  'Lee',      '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-0765', 'manager','michael.lee@mccs.mil', TRUE),
-('Sarah',    'Johnson',  '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-0341', 'associate', 'sarah.j@mccs.mil', TRUE),
-('Robert',   'Wilson',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-1123', 'associate', 'robert.w@mccs.mil', TRUE),
-('Linda',    'Martinez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-1456', 'associate',   'linda.m@mccs.mil', TRUE),
-('Emily',    'Davis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-0882', 'customer',  'emily.davis@email.com', TRUE),
-('David',    'Brown',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-1678', 'customer', 'david.brown@email.com', TRUE),
-('Jessica',  'Taylor',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-1890', 'customer', 'jessica.t@email.com', FALSE),
-('Kevin',    'Anderson', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-2034', 'customer', 'kevin.anderson@email.com', TRUE),
-('Olivia',   'Moore',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-2199', 'customer', 'olivia.moore@email.com', TRUE),
-('Ethan',    'Harris',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-2276', 'customer', 'ethan.harris@email.com', FALSE),
-('Sophia',   'Clark',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-2381', 'customer', 'sophia.clark@email.com', TRUE),
-('Noah',     'Lewis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-2447', 'customer', 'noah.lewis@email.com', TRUE);
-INSERT INTO employee (user_id, status)
-SELECT user_id, 'active' FROM users WHERE first_name = 'Maria'
+('Maria',    'Gonzalez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-0123', 'supervisor'::user_role_enum, 'one@example.com', TRUE),
+('James',    'Carter',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-0198', 'manager'::user_role_enum,   'james.carter@mccs.mil', TRUE),
+('Michael',  'Lee',      '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-0765', 'manager'::user_role_enum,'michael.lee@mccs.mil', TRUE),
+('Sarah',    'Johnson',  '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-0341', 'associate'::user_role_enum, 'sarah.j@mccs.mil', TRUE),
+('Robert',   'Wilson',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-1123', 'associate'::user_role_enum, 'robert.w@mccs.mil', TRUE),
+('Linda',    'Martinez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-1456', 'associate'::user_role_enum,   'linda.m@mccs.mil', TRUE),
+('Emily',    'Davis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-0882', 'customer'::user_role_enum,  'emily.davis@email.com', TRUE),
+('David',    'Brown',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-1678', 'customer'::user_role_enum, 'david.brown@email.com', TRUE),
+('Jessica',  'Taylor',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-1890', 'customer'::user_role_enum, 'jessica.t@email.com', FALSE),
+('Kevin',    'Anderson', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-2034', 'customer'::user_role_enum, 'kevin.anderson@email.com', TRUE),
+('Olivia',   'Moore',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-2199', 'customer'::user_role_enum, 'olivia.moore@email.com', TRUE),
+('Ethan',    'Harris',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-2276', 'customer'::user_role_enum, 'ethan.harris@email.com', FALSE),
+('Sophia',   'Clark',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-2381', 'customer'::user_role_enum, 'sophia.clark@email.com', TRUE),
+('Noah',     'Lewis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-2447', 'customer'::user_role_enum, 'noah.lewis@email.com', TRUE);
+INSERT INTO employee (user_id, "status")
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'Maria'
 UNION ALL
-SELECT user_id, 'active' FROM users WHERE first_name = 'James'
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'James'
 UNION ALL
-SELECT user_id, 'active' FROM users WHERE first_name = 'Michael'
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'Michael'
 UNION ALL
-SELECT user_id, 'active' FROM users WHERE first_name = 'Sarah'
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'Sarah'
 UNION ALL
-SELECT user_id, 'active' FROM users WHERE first_name = 'Robert'
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'Robert'
 UNION ALL
-SELECT user_id, 'active' FROM users WHERE first_name = 'Linda'
+SELECT user_id, 'active'::employee_status_enum FROM users WHERE first_name = 'Linda'
 UNION ALL
-SELECT user_id, 'inactive' FROM users WHERE first_name = 'Emily'
+SELECT user_id, 'inactive'::employee_status_enum FROM users WHERE first_name = 'Emily'
 UNION ALL
-SELECT user_id, 'inactive' FROM users WHERE first_name = 'David';
+SELECT user_id, 'inactive'::employee_status_enum FROM users WHERE first_name = 'David';
 
 -- Suppliers
 INSERT INTO suppliers (email, phone_number) VALUES

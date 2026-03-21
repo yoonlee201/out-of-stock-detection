@@ -92,12 +92,7 @@ const ChevronIcon = ({ className = "" }: { className?: string }) => (
 );
 
 const SearchIcon = () => (
-    <svg
-        className="h-3.5 w-3.5 text-gray-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-    >
+    <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -109,8 +104,9 @@ const SearchIcon = () => (
 
 const PlusIcon = () => (
     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-    </svg>);
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+);
 
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5">
@@ -121,7 +117,7 @@ const TrashIcon = () => (
             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v3h6V4a1 1 0 00-1-1m-4 0h4"
         />
     </svg>
-);  
+);
 
 export {
     UserIcon,
@@ -134,5 +130,5 @@ export {
     ChevronIcon,
     SearchIcon,
     PlusIcon,
-    TrashIcon,  
+    TrashIcon,
 };

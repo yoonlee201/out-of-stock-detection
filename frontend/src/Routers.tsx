@@ -39,6 +39,34 @@ const ProtectedRoute = () => {
     return <Outlet />;
 };
 
+const ManagerRoute = () => {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100vh",
+                    backgroundColor: "#f5f5f5",
+                }}
+            >           <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "24px", marginBottom: "16px" }}>Loading...</div>
+                    <div style={{ fontSize: "14px", color: "#666" }}>Please wait</div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (!user || (user.role !== "manager" && user.role !== "supervisor")) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
+    return <Outlet />;
+}
+
 function Routers() {
     return (
         <BrowserRouter>
@@ -50,8 +78,10 @@ function Routers() {
                     <Route path="/continue" element={<Invitation />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/employee-management" element={<Manager />} />
                         <Route path="/space-detection" element={<SpaceDetection />} />
+                    </Route>
+                    <Route element={<ManagerRoute />}>
+                        <Route path="/employee-management" element={<Manager />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>

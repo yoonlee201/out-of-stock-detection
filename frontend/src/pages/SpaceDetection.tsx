@@ -71,9 +71,7 @@ const SpaceDetection = () => {
 
             <div className="flex-1 p-8">
                 <h1 className="mb-2 text-3xl font-semibold">Space Detection</h1>
-                <p className="mb-8 text-gray-600">
-                    Upload a shelf image and run YOLOv8 to detect empty spaces.
-                </p>
+                <p className="mb-8 text-gray-600">Upload a shelf image and run YOLOv8 to detect empty spaces.</p>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="rounded-xl bg-white p-6 shadow">
@@ -119,7 +117,11 @@ const SpaceDetection = () => {
                     <div className="rounded-xl bg-white p-6 shadow">
                         <h2 className="mb-4 text-xl font-semibold">Input Preview</h2>
                         {previewUrl ? (
-                            <img src={previewUrl} alt="Selected shelf" className="max-h-[420px] w-full rounded-lg object-contain" />
+                            <img
+                                src={previewUrl}
+                                alt="Selected shelf"
+                                className="max-h-[420px] w-full rounded-lg object-contain"
+                            />
                         ) : (
                             <div className="flex h-[320px] items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-500">
                                 No image selected
@@ -135,7 +137,9 @@ const SpaceDetection = () => {
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="rounded-lg bg-blue-50 p-4">
                                     <p className="text-sm text-gray-600">Empty Space Count</p>
-                                    <p className="text-2xl font-bold text-blue-700">{result.summary.empty_space_count}</p>
+                                    <p className="text-2xl font-bold text-blue-700">
+                                        {result.summary.empty_space_count}
+                                    </p>
                                 </div>
                                 <div className="rounded-lg bg-amber-50 p-4">
                                     <p className="text-sm text-gray-600">Estimated Empty Area %</p>
