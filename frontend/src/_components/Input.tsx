@@ -15,7 +15,7 @@ const Input = ({ className, icon, type = "text", visible, placeholder, ...props 
     return (
         <div
             className={twMerge(
-                "border-gray-400 focus-within:border-primary flex items-center gap-2 rounded border-2 bg-white px-3 py-2.5 transition-colors",
+                "focus-within:border-primary flex items-center gap-2 rounded border-2 border-gray-400 bg-white px-3 py-2.5 transition-colors",
                 className,
             )}
         >

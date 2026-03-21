@@ -72,34 +72,24 @@ const Register = () => {
             >
                 <h1 className="text-primary mb-8 text-center text-4xl font-bold">Register</h1>
 
-                <Field
-                    required
-                    label="First Name"
-                    icon={<UserIcon />}
-                    animationDelay="0.10s"
-                    error={errors.firstName?.message}
-                    {...register("firstName", { required: "First name is required" })}
-                />
-                <Field
-                    required
-                    label="Last Name"
-                    icon={<UserIcon />}
-                    animationDelay="0.15s"
-                    error={errors.lastName?.message}
-                    {...register("lastName", { required: "Last name is required" })}
-                />
-                <Field
-                    required
-                    label="Email"
-                    icon={<UserIcon />}
-                    animationDelay="0.20s"
-                    error={errors.email?.message}
-                    {...register("email", {
-                        required: "Email is required",
-                        pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address" },
-                        setValueAs: (v) => v.replace(/\s/g, ""),
-                    })}
-                />
+                <div className="flex gap-3">
+                    <Field
+                        required
+                        label="First Name"
+                        icon={<UserIcon />}
+                        animationDelay="0.10s"
+                        error={errors.firstName?.message}
+                        {...register("firstName", { required: "First name is required" })}
+                    />
+                    <Field
+                        required
+                        label="Last Name"
+                        icon={<UserIcon />}
+                        animationDelay="0.15s"
+                        error={errors.lastName?.message}
+                        {...register("lastName", { required: "Last name is required" })}
+                    />
+                </div>
                 <Field
                     required
                     label="Password"
@@ -142,7 +132,7 @@ const Register = () => {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-primary hover:bg-primary-hover active:bg-primary-active mt-4 w-full text-white disabled:opacity-60"
+                        className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active mt-4 w-full text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Registering..." : "Register"}
                     </Button>

@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - "5002:5002"
+      - "5000:5000"
+      - "8000:8000"
     depends_on:
       - db
     develop:

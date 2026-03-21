@@ -1,10 +1,8 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { apiDetectSpaces, type SpaceDetectionResponse } from "../api/query/spaceDetection";
-import { useAuth } from "../hooks/useAuth";
+import Sidebar from "../_components/Sidebar";
 
 const SpaceDetection = () => {
-    const { logout } = useAuth();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [confidence, setConfidence] = useState<string>("");
@@ -69,31 +67,7 @@ const SpaceDetection = () => {
 
     return (
         <div className="flex min-h-screen bg-gray-100">
-            <div className="w-64 bg-blue-900 p-6 text-white">
-                <h2 className="mb-6 text-2xl font-bold">Stock Detection</h2>
-                <ul className="space-y-4">
-                    <li>
-                        <Link to="/dashboard" className="cursor-pointer hover:text-gray-300">
-                            Dashboard
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/space-detection" className="cursor-pointer font-semibold text-yellow-300">
-                            Space Detection
-                        </Link>
-                    </li>
-                    <li className="cursor-pointer hover:text-gray-300">Products</li>
-                    <li className="cursor-pointer hover:text-gray-300">Alerts</li>
-                    <li className="cursor-pointer hover:text-gray-300">Reorders</li>
-                    <li className="cursor-pointer hover:text-gray-300">Suppliers</li>
-                    <li className="cursor-pointer hover:text-gray-300">Settings</li>
-                    <li>
-                        <button onClick={logout} className="cursor-pointer hover:text-gray-300">
-                            Logout
-                        </button>
-                    </li>
-                </ul>
-            </div>
+            <Sidebar />
 
             <div className="flex-1 p-8">
                 <h1 className="mb-2 text-3xl font-semibold">Space Detection</h1>

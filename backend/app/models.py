@@ -17,14 +17,15 @@ class Users(db.Model):
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     first_name = db.Column(db.String(80), unique=True, nullable=False)
     last_name = db.Column(db.String(80), unique=True, nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=False)
+    phone = db.Column(db.String(20), unique=True, nullable=True)
+    carrier = db.Column(db.String(50), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='customer')
+    is_verified = db.Column(db.Boolean, nullable=False, default=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-     
-    tokens = db.relationship('Tokens', backref='user', lazy=True, cascade='all, delete-orphan')
     
+    tokens = db.relationship('Tokens', backref='user', lazy=True, cascade='all, delete-orphan')
     
 
     def set_password(self, password):
@@ -32,6 +33,15 @@ class Users(db.Model):
 
     def check_password(self, password):
         return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
+
+class Employee(db.Model):
+    __tablename__ = 'employee'
+    
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
+    joined_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    status = db.Column(db.String(20), nullable=False, default='inactive')
+    
+    user = db.relationship('Users', backref=db.backref('employee', uselist=False), lazy=True)
 
 class Suppliers(db.Model):
     __tablename__ = 'suppliers'
