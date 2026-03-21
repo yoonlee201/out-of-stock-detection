@@ -51,6 +51,7 @@ const Sidebar = () => {
                 {navBtn("Reorders", "/reorders")}
                 {navBtn("Suppliers", "/suppliers")}
                 {navBtn("Settings", "/settings")}
+                {navBtn("Space Detection", "/space-detection")}
                 {user?.role === UserRole.MANAGER && navBtn("Employee Management", "/employee-management")}
             </nav>
 

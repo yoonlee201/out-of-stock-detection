@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Manager from "./pages/Manager";
 import Invitation from "./pages/Invitation";
 import VerifyEmail from "./pages/VerifyEmail";
+import SpaceDetection from "./pages/SpaceDetection";
 
 const ProtectedRoute = () => {
     const { user, loading } = useAuth();
@@ -50,6 +51,7 @@ function Routers() {
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/employee-management" element={<Manager />} />
+                        <Route path="/space-detection" element={<SpaceDetection />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>

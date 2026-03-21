@@ -36,3 +36,4 @@ build/
 *.env.development
 *.env.production
 *.pt
+!space_detection/best.pt

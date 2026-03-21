@@ -1,277 +1,42 @@
 # oos_detection
 
-Project Structure
+Out-of-stock shelf intelligence project with:
+- Frontend (`frontend/`)
+- Backend API (`backend/app/`)
+- YOLO space-detection pipeline (`backend/space_detection/`)
 
-Your folder structure should look like this:
+## Repository Layout
 
-```
-[your folder]/
-│
-├── frontend/  
-│   ├── src/
-│   │   └── main.tsx
-│   │   └── Routers.tsx
-│   ├── public/
-│   ├── package.json
-│   ├── ...
-│   └── vite.config.js
-│
+```text
+out-of-stock-shelf-intelligence/
+├── frontend/
 ├── backend/
-│   ├── venv/
-│   ├── app.py
+│   ├── app/
+│   ├── space_detection/
 │   ├── requirements.txt
-└── README.md 
+│   └── requirements.yolo.txt
+├── compose.dev.yml
+├── data.sql
+└── README.md
 ```
 
----
+## Prerequisites
 
-## Github Setup
+- Docker Desktop
+- Node.js 16+ and npm
+- Python 3.11 (recommended)
+- Hugging Face account + token (for dataset restore)
 
-### Clone the Repository
+## Quick Start (Fresh Machine)
 
-```
-git clone https://github.com/yoonlee201/out-of-stock-shelf-intelligence.git
-```
-
-### Create a New Branch
-
-Always create a new branch before making changes.
-
-```
-git pull origin master
-git checkout -b <branch-name>
-```
-
-Examples:
-
-```
-git checkout -b yoonje/add-login
-git checkout -b yoonje/navbar-responsive
-```
-
-### Make Changes & Commit
-
-After editing files, check what’s changed:
-
-```
-git status
-```
-
-Add your changes:
-
-```
-git add .
-```
-
-Then commit them with a clear message:
-
-```
-git commit -m "Add login page component"
-```
-
-### Push to GitHub
-
-Push your branch to the remote repository:
-
-```
-git push origin <branch-name>
-```
-
-💡 Example:
-
-```
-git push origin feature/add-login
-```
-
-### Pull Latest Changes
-
-Before pushing or merging, always pull updates from main to avoid conflicts:
-
-```
-git checkout master
-git pull origin master
-```
-
-Then switch back to your branch and merge the latest main updates:
-
-```
-git checkout <branch-name>
-git merge master
-```
-
-or
-
-```
-git checkout <branch-name>
-git pull master
-```
-
-If there are conflicts, fix them manually, then commit again:
-
-```
-git add .
-git commit -m "Resolve merge conflicts"
-```
-
-### Open a Pull Request (PR)
-
-Once your feature is ready:
-
-```
-1.	Go to your repository on GitHub
-2.	Click "Pull Request" Tab & "New pull request"
-3.	Add a title and description for your changes
-4.	Submit the pull request
-```
-
-### Common Commands Reference
-
-```
-Action	Command
-Clone repo	git clone <url>
-Create new branch	git checkout -b <branch>
-Switch branch	git checkout <branch>
-Add files	git add .
-Commit changes	git commit -m "message"
-Push branch	git push origin <branch>
-Pull latest main	git pull origin main
-Merge main into branch	git merge main
-Delete branch (local)	git branch -d <branch>
-Delete branch (remote)	git push origin --delete <branch>
-```
-
-### Summary
-
-#### Clone project
-
-```
-git clone https://github.com/yoonlee201/out-of-stock-shelf-intelligence.git
-```
-
-#### Create feature branch
-
-```
-git checkout -b <name>/<feature>
-```
-
-#### Make changes, then:
-
-```
-git add .
-git commit -m "<message>"
-```
-
-#### Push branch
-
-```
-git push origin <branch_name>
-```
-
----
-
-## Front End
-
-### Prerequisites
-
-Before starting, ensure you have the following installed:
-	-	Node.js (version 16+ recommended)
-	-	npm (comes with Node.js)
-
-Check versions:
-
-```
-node -v
-npm -v
-```
-
-### Run Locally
-
-1. Run Each App
-
-```
-cd frontend
-npm run dev
-```
-
-Runs on: http://localhost:5173
-
-2. Updating Dependencies
-
-```
-npm install <package-name>
-```
-
-### Deleting and Reinstalling Dependencies
-
-If you need a clean reinstall:
-
-```
-rm -rf node_modules package-lock.json
-npm install
-```
-
----
-
-## Backend Setup Guide
-
-This guide explains how to set up and run the backend environment using Python and a virtual environment.
-
-### Install Docker
-
-Install docker from this link: https://www.docker.com/101-tutorial/
-
-If completed, turn on you docker everytime you want to run your backend locally
-
-#### Initial setup (only once)
-
-**For Windows PowerShell:**
-
-```powershell
-cd backend
-New-Item -ItemType File -Name ".env" -Force
-Set-Content -Path ".env" -Value "SQLALCHEMY_DATABASE_URI=postgresql://oos_detection:oos_detection_dev_password@db:5432/oos_detection"
-cd ..
-```
-
-**For Unix/Linux/Mac:**
+1. Clone repo
 
 ```bash
-cd backend
-touch .env
-echo SQLALCHEMY_DATABASE_URI=postgresql://oos_detection:oos_detection_dev_password@db:5432/oos_detection > .env
-cd ..
+git clone https://github.com/yoonlee201/out-of-stock-shelf-intelligence.git
+cd out-of-stock-shelf-intelligence
 ```
 
-### Run Docker
-
-#### for changes to just the py files
-
-```
-docker compose -f compose.dev.yml up --build
-```
-
-#### For live updates
-
-```
-docker compose -f compose.dev.yml watch backend frontend db
-```
-
-### for changes to the sql
-
-```
-docker cp ./data.sql pg-oos_detection:/data.sql
-docker exec -it pg-oos_detection psql -U oos_detection -f data.sql 
-```
-
-## YOLOv8 Setup
-
-1) YOLO-only dependencies are in:
-
-- `backend/requirements.yolo.txt`
-
-2) Create and activate a virtual environment, then install dependencies:
-
-**macOS / Linux**
+2. Set up backend Python environment
 
 ```bash
 cd backend
@@ -280,27 +45,165 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install -r requirements.yolo.txt
+cp .env.example .env
+cd ..
 ```
 
-**Windows (PowerShell)**
-
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -r requirements.yolo.txt
-```
-
-3) Quick verify YOLO + OpenCV install:
+3. Install frontend dependencies
 
 ```bash
-python -c "from ultralytics import YOLO; import cv2; YOLO('yolov8n.pt'); print('YOLOv8 + OpenCV ready')"
+cd frontend
+npm install
+cd ..
 ```
 
-If you use Docker for backend, rebuild the backend image so the new dependency is installed:
+4. Restore YOLO dataset cache from Hugging Face
 
 ```bash
-docker compose -f compose.dev.yml up --build backend
+source backend/.venv/bin/activate
+cd backend/space_detection
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py download \
+  --repo-id <your-username>/oos-combined-dataset \
+  --destination ./combined_dataset \
+  --force
+cd ../..
 ```
+
+5. Start full stack
+
+```bash
+docker compose -f compose.dev.yml up --build
+```
+
+## Local Development
+
+### Frontend only
+
+```bash
+cd frontend
+npm run dev
+```
+
+Runs on `http://localhost:5173`.
+
+### Backend + frontend + db with Docker
+
+```bash
+docker compose -f compose.dev.yml up --build
+```
+
+For live updates:
+
+```bash
+docker compose -f compose.dev.yml watch backend frontend db
+```
+
+### Reload SQL seed data
+
+```bash
+docker cp ./data.sql pg-oos_detection:/data.sql
+docker exec -it pg-oos_detection psql -U oos_detection -f data.sql
+```
+
+## Space Detection Workflow
+
+Use these from `backend/space_detection` with the backend venv activated.
+
+### 1) Restore dataset (required)
+
+```bash
+source ../.venv/bin/activate
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py download \
+  --repo-id <your-username>/oos-combined-dataset \
+  --destination ./combined_dataset \
+  --force
+```
+
+### 2) Train model
+
+```bash
+python3 train_pipeline.py \
+  --combined-root ./combined_dataset \
+  --runs-root ./runs \
+  --workers 1 \
+  --output-best ./best.pt
+```
+
+### 3) Verify best checkpoint copy
+
+```bash
+python3 verify_model_hash.py ./best.pt ./runs/emptyspace_p2_finetune/weights/best.pt
+```
+
+### 4) Evaluate model
+
+```bash
+python3 - <<'PY'
+from ultralytics import YOLO
+m = YOLO("./best.pt")
+metrics = m.val(data="./combined_dataset/data.yaml", split="test", workers=1)
+print("mAP50:", metrics.box.map50)
+print("mAP50-95:", metrics.box.map)
+print("Precision:", metrics.box.mp)
+print("Recall:", metrics.box.mr)
+PY
+```
+
+### 5) Run inference on one image
+
+```bash
+python3 predict.py ./combined_dataset/valid/images/ds1_1252.jpg --model ./best.pt --conf 0.25 --output ./output.jpg
+```
+
+### Publish dataset updates (maintainers)
+
+```bash
+export HF_TOKEN="<your_hf_token>"
+python3 dataset_sync.py upload \
+  --repo-id <your-username>/oos-combined-dataset \
+  --source ./combined_dataset \
+  --private
+```
+
+### Kaggle alternative (manual)
+
+```bash
+kaggle datasets init -p ./combined_dataset
+# Edit combined_dataset/dataset-metadata.json
+kaggle datasets create -p ./combined_dataset
+# For updates:
+kaggle datasets version -p ./combined_dataset -m "Update combined dataset"
+```
+
+## Git Workflow
+
+### Create feature branch
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b <name>/<feature>
+```
+
+### Commit and push
+
+```bash
+git status
+git add .
+git commit -m "<message>"
+git push origin <branch-name>
+```
+
+### Open PR
+
+1. Open the repository on GitHub.
+2. Go to the Pull Requests tab.
+3. Click New pull request.
+4. Add title/description and submit.
+
+## Notes
+
+- `backend/space_detection/combined_dataset/` is treated as local cache and is not committed.
+- Keep `HF_TOKEN` private. If it leaks, revoke it and create a new one.
