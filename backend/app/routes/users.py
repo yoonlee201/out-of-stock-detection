@@ -301,7 +301,7 @@ def send_invitation(session):
     email        = data.get("email")
 
     if not role_is_employee(role=invited_role):
-        return {"message": "Invalid role for invitation. Must be 'associate' or 'manager'"}, 400
+        return {"message": "Invalid role for invitation. Must be 'associate', 'supervisor', or 'manager'"}, 400
     if not email:
         return {"message": "Email is required"}, 400
 

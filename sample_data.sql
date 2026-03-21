@@ -26,15 +26,21 @@ INSERT INTO users (first_name, last_name, password, phone, role, email, is_verif
 ('Sophia',   'Clark',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-2381', 'customer', 'sophia.clark@email.com', TRUE),
 ('Noah',     'Lewis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-2447', 'customer', 'noah.lewis@email.com', TRUE);
 INSERT INTO employee (user_id, status)
-VALUES (SELECT user_id FROM "users" WHERE first_name = 'Maria', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'James', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'Michael', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'Sarah', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'Robert', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'Linda', 'active'),
-    (SELECT user_id FROM "users" WHERE first_name = 'Emily', 'inactive'),
-    (SELECT user_id FROM "users" WHERE first_name = 'David', 'inactive'),
-    ;
+SELECT user_id, 'active' FROM users WHERE first_name = 'Maria'
+UNION ALL
+SELECT user_id, 'active' FROM users WHERE first_name = 'James'
+UNION ALL
+SELECT user_id, 'active' FROM users WHERE first_name = 'Michael'
+UNION ALL
+SELECT user_id, 'active' FROM users WHERE first_name = 'Sarah'
+UNION ALL
+SELECT user_id, 'active' FROM users WHERE first_name = 'Robert'
+UNION ALL
+SELECT user_id, 'active' FROM users WHERE first_name = 'Linda'
+UNION ALL
+SELECT user_id, 'inactive' FROM users WHERE first_name = 'Emily'
+UNION ALL
+SELECT user_id, 'inactive' FROM users WHERE first_name = 'David';
 
 -- Suppliers
 INSERT INTO suppliers (email, phone_number) VALUES

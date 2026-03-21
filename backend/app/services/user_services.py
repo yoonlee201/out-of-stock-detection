@@ -10,13 +10,12 @@ from app.util.send import (
     load_verification_payload,
     load_invitation_payload,
 )
-from app.util.auth import (
-    EMPLOYEE_ROLES,
-    ALLOWED_ROLES
-)
 from datetime import datetime, timedelta
 import uuid
 import secrets
+
+EMPLOYEE_ROLES = ('associate', 'supervisor', 'manager')
+ALLOWED_ROLES = ('customer', 'associate', 'supervisor', 'manager')
 
 def _resolve_role(user=None, role=None):
     if role is not None:

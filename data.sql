@@ -18,7 +18,8 @@ DROP TABLE IF EXISTS tokens CASCADE;
 DROP TABLE IF EXISTS employee CASCADE;
 
 -- Connect to it: \c shelf_monitor_db
-
+DROP TYPE IF EXISTS role_enum CASCADE;
+DROP TYPE IF EXISTS employee_status_enum CASCADE;
 CREATE TYPE role_enum AS ENUM ('customer', 'associate', 'supervisor', 'manager');
 CREATE TYPE employee_status_enum AS ENUM ('active', 'inactive', 'pending');
 
