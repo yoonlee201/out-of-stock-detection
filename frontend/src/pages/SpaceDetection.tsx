@@ -1,11 +1,8 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { apiDetectSpaces, type SpaceDetectionResponse } from "../api/query/spaceDetection";
-import { useAuth } from "../hooks/useAuth";
 import Sidebar from "../_components/Sidebar";
 
 const SpaceDetection = () => {
-    const { logout } = useAuth();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [confidence, setConfidence] = useState<string>("");

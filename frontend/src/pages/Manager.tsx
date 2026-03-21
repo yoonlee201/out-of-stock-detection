@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { apiGetEmployees, apiSendInvitation, apiUpdateEmployee, apiDeactivateEmployee, apiDeleteEmployee } from "../api/query/user";
 import { formatDate } from "../utils/functions";
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
-import { EMPLOYEE_ROLES, STATUSES } from "../utils/constants";
+import { EMPLOYEE_ROLES, ROLE_STYLES, STATUSES, STATUS_STYLES } from "../utils/constants";
 import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
@@ -12,18 +12,7 @@ import { ChevronIcon, PlusIcon, SearchIcon, TrashIcon } from "../_components/Ico
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
 type GroupBy = "none" | "role" | "status";
-
-const STATUS_TEXT: Record<EmployeeStatus, string> = {
-    active: "Active",
-    inactive: "Inactive",
-    pending: "Pending",
-};
-
-const STATUS_DOT: Record<EmployeeStatus, string> = {
-    active: "bg-green-500",
-    inactive: "bg-gray-300",
-    pending: "bg-yellow-400",
-};
+type EmployeeRole = Exclude<UserRole, "customer">;
 
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -36,10 +25,10 @@ const Manager = () => {
         sortDir: "asc" as SortDir,
         groupBy: "none" as GroupBy,
     });
-    const [invite, setInvite] = useState({
+    const [invite, setInvite] = useState<{ open: boolean; email: string; role: EmployeeRole; loading: boolean }>({
         open: false,
         email: "",
-        role: "associate" as "associate" | "manager",
+        role: "associate" as EmployeeRole,
         loading: false,
     });
     const [edit, setEdit] = useState<{ target: Employee | null; form: Partial<Employee> }>({
@@ -88,14 +77,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
+                ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-              : STATUSES.reduce(
+                : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -160,7 +149,7 @@ const Manager = () => {
         try {
             await apiSendInvitation(invite.email, invite.role);
             toast.success("Invitation sent successfully.");
-            setInvite({ open: false, email: "", role: "associate", loading: false });
+            setInvite({ open: false, email: "", role: "associate" as EmployeeRole, loading: false });
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to send invitation.");
         } finally {
@@ -177,12 +166,19 @@ const Manager = () => {
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400">{e.email}</p>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600 capitalize">{e.role}</td>
                 <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
-                        <span className="text-sm text-gray-600">{STATUS_TEXT[e.status]}</span>
-                    </div>
+                    <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_STYLES[e.role]}`}
+                    >
+                        {e.role}
+                    </span>
+                </td>
+                <td className="px-4 py-3">
+                    <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[e.status]}`}
+                    >
+                        {e.status}
+                    </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-500">{e.phone}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{formatDate(e.joinedAt)}</td>
@@ -230,15 +226,14 @@ const Manager = () => {
 
                 <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
                     <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
-                        {(["all", "active", "pending", "inactive"] as const).map((s) => (
+                        {(["all", ...STATUSES] as const).map((s) => (
                             <button
                                 key={s}
                                 onClick={() => setFilters((f) => ({ ...f, status: s }))}
-                                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-                                    filters.status === s
+                                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${filters.status === s
                                         ? "bg-gray-900 text-white"
                                         : "text-gray-500 hover:text-gray-800"
-                                }`}
+                                    }`}
                             >
                                 {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                             </button>
@@ -262,8 +257,10 @@ const Manager = () => {
                         onChange={(v) => setFilters((f) => ({ ...f, role: v as "all" | UserRole }))}
                         options={[
                             { value: "all", label: "All roles" },
-                            { value: "associate", label: "Associate" },
-                            { value: "manager", label: "Manager" },
+                            ...EMPLOYEE_ROLES.map((role) => ({
+                                value: role,
+                                label: role.charAt(0).toUpperCase() + role.slice(1),
+                            })),
                         ]}
                     />
                     <Dropdown
@@ -339,7 +336,7 @@ const Manager = () => {
                                             <tr className="border-b border-gray-100 bg-gray-50">
                                                 <td
                                                     colSpan={6}
-                                                    className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 capitalize uppercase"
+                                                    className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 uppercase"
                                                 >
                                                     {key} ({grouped[key].length})
                                                 </td>
@@ -372,11 +369,14 @@ const Manager = () => {
                 <label className="mt-3 mb-1.5 block text-sm font-medium text-gray-700">Role</label>
                 <select
                     value={invite.role}
-                    onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as "associate" | "manager" }))}
+                    onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
                     className="focus:ring-primary w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
-                    <option value="associate">Associate</option>
-                    <option value="manager">Manager</option>
+                    {EMPLOYEE_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </option>
+                    ))}
                 </select>
                 <div className="mt-5 flex justify-end gap-2">
                     <button
@@ -443,8 +443,11 @@ const Manager = () => {
                         }
                         className="focus:ring-primary w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     >
-                        <option value="associate">Associate</option>
-                        <option value="manager">Manager</option>
+                        {EMPLOYEE_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                                {role.charAt(0).toUpperCase() + role.slice(1)}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 {edit.target?.status === "active" && (

@@ -1,5 +1,6 @@
 export const UserRole = Object.freeze({
     ASSOCIATE: "associate",
+    SUPERVISOR: "supervisor",
     MANAGER: "manager",
     CUSTOMER: "customer",
 } as const);

@@ -118,7 +118,7 @@ export const apiGetUsers = async () => {
     }
 };
 
-export const apiSendInvitation = async (email: string, role: "associate" | "manager") => {
+export const apiSendInvitation = async (email: string, role: "associate" | "supervisor" | "manager") => {
     try {
         const { data } = await axiosAuth.patch(`/users/send_invitation`, { role, email });
         return data as { message: string; invitation_link: string; expires_in_hours: number };

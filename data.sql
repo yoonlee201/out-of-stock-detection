@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS employee CASCADE;
 
 -- Connect to it: \c shelf_monitor_db
 
-CREATE TYPE role_enum AS ENUM ('customer', 'associate', 'manager');
+CREATE TYPE role_enum AS ENUM ('customer', 'associate', 'supervisor', 'manager');
 CREATE TYPE employee_status_enum AS ENUM ('active', 'inactive', 'pending');
 
 -- Users table
@@ -99,15 +99,3 @@ CREATE INDEX idx_product_name ON products (name);
 
 CREATE INDEX idx_alerts_user ON alerts (user_id);
 
--- Mock data for users
-INSERT INTO users (first_name, last_name, password, phone, carrier, role, email, is_verified) VALUES
-('John', 'Doe', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0101', 'Verizon', 'manager', 'one@example.com', TRUE),
-('Jane', 'Smith', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0102', 'AT&T', 'associate', 'two@example.com', TRUE),
-('Bob', 'Johnson', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0103', 'T-Mobile', 'associate', 'bob.johnson@example.com', TRUE),
-('Alice', 'Williams', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0104', 'Verizon', 'customer', 'three@example.com', TRUE),
-('Charlie', 'Brown', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '555-0105', 'AT&T', 'customer', 'charlie.brown@example.com', TRUE);
-
-INSERT INTO employee (user_id, status) VALUES
-(1, 'active'),
-(2, 'pending'),
-(3, 'inactive');

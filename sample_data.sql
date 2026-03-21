@@ -8,16 +8,33 @@
 -- TRUNCATE TABLE tokens, inventory_logs, alerts, reorders, products, suppliers, users RESTART IDENTITY CASCADE;
 
 -- Users (All fake users)
-INSERT INTO users (first_name, last_name, password, phone, role, email, created_at) VALUES
-('Maria',    'Gonzalez', 'passmaria2025', '703-555-0123', 'associate', 'maria.gonzalez@mccs.mil', NOW()),
-('James',    'Carter',   'securejames99', '757-555-0198', 'manager',   'james.carter@mccs.mil',   NOW()),
-('Sarah',    'Johnson',  'sjpass2026',    '540-555-0341', 'associate', 'sarah.j@mccs.mil',        NOW()),
-('Michael',  'Lee',      'mleesecure',    '804-555-0765', 'supervisor','michael.lee@mccs.mil',    NOW()),
-('Emily',    'Davis',    'emilyd2025',    '571-555-0882', 'customer',  'emily.davis@email.com',  NOW()),
-('Robert',   'Wilson',   'rwilsonpass',   '202-555-1123', 'associate', 'robert.w@mccs.mil',       NOW()),
-('Linda',    'Martinez', 'lindapass25',   '301-555-1456', 'manager',   'linda.m@mccs.mil',        NOW()),
-('David',    'Brown',    'dbsecure2026',  '703-555-1678', 'associate', 'david.brown@email.com',   NOW()),
-('Jessica',  'Taylor',   'jtaylorpass',   '540-555-1890', 'customer',  'jessica.t@email.com',    NOW());
+-- Mock data for users
+-- password for all users is 12345678
+INSERT INTO users (first_name, last_name, password, phone, role, email, is_verified) VALUES
+('Maria',    'Gonzalez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-0123', 'supervisor', 'one@example.com', TRUE),
+('James',    'Carter',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-0198', 'manager',   'james.carter@mccs.mil', TRUE),
+('Michael',  'Lee',      '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-0765', 'manager','michael.lee@mccs.mil', TRUE),
+('Sarah',    'Johnson',  '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-0341', 'associate', 'sarah.j@mccs.mil', TRUE),
+('Robert',   'Wilson',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-1123', 'associate', 'robert.w@mccs.mil', TRUE),
+('Linda',    'Martinez', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-1456', 'associate',   'linda.m@mccs.mil', TRUE),
+('Emily',    'Davis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-0882', 'customer',  'emily.davis@email.com', TRUE),
+('David',    'Brown',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '703-555-1678', 'customer', 'david.brown@email.com', TRUE),
+('Jessica',  'Taylor',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '540-555-1890', 'customer', 'jessica.t@email.com', FALSE),
+('Kevin',    'Anderson', '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '757-555-2034', 'customer', 'kevin.anderson@email.com', TRUE),
+('Olivia',   'Moore',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '804-555-2199', 'customer', 'olivia.moore@email.com', TRUE),
+('Ethan',    'Harris',   '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '571-555-2276', 'customer', 'ethan.harris@email.com', FALSE),
+('Sophia',   'Clark',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '301-555-2381', 'customer', 'sophia.clark@email.com', TRUE),
+('Noah',     'Lewis',    '$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u', '202-555-2447', 'customer', 'noah.lewis@email.com', TRUE);
+INSERT INTO employee (user_id, status)
+VALUES (SELECT user_id FROM "users" WHERE first_name = 'Maria', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'James', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'Michael', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'Sarah', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'Robert', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'Linda', 'active'),
+    (SELECT user_id FROM "users" WHERE first_name = 'Emily', 'inactive'),
+    (SELECT user_id FROM "users" WHERE first_name = 'David', 'inactive'),
+    ;
 
 -- Suppliers
 INSERT INTO suppliers (email, phone_number) VALUES

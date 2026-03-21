@@ -1,7 +1,11 @@
 # app/routes/users.py
 from flask import Blueprint, request, jsonify, make_response
 from app.core.config import config
-from app.util.auth import session, require_active_employee, require_active_manager
+from app.util.auth import (
+    session, 
+    require_active_employee, 
+    require_active_supervisor_or_manager,
+)
 from app.util.send import lookup_carrier
 from app.services.user_services import (
     generate_token,
@@ -198,7 +202,7 @@ def employees(session):
 
 @users_blueprint.route('/<int:user_id>/role', methods=['PATCH'])
 @users_blueprint.route('/<int:user_id>/role/', methods=['PATCH'])
-@require_active_manager
+@require_active_supervisor_or_manager
 def update_role(user_id, session):
     data = request.get_json()
     if not data:
@@ -222,7 +226,7 @@ def update_role(user_id, session):
 
 @users_blueprint.route('/<int:user_id>', methods=['PATCH'])
 @users_blueprint.route('/<int:user_id>/', methods=['PATCH'])
-@require_active_manager
+@require_active_supervisor_or_manager
 def update_employee_route(user_id, session):
     data = request.get_json(silent=True)
     if not data:
@@ -257,7 +261,7 @@ def update_employee_route(user_id, session):
 
 @users_blueprint.route('/<int:user_id>/deactivate', methods=['PATCH'])
 @users_blueprint.route('/<int:user_id>/deactivate/', methods=['PATCH'])
-@require_active_manager
+@require_active_supervisor_or_manager
 def deactivate_user(user_id, session):
     try:
         deactivate_employee(user_id)
@@ -271,7 +275,7 @@ def deactivate_user(user_id, session):
 
 @users_blueprint.route('/<int:user_id>/employee', methods=['DELETE'])
 @users_blueprint.route('/<int:user_id>/employee/', methods=['DELETE'])
-@require_active_manager
+@require_active_supervisor_or_manager
 def delete_employee_route(user_id, session):
     try:
         delete_employee(user_id)
@@ -287,7 +291,7 @@ def delete_employee_route(user_id, session):
 
 @users_blueprint.route('/send_invitation', methods=['PATCH'])
 @users_blueprint.route('/send_invitation/', methods=['PATCH'])
-@require_active_manager
+@require_active_supervisor_or_manager
 def send_invitation(session):
     data = request.get_json(silent=True)
     if not data:
