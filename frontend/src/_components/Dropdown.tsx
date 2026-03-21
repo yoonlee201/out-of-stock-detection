@@ -31,7 +31,7 @@ const Dropdown = ({ label, options, value, onChange, sectionLabel }: DropdownPro
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen((v) => !v)}
-                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors ${
                     value !== options[0].value
                         ? "border-primary/40 bg-primary/5 text-primary"
                         : "border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800"

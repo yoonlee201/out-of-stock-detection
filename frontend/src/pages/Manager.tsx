@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { apiGetEmployees, apiSendInvitation, apiDeactivateEmployee } from "../api/query/user";
+import { apiGetEmployees, apiSendInvitation, apiUpdateEmployee, apiDeactivateEmployee, apiDeleteEmployee } from "../api/query/user";
 import { formatDate } from "../utils/functions";
-// type
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
-import {
-    EMPLOYEE_ROLES,
-    ROLE_STYLES,
-    STATUS_STYLES,
-    STATUSES,
-} from "../utils/constants";
-// components
+import { EMPLOYEE_ROLES, STATUSES } from "../utils/constants";
 import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
-import { ChevronIcon } from "../_components/Icons";
+import { ChevronIcon, PlusIcon, SearchIcon, TrashIcon } from "../_components/Icons";
 
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
 type GroupBy = "none" | "role" | "status";
+
+const STATUS_TEXT: Record<EmployeeStatus, string> = {
+    active: "Active",
+    inactive: "Inactive",
+    pending: "Pending",
+};
+
+const STATUS_DOT: Record<EmployeeStatus, string> = {
+    active: "bg-green-500",
+    inactive: "bg-gray-300",
+    pending: "bg-yellow-400",
+};
 
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -28,7 +33,7 @@ const Manager = () => {
         role: "all" as "all" | UserRole,
         status: "active" as "all" | EmployeeStatus,
         sortField: "status" as SortField,
-        sortDir: 'asc' as SortDir,
+        sortDir: "asc" as SortDir,
         groupBy: "none" as GroupBy,
     });
     const [invite, setInvite] = useState({
@@ -42,7 +47,6 @@ const Manager = () => {
         form: {},
     });
 
-    // Get, filter, sort, and group employees for display
     useEffect(() => {
         apiGetEmployees()
             .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id), phone: e.phone ?? "" }))))
@@ -59,7 +63,6 @@ const Manager = () => {
     };
 
     const filtered = employees
-        .filter((e) => e.role !== "customer")
         .filter((e) => filters.role === "all" || e.role === filters.role)
         .filter((e) => filters.status === "all" || e.status === filters.status)
         .filter((e) => {
@@ -85,14 +88,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-                ? EMPLOYEE_ROLES.reduce(
+              ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-                : STATUSES.reduce(
+              : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -105,34 +108,52 @@ const Manager = () => {
     const handleDeactivate = async (id: string) => {
         try {
             await apiDeactivateEmployee(Number(id));
-            setEmployees((prev) =>
-                prev.map((e) => {
-                    if (e.id !== id) return e;
-                    return { ...e, status: "inactive", role: "customer" };
-                }),
-            );
+            setEmployees((prev) => prev.map((e) => (e.id !== id ? e : { ...e, status: "inactive", role: "customer" })));
             toast.success("Employee deactivated successfully.");
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to deactivate employee.");
         }
     };
 
-    // Edit employee details
-    // TODO: Integrate with backend to persist changes
+    const handleDeleteEmployee = async (id: string) => {
+        const confirmed = window.confirm(
+            "Delete this employee? This will permanently remove both user and employee data.",
+        );
+        if (!confirmed) return;
+        try {
+            await apiDeleteEmployee(Number(id));
+            setEmployees((prev) => prev.filter((e) => e.id !== id));
+            toast.success("Employee deleted successfully.");
+            setEdit({ target: null, form: {} });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
+        }
+    };
+
     const openEdit = (e: Employee) =>
         setEdit({
             target: e,
             form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role },
         });
 
-    const handleEditSave = () => {
+    const handleEditSave = async () => {
         if (!edit.target) return;
-        setEmployees((prev) => prev.map((e) => (e.id === edit.target!.id ? { ...e, ...edit.form } : e)));
-        toast.success("Employee updated.");
-        setEdit({ target: null, form: {} });
+        try {
+            await apiUpdateEmployee(Number(edit.target.id), {
+                firstName: edit.form.firstName,
+                lastName: edit.form.lastName,
+                email: edit.form.email,
+                phone: edit.form.phone,
+                role: edit.form.role,
+            });
+            setEmployees((prev) => prev.map((e) => (e.id === edit.target!.id ? { ...e, ...edit.form } : e)));
+            toast.success("Employee updated.");
+            setEdit({ target: null, form: {} });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update employee.");
+        }
     };
 
-    // Invite new employee by email
     const handleInvite = async () => {
         if (!invite.email) return;
         setInvite((s) => ({ ...s, loading: true }));
@@ -150,35 +171,33 @@ const Manager = () => {
     const renderRows = (rows: Employee[]) =>
         rows.map((e) => (
             <tr key={e.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
-                <td className="hover:text-primary cursor-pointer px-4 py-4 font-medium text-gray-900 underline underline-offset-2 transition-colors">
-                    {e.firstName} {e.lastName}
+                <td className="px-4 py-3 w-1/4">
+                    <p className="text-sm font-medium text-gray-900">
+                        {e.firstName} {e.lastName}
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-400">{e.email}</p>
                 </td>
-                <td className="px-4 py-4 text-gray-500">{e.email}</td>
-                <td className="px-4 py-4">
-                    <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_STYLES[e.role]}`}
-                    >
-                        {e.role}
-                    </span>
-                </td>
-                <td className="px-4 py-4">
-                    <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[e.status]}`}
-                    >
-                        {e.status}
-                    </span>
-                </td>
-                <td className="px-4 py-4 text-gray-500">{e.phone}</td>
-                <td className="px-4 py-4 text-xs text-gray-400">{formatDate(e.joinedAt)}</td>
-                <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => openEdit(e)}
-                            className="rounded px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-                        >
-                            Edit
-                        </button>
+                <td className="px-4 py-3 text-sm text-gray-600 capitalize">{e.role}</td>
+                <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
+                        <span className="text-sm text-gray-600">{STATUS_TEXT[e.status]}</span>
                     </div>
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-500">{e.phone}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{formatDate(e.joinedAt)}</td>
+                <td className="px-4 py-3 text-right">
+                    <button
+                        onClick={() => openEdit(e)}
+                        className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        aria-label="Edit employee"
+                    >
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <circle cx="10" cy="4" r="1.5" />
+                            <circle cx="10" cy="10" r="1.5" />
+                            <circle cx="10" cy="16" r="1.5" />
+                        </svg>
+                    </button>
                 </td>
             </tr>
         ));
@@ -189,24 +208,55 @@ const Manager = () => {
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen bg-gray-50">
             <Sidebar />
+
             <div className="flex flex-1 flex-col">
-                <div className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
-                    <span className="text-sm font-medium text-gray-700">Employees ({filtered.length})</span>
+                <div className="flex items-start justify-between px-8 py-6">
+                    <div>
+                        <h1 className="text-xl font-semibold text-gray-900">People</h1>
+                        <p className="mt-0.5 text-sm text-gray-400">
+                            Manage and collaborate within your organization's teams
+                        </p>
+                    </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
                         className="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Invite Employee
+                        <PlusIcon />
+                        Add member
                     </button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-8 py-3">
+
+                <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
+                    <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
+                        {(["all", "active", "pending", "inactive"] as const).map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => setFilters((f) => ({ ...f, status: s }))}
+                                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                                    filters.status === s
+                                        ? "bg-gray-900 text-white"
+                                        : "text-gray-500 hover:text-gray-800"
+                                }`}
+                            >
+                                {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2">
+                        <SearchIcon />
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            value={filters.search}
+                            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+                            className="w-48 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                        />
+                    </div>
+
                     <Dropdown
-                        label="Role"
+                        label="Filters"
                         sectionLabel="Filter by role"
                         value={filters.role}
                         onChange={(v) => setFilters((f) => ({ ...f, role: v as "all" | UserRole }))}
@@ -217,19 +267,7 @@ const Manager = () => {
                         ]}
                     />
                     <Dropdown
-                        label="Status"
-                        sectionLabel="Filter by status"
-                        value={filters.status}
-                        onChange={(v) => setFilters((f) => ({ ...f, status: v as "all" | EmployeeStatus }))}
-                        options={[
-                            { value: "all", label: "All statuses" },
-                            { value: "active", label: "Active" },
-                            { value: "pending", label: "Pending" },
-                            { value: "inactive", label: "Inactive" },
-                        ]}
-                    />
-                    <Dropdown
-                        label="Group"
+                        label="Sort by"
                         sectionLabel="Group by"
                         value={filters.groupBy}
                         onChange={(v) => setFilters((f) => ({ ...f, groupBy: v as GroupBy }))}
@@ -243,74 +281,52 @@ const Manager = () => {
                     {hasActiveFilters && (
                         <button
                             onClick={resetFilters}
-                            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-800"
+                            className="text-xs text-gray-400 transition-colors hover:text-gray-600"
                         >
                             Clear
                         </button>
                     )}
 
-                    <div className="ml-auto flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5">
-                        <svg
-                            className="h-3.5 w-3.5 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
-                            />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={filters.search}
-                            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                            className="w-40 text-xs text-gray-700 outline-none placeholder:text-gray-400"
-                        />
-                    </div>
+                    <span className="ml-auto text-sm text-gray-400">
+                        {filtered.length} employee{filtered.length !== 1 ? "s" : ""}
+                    </span>
                 </div>
-
-                <div className="flex-1 bg-white">
+                <div className="mx-8 overflow-hidden rounded-md border border-gray-200 bg-white">
                     <table className="w-full text-left text-sm">
-                        <thead>
+                        <thead className="bg-gray-50">
                             <tr className="border-b border-gray-200">
                                 {[
-                                    { field: "firstName" as SortField, label: "Name" },
-                                    { field: "email" as SortField, label: "Email" },
-                                    { field: "role" as SortField, label: "Role" },
-                                    { field: "status" as SortField, label: "Status" },
-                                    { field: "phone" as SortField, label: "Phone" },
-                                    { field: "joinedAt" as SortField, label: "Joined" },
+                                    { field: "firstName", label: "Name" },
+                                    { field: "role", label: "Job title" },
+                                    { field: "status", label: "Employment Type" },
+                                    { field: "phone", label: "Phone" },
+                                    { field: "joinedAt", label: "Date" },
                                 ].map(({ field, label }) => (
                                     <th
-                                        key={field}
-                                        onClick={() => handleSort(field)}
-                                        className="cursor-pointer px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase transition-colors select-none hover:text-gray-600"
+                                        onClick={() => handleSort(field as SortField)}
+                                        className={`cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase transition-colors select-none hover:text-gray-700`}
                                     >
                                         {label}
                                         {filters.sortField === field && (
-                                            <ChevronIcon className={filters.sortDir == "desc" ? "rotate-180" : ""} />
+                                            <ChevronIcon
+                                                className={`ml-1 inline h-3 w-3 ${filters.sortDir === "desc" ? "rotate-180" : ""}`}
+                                            />
                                         )}
                                     </th>
                                 ))}
-                                <th className="px-4 py-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                                    Actions
-                                </th>
+                                <th className="w-10 px-4 py-3" />
                             </tr>
                         </thead>
                         <tbody>
                             {fetching ? (
                                 <tr>
-                                    <td colSpan={7} className="py-20 text-center text-gray-400">
-                                        Loading employees…
+                                    <td colSpan={6} className="py-20 text-center text-gray-400">
+                                        Loading…
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-20 text-center text-gray-400">
+                                    <td colSpan={6} className="py-20 text-center text-gray-400">
                                         No employees found.
                                     </td>
                                 </tr>
@@ -322,8 +338,8 @@ const Manager = () => {
                                         <React.Fragment key={key}>
                                             <tr className="border-b border-gray-100 bg-gray-50">
                                                 <td
-                                                    colSpan={7}
-                                                    className="px-8 py-2 text-xs font-bold tracking-wider text-gray-400 uppercase"
+                                                    colSpan={6}
+                                                    className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 capitalize uppercase"
                                                 >
                                                     {key} ({grouped[key].length})
                                                 </td>
@@ -337,7 +353,6 @@ const Manager = () => {
                     </table>
                 </div>
             </div>
-
             <Dialog
                 open={invite.open}
                 title="Invite New Employee"
@@ -443,13 +458,21 @@ const Manager = () => {
                                 handleDeactivate(edit.target!.id!);
                                 setEdit({ target: null, form: {} });
                             }}
-                            className="bg-red/10 text-red hover:bg-red/20 ml-4 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                            className="ml-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                         >
                             Deactivate
                         </button>
                     </div>
                 )}
                 <div className="mt-5 flex justify-end gap-2">
+                    {edit.target && (
+                        <button
+                            onClick={() => handleDeleteEmployee(edit.target!.id!)}
+                            className="mr-auto rounded-lg px-2 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                        >
+                            <TrashIcon />
+                        </button>
+                    )}
                     <button
                         onClick={() => setEdit({ target: null, form: {} })}
                         className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
@@ -460,7 +483,7 @@ const Manager = () => {
                         onClick={handleEditSave}
                         className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
-                        Save Changes
+                        Save
                     </button>
                 </div>
             </Dialog>

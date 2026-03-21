@@ -14,7 +14,9 @@ from app.services.user_services import (
 
     create_user,
     update_user_role,
+    update_employee,
     deactivate_employee,
+    delete_employee,
 
     prepare_invitation,
     send_invitation_email,
@@ -219,6 +221,41 @@ def update_role(user_id, session):
     return {"message": f"Role updated to '{new_role}'"}, 200
 
 
+@users_blueprint.route('/<int:user_id>', methods=['PATCH'])
+@users_blueprint.route('/<int:user_id>/', methods=['PATCH'])
+@require_active_manager
+def update_employee_route(user_id, session):
+    data = request.get_json(silent=True)
+    if not data:
+        return {"message": "Invalid JSON payload"}, 400
+
+    try:
+        user = update_employee(
+            user_id,
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+            email=data.get("email"),
+            phone=data.get("phone"),
+            role=data.get("role"),
+        )
+    except LookupError as e:
+        return {"message": str(e)}, 404
+    except ValueError as e:
+        return {"message": str(e)}, 422
+
+    return {
+        "message": "Employee updated",
+        "user": {
+            "id": user.user_id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "phone": user.phone,
+            "role": user.role,
+        },
+    }, 200
+
+
 @users_blueprint.route('/<int:user_id>/deactivate', methods=['PATCH'])
 @users_blueprint.route('/<int:user_id>/deactivate/', methods=['PATCH'])
 @require_active_manager
@@ -231,6 +268,20 @@ def deactivate_user(user_id, session):
         return {"message": "Internal server error"}, 500
 
     return {"message": "Employee deactivated successfully"}, 200
+
+
+@users_blueprint.route('/<int:user_id>/employee', methods=['DELETE'])
+@users_blueprint.route('/<int:user_id>/employee/', methods=['DELETE'])
+@require_active_manager
+def delete_employee_route(user_id, session):
+    try:
+        delete_employee(user_id)
+    except LookupError as e:
+        return {"message": str(e)}, 404
+    except Exception:
+        return {"message": "Internal server error"}, 500
+
+    return {"message": "User and employee deleted successfully"}, 200
 
 
 # ── Employee invitation routes ────────────────────────────────────────────────
@@ -252,7 +303,7 @@ def send_invitation(session):
         return {"message": "Email is required"}, 400
 
     try:
-        user, is_new = prepare_invitation(email)
+        user, is_new = prepare_invitation(email, invited_role)
     except ValueError as e:
         return {"message": str(e)}, 422
 
@@ -306,24 +357,17 @@ def finish_invitation():
     if not data:
         return {"message": "Invalid JSON payload"}, 400
 
-    token  = data.get("token")
-    phone  = data.get("phone")
-    is_new = data.get("is_new", False)
+    token = data.get("token")
+    phone = data.get("phone")
 
     if not token: return {"message": "Invitation token is required"}, 400
     if not phone: return {"message": "Phone number is required"}, 400
 
-    kwargs = {}
-    if is_new:
-        first_name = data.get("first_name")
-        last_name  = data.get("last_name")
-        password   = data.get("password")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    password = data.get("password")
 
-        if not first_name: return {"message": "First name is required for new users"}, 400
-        if not last_name:  return {"message": "Last name is required for new users"}, 400
-        if not password:   return {"message": "Password is required for new users"}, 400
-
-        kwargs = dict(first_name=first_name, last_name=last_name, password=password)
+    kwargs = dict(first_name=first_name, last_name=last_name, password=password)
 
     try:
         user = complete_invitation(token, phone, **kwargs)

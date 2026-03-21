@@ -23,6 +23,13 @@ def _resolve_role(user=None, role=None):
     return getattr(user, 'role', None)
 
 
+def _needs_account_setup(user):
+    return (
+        not bool((user.first_name or "").strip())
+        and not bool((user.last_name or "").strip())
+    )
+
+
 # --- Token helpers ---
 
 def generate_token(user):
@@ -161,6 +168,30 @@ def get_all_active_employees():
     )
 
 
+def update_employee(user_id, first_name=None, last_name=None, email=None, phone=None, role=None):
+    """Update editable fields on an employee. Raises LookupError if not found."""
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
+
+    if first_name is not None:
+        user.first_name = first_name
+    if last_name is not None:
+        user.last_name = last_name
+    if email is not None:
+        user.email = email
+    if phone is not None:
+        user.phone = phone
+        user.carrier = lookup_carrier(phone)
+    if role is not None:
+        if role not in EMPLOYEE_ROLES:
+            raise ValueError(f"Invalid role '{role}'")
+        user.role = role
+
+    db.session.commit()
+    return user
+
+
 def deactivate_employee(user_id):
     """Deactivate an employee. Raises LookupError if user or employee record not found."""
     user = Users.query.get(user_id)
@@ -173,6 +204,21 @@ def deactivate_employee(user_id):
 
     user.role = 'customer'
     employee.status = 'inactive'
+    db.session.commit()
+
+
+def delete_employee(user_id):
+    """Delete both employee and user records."""
+    user = Users.query.get(user_id)
+    if not user:
+        raise LookupError("User not found")
+
+    employee = Employee.query.filter_by(user_id=user_id).first()
+    if not employee:
+        raise LookupError("Employee record not found")
+
+    db.session.delete(employee)
+    db.session.delete(user)
     db.session.commit()
 
 
@@ -225,39 +271,49 @@ def verify_email_token(token):
 
 # --- Invitation helpers ---
 
-def prepare_invitation(email):
+def prepare_invitation(email, invited_role='associate'):
     """Find or create a pending user+employee for the given email.
 
-    Returns (user, is_new).
-    Raises ValueError if the email belongs to an existing employee.
+    Returns (user, needs_account_setup).
+    Raises ValueError if the email belongs to an active employee.
     """
     user = Users.query.filter_by(email=email).first()
-    is_new = user is None
+    created_new_user = user is None
 
-    if not is_new and user.role in EMPLOYEE_ROLES:
-        raise ValueError("User is already an employee")
-
-    if is_new:
+    # Case 1: no existing user -> create placeholder user, needs setup.
+    if created_new_user:
         user = Users(
             first_name="",
             last_name="",
             email=email,
-            role="customer",
+            role=invited_role,
             is_verified=False,
         )
         user.set_password(secrets.token_hex(32))
         db.session.add(user)
         db.session.flush()
+    else:
+        # Case 2/4: existing user -> keep account, update role for invitation.
+        user.role = invited_role
 
     employee = Employee.query.filter_by(user_id=user.user_id).first()
     if employee is None:
+        # Case 2: existing user but no employee -> create pending employee record.
         employee = Employee(user_id=user.user_id, status="pending")
         db.session.add(employee)
     else:
+        if employee.status == 'active':
+            # Case 3: existing active employee -> reject duplicate invite.
+            raise ValueError("User is already an active employee")
+        # Case 4: inactive/pending employee -> re-invite by setting pending.
         employee.status = "pending"
 
+    # `is_new` in the token means "needs setup".
+    # Real existing accounts skip setup; placeholder invite-only accounts require it.
+    needs_account_setup = created_new_user or _needs_account_setup(user)
+
     db.session.commit()
-    return user, is_new
+    return user, needs_account_setup
 
 
 def send_invitation_email(user, invited_role, is_new=False):
@@ -295,7 +351,6 @@ def send_invitation_email(user, invited_role, is_new=False):
 
 
 def verify_invitation_token(token):
-    """Return (user, role, is_new). Raises on invalid/expired token or missing user."""
     payload = load_invitation_payload(token)
     user = Users.query.get(payload.get("user_id"))
     if not user:
@@ -304,7 +359,6 @@ def verify_invitation_token(token):
 
 
 def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
-    """Complete an invitation. For new users, fills in name/password on the placeholder account."""
     payload = load_invitation_payload(token)
     invited_role = payload.get("role", "associate")
     if invited_role not in EMPLOYEE_ROLES:

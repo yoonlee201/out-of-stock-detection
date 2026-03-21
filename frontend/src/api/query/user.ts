@@ -231,6 +231,28 @@ export const apiVerifyEmail = async (token: string) => {
     }
 };
 
+export const apiUpdateEmployee = async (
+    id: number,
+    fields: { firstName?: string; lastName?: string; email?: string; phone?: string; role?: string },
+) => {
+    try {
+        const { data } = await axiosAuth.patch(`/users/${id}`, {
+            first_name: fields.firstName,
+            last_name: fields.lastName,
+            email: fields.email,
+            phone: fields.phone,
+            role: fields.role,
+        });
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to update employee.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to update employee.");
+    }
+};
+
 export const apiDeactivateEmployee = async (employeeId: number) => {
     try {
         const { data } = await axiosAuth.patch(`/users/${employeeId}/deactivate`);
@@ -241,5 +263,18 @@ export const apiDeactivateEmployee = async (employeeId: number) => {
             throw new Error(message);
         }
         throw new Error("Failed to deactivate employee.");
+    }
+};
+
+export const apiDeleteEmployee = async (employeeId: number) => {
+    try {
+        const { data } = await axiosAuth.delete(`/users/${employeeId}/employee`);
+        return data as { message: string };
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const message = error.response?.data?.message || "Failed to delete employee.";
+            throw new Error(message);
+        }
+        throw new Error("Failed to delete employee.");
     }
 };
