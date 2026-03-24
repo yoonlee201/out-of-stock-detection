@@ -1,6 +1,6 @@
 #!/bin/bash
-# bash database.sh -m     : Create database and user, and insert sample data for testing
-# bash database.sh         : Create database and user without inserting sample data
+# bash scripts/database.sh -m      : Create database and user, and insert sample data for testing
+# bash scripts/database.sh         : Create database and user without inserting sample data
 
 echo "Checking if PostgreSQL container is ready..."
 until docker exec pg-oos_detection pg_isready -U oos_detection > /dev/null 2>&1; do
