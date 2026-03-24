@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { UserRole } from "../types/db";
 import { LogoutIcon } from "./Icons";
+import useRouter from "../hooks/useRouter";
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
+    const { dashboardRoutes } = useRouter(user?.role || null);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -12,6 +13,7 @@ const Sidebar = () => {
         const isActive = location.pathname === path;
         return (
             <button
+                key={label}
                 onClick={() => navigate(path)}
                 className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${
                     isActive
@@ -45,16 +47,7 @@ const Sidebar = () => {
             </div>
 
             <nav className="mt-5 flex flex-1 flex-col gap-0">
-                {navBtn("Dashboard", "/dashboard")}
-                {navBtn("Products", "/products")}
-                {navBtn("Alerts", "/alerts")}
-                {navBtn("Reorders", "/reorders")}
-                {navBtn("Suppliers", "/suppliers")}
-                {navBtn("Settings", "/settings")}
-                {navBtn("Space Detection", "/space-detection")}
-                {user?.role === UserRole.MANAGER || user?.role === UserRole.SUPERVISOR
-                    ? navBtn("Employee Management", "/employee-management")
-                    : null}
+                {dashboardRoutes.map(({ label, path }) => navBtn(label, path))}
             </nav>
 
             {user && (
