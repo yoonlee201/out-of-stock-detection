@@ -1,5 +1,5 @@
 
-.env
+.env*
 __pycache__/
 *.pyc
 *.pyo
@@ -37,3 +37,4 @@ build/
 *.env.production
 *.pt
 !space_detection/best.pt
+

@@ -12,11 +12,11 @@ until docker exec pg-oos_detection pg_isready -U oos_detection > /dev/null 2>&1;
 done
 
 echo "Creating database and user to docker container..."
-docker cp ./data.sql pg-oos_detection:/data.sql
+docker cp ./scripts/data.sql pg-oos_detection:/data.sql
 docker exec -it pg-oos_detection psql -U oos_detection -d oos_detection -f data.sql
 
 if [[ "$1" == "-m" ]]; then
     echo "Creating sample data for testing..."
-    docker cp ./sample_data.sql pg-oos_detection:/sample_data.sql
+    docker cp ./scripts/sample_data.sql pg-oos_detection:/sample_data.sql
     docker exec -it pg-oos_detection psql -U oos_detection -d oos_detection -f sample_data.sql
 fi
