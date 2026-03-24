@@ -50,3 +50,4 @@ backend/space_detection/downloads/
 
 # Ignore database dumps
 *.sql
+!mock_data/*.sql
