@@ -329,7 +329,7 @@ def send_invitation_email(user, invited_role, is_new=False):
     }
 
     token = serializer.dumps(payload)
-    invitation_link = f"{config.FRONTEND_URL.rstrip('/')}/continue?token={token}"
+    invitation_link = f"{config.FRONTEND_URL.rstrip('/')}/invitation?token={token}"
 
     html = render_email(f"""
       <p>Hi <strong>{greeting}</strong>,</p>
