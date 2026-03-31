@@ -72,7 +72,7 @@ const Register = () => {
             >
                 <h1 className="text-primary mb-8 text-center text-4xl font-bold">Register</h1>
 
-                <div className="flex gap-3 w-full justify-between">
+                <div className="flex w-full justify-between gap-3">
                     <Field
                         required
                         label="First Name"

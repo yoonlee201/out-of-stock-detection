@@ -125,8 +125,8 @@ def update_user_role(user_id, new_role):
     if new_role in EMPLOYEE_ROLES:
         if not user.phone:
             raise ValueError("User must have a phone number before being assigned an employee role")
-        if not user.carrier:
-            raise ValueError("User must have a carrier before being assigned an employee role")
+        else:
+            user.carrier = lookup_carrier(user.phone)
 
     user.role = new_role
     db.session.commit()
@@ -391,3 +391,4 @@ def complete_invitation(token, phone, first_name=None, last_name=None, password=
 
     db.session.commit()
     return user
+

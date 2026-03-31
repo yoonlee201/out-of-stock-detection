@@ -19,7 +19,7 @@ type Routes = {
 
 const useRouter = (role: UserRole | null) => {
     const allRoutes: Routes = {
-        login : { path: "/login", label: "Login", element: <Login /> },
+        login: { path: "/login", label: "Login", element: <Login /> },
         register: { path: "/register", label: "Register", element: <Register /> },
         verify_email: { path: "/verify-email", label: "Verify Email", element: <VerifyEmail /> },
         invitation: { path: "/invitation", label: "Invitation", element: <Invitation /> },
@@ -33,30 +33,18 @@ const useRouter = (role: UserRole | null) => {
         // "Settings": { path: "/settings", label: "Settings", element: <Settings /> },
     };
 
-    const authRoutes: Route[] = [
-        allRoutes.login,
-        allRoutes.register,
-        allRoutes.verify_email,
-        allRoutes.invitation,
-    ]
+    const authRoutes: Route[] = [allRoutes.login, allRoutes.register, allRoutes.verify_email, allRoutes.invitation];
 
-    const publicSidebarRoutes: Route[] = [
-        allRoutes.dashboard,
-    ];
+    const publicSidebarRoutes: Route[] = [allRoutes.dashboard];
 
     const employeeRoutes: { [key in UserRole]: Route[] } = {
         customer: [],
-        associate: [ allRoutes.space_detection ],
-        supervisor: [ allRoutes.space_detection, allRoutes.employee_management],
-        manager: [ allRoutes.space_detection, allRoutes.employee_management],
+        associate: [allRoutes.space_detection],
+        supervisor: [allRoutes.space_detection, allRoutes.employee_management],
+        manager: [allRoutes.space_detection, allRoutes.employee_management],
     };
 
-    const dashboardRoutes = [
-        ...publicSidebarRoutes,
-        ...(role && employeeRoutes[role] ? employeeRoutes[role] : []),
-    ]
-
-
+    const dashboardRoutes = [...publicSidebarRoutes, ...(role && employeeRoutes[role] ? employeeRoutes[role] : [])];
 
     return { authRoutes, dashboardRoutes };
 };

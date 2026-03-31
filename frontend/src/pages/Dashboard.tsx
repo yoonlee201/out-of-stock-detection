@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../_components/Sidebar";
+import { useAuth } from "../hooks/useAuth";
+import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
 interface Product {
     product_id: number;
@@ -13,6 +15,7 @@ interface Product {
 }
 
 const Dashboard = () => {
+    const { user } = useAuth(); // Placeholder for actual user context
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -56,6 +59,20 @@ const Dashboard = () => {
 
             <div className="flex-1 p-8">
                 <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
+                {(user?.role === "manager" || user?.role === "supervisor") && (
+                    <button
+                        className="bg-secondary mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
+                        onClick={async () => {
+                            try {
+                                await apiMakeOutOfStockAlert();
+                            } catch (error) {
+                                console.error("Error sending out of stock alert:", error);
+                            }
+                        }}
+                    >
+                        Send Employees Alert
+                    </button>
+                )}
 
                 <div className="mb-8 grid grid-cols-4 gap-6">
                     <StatCard title="Total Products" value={String(totalProducts)} color="text-blue-600" />
