@@ -1,61 +1,109 @@
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../_components/Sidebar";
 
+interface Product {
+    product_id: number;
+    name: string;
+    type: string;
+    qrcode: string;
+    quantity_in_store: number;
+    aisle: string;
+    shelf: string;
+    supplier_id: number;
+}
+
 const Dashboard = () => {
-    const products = [
-        { name: "Milk", type: "Dairy", qty: 0, aisle: "A2", shelf: "S1" },
-        { name: "Coke", type: "Beverage", qty: 3, aisle: "A5", shelf: "S2" },
-        { name: "Bread", type: "Bakery", qty: 8, aisle: "A1", shelf: "S3" },
-    ];
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch("http://localhost:8000/products/");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch products");
+                }
+
+                const data = await response.json();
+                setProducts(data);
+            } catch (err) {
+                console.error("Error fetching products:", err);
+                setError("Failed to load products.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
+    const totalProducts = products.length;
+
+    const outOfStockCount = useMemo(() => {
+        return products.filter((p) => p.quantity_in_store === 0).length;
+    }, [products]);
+
+    const lowStockCount = useMemo(() => {
+        return products.filter((p) => p.quantity_in_store > 0 && p.quantity_in_store <= 10).length;
+    }, [products]);
+
+    const activeAlerts = outOfStockCount + lowStockCount;
 
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
 
-            {/* Main Content */}
             <div className="flex-1 p-8">
                 <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
 
-                {/* Stats */}
                 <div className="mb-8 grid grid-cols-4 gap-6">
-                    <StatCard title="Total Products" value="120" color="text-blue" />
-                    <StatCard title="Out of Stock" value="12" color="text-red" />
-                    <StatCard title="Low Stock" value="8" color="text-yellow" />
-                    <StatCard title="Active Alerts" value="5" color="text-green" />
+                    <StatCard title="Total Products" value={String(totalProducts)} color="text-blue-600" />
+                    <StatCard title="Out of Stock" value={String(outOfStockCount)} color="text-red-600" />
+                    <StatCard title="Low Stock" value={String(lowStockCount)} color="text-yellow-500" />
+                    <StatCard title="Active Alerts" value={String(activeAlerts)} color="text-green-600" />
                 </div>
 
-                {/* Products Table */}
                 <div className="rounded-xl bg-white p-6 shadow">
                     <h2 className="mb-4 text-xl font-semibold">Products</h2>
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b">
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Quantity</th>
-                                <th>Aisle</th>
-                                <th>Shelf</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.map((p, i) => (
-                                <tr key={i} className="border-b hover:bg-gray-50">
-                                    <td>{p.name}</td>
-                                    <td>{p.type}</td>
-                                    <td>{p.qty}</td>
-                                    <td>{p.aisle}</td>
-                                    <td>{p.shelf}</td>
-                                    <td>
-                                        {p.qty === 0 ? (
-                                            <span className="text-red font-semibold">Out of Stock</span>
-                                        ) : (
-                                            <span className="text-green font-semibold">In Stock</span>
-                                        )}
-                                    </td>
+
+                    {loading && <p>Loading products...</p>}
+                    {error && <p className="font-medium text-red-600">{error}</p>}
+
+                    {!loading && !error && (
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b">
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Aisle</th>
+                                    <th>Shelf</th>
+                                    <th>Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {products.map((p) => (
+                                    <tr key={p.product_id} className="border-b hover:bg-gray-50">
+                                        <td>{p.name}</td>
+                                        <td>{p.type}</td>
+                                        <td>{p.quantity_in_store}</td>
+                                        <td>{p.aisle}</td>
+                                        <td>{p.shelf}</td>
+                                        <td>
+                                            {p.quantity_in_store === 0 ? (
+                                                <span className="font-semibold text-red-600">Out of Stock</span>
+                                            ) : p.quantity_in_store <= 10 ? (
+                                                <span className="font-semibold text-yellow-600">Low Stock</span>
+                                            ) : (
+                                                <span className="font-semibold text-green-600">In Stock</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
         </div>

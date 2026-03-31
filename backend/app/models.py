@@ -53,7 +53,7 @@ class Suppliers(db.Model):
 class Products(db.Model):
     __tablename__ = 'products'
     
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    product_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     type = db.Column(db.String(50), nullable=False)
     qrcode = db.Column(db.String(100), unique=True, nullable=False)
@@ -66,8 +66,8 @@ class Reorders(db.Model):
     __tablename__ = 'reorders'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -75,8 +75,8 @@ class Alerts(db.Model):
     __tablename__ = 'alerts'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
     alert_type = db.Column(db.String(50), nullable=False)
     sent_time = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -84,7 +84,7 @@ class InventoryLogs(db.Model):
     __tablename__ = 'inventory_logs'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
     change_type = db.Column(db.String(50), nullable=False)
     quantity_changed = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
