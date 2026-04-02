@@ -1,36 +1,29 @@
 import json
+import os
 import openai
-import psycopg2
-from psycopg2 import sql
+from uuid import UUID
 
-#OpenAI API key
-openai.api_key = ''
+from db_ops import (
+    get_product_by_name,
+    get_products_by_location,
+    get_supplier_by_id,
+    get_employee_by_user_id,
+    insert_reorder,
+    insert_alert,
+    update_product_quantity,
+    log_inventory_change,
+)
 
-# DB connection (update with db credentials)
-DB_PARAMS = {
-    'dbname': 'shelf_monitor_db',
-    'user': 'your_db_user',
-    'password': 'your_db_password',
-    'host': 'localhost'
-}
+# OpenAI API key
+openai.api_key = os.getenv('OPENAI_API_KEY', '')
 
-def query_db(query, params=None):
-    """Run a SQL query and return results."""
-    conn = psycopg2.connect(**DB_PARAMS)
-    cur = conn.cursor()
-    cur.execute(query, params or ())
-    results = cur.fetchall()
-    cur.close()
-    conn.close()
-    return results
 
-# Define tools the agent can call (SQL queries)
 tools = [
     {
         "type": "function",
         "function": {
             "name": "query_stock",
-            "description": "Query product stock levels and details from the DB.",
+            "description": "Return product information and stock status by product_name.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -40,54 +33,138 @@ tools = [
             }
         }
     },
-    # Add more tools, like "send_alert" or "create_reorder"
+    {
+        "type": "function",
+        "function": {
+            "name": "query_supplier",
+            "description": "Return supplier data by supplier_id.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "supplier_id": {"type": "integer", "description": "Supplier ID"}
+                },
+                "required": ["supplier_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_employee",
+            "description": "Return employee details by user_id.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_id": {"type": "integer", "description": "User ID"}
+                },
+                "required": ["user_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_reorder",
+            "description": "Create a reorder entry in reorders table.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_id": {"type": "integer"},
+                    "product_id": {"type": "integer"},
+                    "quantity": {"type": "integer"}
+                },
+                "required": ["user_id", "product_id", "quantity"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_alert",
+            "description": "Log an alert when stock is low.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_id": {"type": "integer"},
+                    "product_id": {"type": "integer"},
+                    "alert_type": {"type": "string"}
+                },
+                "required": ["user_id", "product_id", "alert_type"]
+            }
+        }
+    }
 ]
 
-def handle_tool_call(tool_call):
-    """Execute the tool based on agent's request."""
-    if tool_call.function.name == "query_stock":
-        args = json.loads(tool_call.function.arguments)
-        product_name = args['product_name']
-        query = sql.SQL("SELECT product_id, quantity_in_store, shelf, aisle FROM products WHERE name = %s")
-        results = query_db(query, (product_name,))
-        return str(results)  # Return as string for the model
-    return "Tool not found."
 
-# Main AI Agent function
+def handle_tool_call(tool_call):
+    name = tool_call.function.name
+    args = json.loads(tool_call.function.arguments)
+
+    if name == 'query_stock':
+        product = get_product_by_name(args['product_name'])
+        return json.dumps(product or {})
+
+    if name == 'query_supplier':
+        supplier = get_supplier_by_id(args['supplier_id'])
+        return json.dumps(supplier or {})
+
+    if name == 'query_employee':
+        employee = get_employee_by_user_id(args['user_id'])
+        return json.dumps(employee or {})
+
+    if name == 'create_reorder':
+        reorder_id = insert_reorder(args['user_id'], args['product_id'], args['quantity'])
+        return json.dumps({'reorder_id': reorder_id})
+
+    if name == 'create_alert':
+        alert_id = insert_alert(args['user_id'], args['product_id'], args['alert_type'])
+        return json.dumps({'alert_id': alert_id})
+
+    return 'Tool not found.'
+
+
 def run_ai_agent(input_data):
-    """Input: dict like {'missing_product': 'Milk', 'detected_gap': 'large', 'shelf': 'Shelf 1'}
-    Output: decision like alert or reorder."""
+    """Process incoming detection and generate action using DB and OpenAI."""
     messages = [
-        {"role": "system", "content": "You are an inventory agent for a grocery store. Analyze shelf detections, query DB if needed, and decide: if stock > 0, send restock alert; if 0, create reorder. Output JSON with action, user_id (assume 1 for now), details."},
-        {"role": "user", "content": f"Process this: {input_data}"}
+        {
+            'role': 'system',
+            'content': (
+                'You are an inventory agent for a grocery store. ' 
+                'You may call tools to read inventory, create low-stock alerts, and create reorder tasks. '
+                'Products are in table products, suppliers in suppliers, employees in employee/users, ' 
+                'and you can write to reorders/alerts.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': f"Received detection: {json.dumps(input_data)}"
+        }
     ]
-    
+
     response = openai.chat.completions.create(
-        model="gpt-4o",  # Or gpt-3.5-turbo for cheaper
+        model='gpt-4o',
         messages=messages,
         tools=tools,
-        tool_choice="auto"
+        tool_choice='auto'
     )
-    
-    # If the model wants to call a tool
-    if response.choices[0].message.tool_calls:
+
+    if response.choices and hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
         tool_call = response.choices[0].message.tool_calls[0]
         tool_result = handle_tool_call(tool_call)
-        
-        # Send back to model for final decision
+
         messages.append(response.choices[0].message)
-        messages.append({"role": "tool", "content": tool_result, "tool_call_id": tool_call.id})
-        
-        final_response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=messages
+        messages.append({'role': 'tool', 'content': tool_result, 'tool_call_id': tool_call.id})
+
+        final = openai.chat.completions.create(
+            model='gpt-4o',
+            messages=messages,
         )
-        return final_response.choices[0].message.content
-    
+        return final.choices[0].message.content
+
     return response.choices[0].message.content
 
-# Example usage (integrate your Flask/YOLO output)
-if __name__ == "__main__":
-    detection = {'missing_product': 'Milk', 'detected_gap': 'large', 'shelf': 'Shelf 1'}
+
+if __name__ == '__main__':
+    detection = {'missing_product': 'Milk', 'detected_gap': 'large', 'shelf': 'Shelf 1', 'aisle': 'A1'}
     decision = run_ai_agent(detection)
-    print(decision)  # e.g., '{"action": "reorder", "user_id": 1, "quantity": 20, "product": "Milk"}'
+    print(decision)
