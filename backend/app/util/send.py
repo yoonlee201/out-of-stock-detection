@@ -16,7 +16,7 @@ SETUP:
 
 3. NumVerify free API key (250 free lookups/month):
    - Sign up at https://numverify.com (free plan, no credit card)
-   - Copy your API key into NUMVERIFY_API_KEY below
+   - Copy your API key into IPQS_API_KEY below
 """
 
 import smtplib
@@ -28,19 +28,59 @@ from app.core.config import config
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 
 CARRIER_GATEWAYS = {
-    "at&t":       "txt.att.net",
-    "att":        "txt.att.net",
-    "verizon":    "vtext.com",
-    "t-mobile":   "tmomail.net",
-    "tmobile":    "tmomail.net",
-    "sprint":     "messaging.sprintpcs.com",
-    "boost":      "sms.myboostmobile.com",
-    "cricket":    "sms.cricketwireless.net",
-    "metro":      "mymetropcs.com",
-    "uscellular": "email.uscc.net",
-    "virgin":     "vmobl.com",
-    "xfinity":    "vtext.com",
+    # AT&T
+    "at&t":                     "txt.att.net",
+    "att":                      "txt.att.net",
+    "at&t mobility":            "txt.att.net",
+    "at&t wireless":            "txt.att.net",
+    # Verizon
+    "verizon":                  "vtext.com",
+    "verizon wireless":         "vtext.com",
+    # T-Mobile
+    "t-mobile":                 "tmomail.net",
+    "tmobile":                  "tmomail.net",
+    "t-mobile usa":             "tmomail.net",
+    "t-mobile usa, inc.":       "tmomail.net",
+    # Sprint (now T-Mobile)
+    "sprint":                   "messaging.sprintpcs.com",
+    "sprint pcs":               "messaging.sprintpcs.com",
+    # Boost
+    "boost":                    "sms.myboostmobile.com",
+    "boost mobile":             "sms.myboostmobile.com",
+    # Cricket
+    "cricket":                  "sms.cricketwireless.net",
+    "cricket wireless":         "sms.cricketwireless.net",
+    # Metro (T-Mobile)
+    "metro":                    "mymetropcs.com",
+    "metropcs":                 "mymetropcs.com",
+    "metro by t-mobile":        "mymetropcs.com",
+    # US Cellular
+    "uscellular":               "email.uscc.net",
+    "us cellular":              "email.uscc.net",
+    "united states cellular":   "email.uscc.net",
+    # Virgin
+    "virgin":                   "vmobl.com",
+    "virgin mobile":            "vmobl.com",
+    # Xfinity / Comcast
+    "xfinity":                  "vtext.com",
+    "xfinity mobile":           "vtext.com",
+    "comcast":                  "vtext.com",
+    # Visible (Verizon MVNO)
+    "visible":                  "vtext.com",
+    # Google Fi
+    "google fi":                "msg.fi.google.com",
+    "google":                   "msg.fi.google.com",
+    # Mint Mobile (T-Mobile MVNO)
+    "mint mobile":              "mailmymobile.net",
+    "mint":                     "mailmymobile.net",
+    # Consumer Cellular
+    "consumer cellular":        "mailmymobile.net",
 }
+
+
+def get_gateway(carrier_str: str) -> str | None:
+    """Look up SMS gateway from a carrier string, tolerating messy IPQS values."""
+    return CARRIER_GATEWAYS.get(carrier_str.lower().strip())
 
 
 _EMAIL_BASE = """
@@ -110,41 +150,6 @@ def load_verification_payload(token: str):
     return payload
 
 
-
-# ── Carrier lookup ────────────────────────────────────────────────────────────
-
-def lookup_carrier(phone_number: str) -> str | None:
-    """Look up a phone number's carrier using the free NumVerify API.
-
-    Returns a lowercase carrier name string, or None if lookup fails.
-    """
-    digits = "".join(filter(str.isdigit, phone_number))
-    url = (
-        f"http://apilayer.net/api/validate"
-        f"?access_key={config.NUMVERIFY_API_KEY}"
-        f"&number={digits}"
-        f"&country_code=US"
-        f"&format=1"
-    )
-    try:
-        response = requests.get(url, timeout=10)
-        data = response.json()
-        if data.get("valid") and data.get("carrier"):
-            carrier_raw = data["carrier"].lower()
-            # Match returned carrier name to our gateway keys
-            for key in CARRIER_GATEWAYS:
-                if key in carrier_raw:
-                    return key
-            print(f"[Carrier] Detected '{data['carrier']}' but no gateway match found.")
-            print(f"          Available gateways: {', '.join(CARRIER_GATEWAYS.keys())}")
-            return None
-        else:
-            print(f"[Carrier] Lookup failed or number invalid: {data}")
-            return None
-    except Exception as e:
-        return {"message": f"Carrier lookup error: {str(e)}"}, 500
-
-
 # ── Core SMTP helper ──────────────────────────────────────────────────────────
 def _send_via_gmail(to_address: str, subject: str, body: str, html: str = None) -> None:
     msg = MIMEMultipart("alternative")
@@ -194,6 +199,11 @@ def send_sms(phone_number: str, message: str, carrier: str = None) -> None:
         print(f"[SMS] Unknown carrier '{carrier}'. Available: {', '.join(CARRIER_GATEWAYS)}")
         return
 
-    gateway_address = f"{digits}@{CARRIER_GATEWAYS[carrier]}"
-    _send_via_gmail(gateway_address, subject="", body=message)
+    import uuid
+    gateway_address = f"{digits}@{get_gateway(carrier)}"
+    _send_via_gmail(gateway_address, subject=str(uuid.uuid4()), body=message)
     print(f"[SMS] Sent to {phone_number} ({carrier}) ✓")
+
+def lookup_carrier(phone_number: str) -> str:
+    from app.util.IPQS import get_user_carrier
+    return get_user_carrier(phone_number)
