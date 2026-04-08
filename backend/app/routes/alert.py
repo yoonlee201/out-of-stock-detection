@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.user_services import get_all_active_employees
 from app.services.alert_services import send_out_of_stock_sms
+from app.services.reorder_services import create_mock_reorders
 
 
 alert_blueprint = Blueprint('alert', __name__)
@@ -31,6 +32,24 @@ def send_out_of_stock_alert():
         return jsonify({
             'success': True,
             'message': 'Out of stock alerts sent'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@alert_blueprint.route('/create_reorders', methods=['POST', 'OPTIONS'])
+def create_reorders():
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    try:
+        reorders = create_mock_reorders()
+        return jsonify({
+            'success': True,
+            'message': 'Mock reorders created',
+            'reorders': reorders
         })
     except Exception as e:
         return jsonify({

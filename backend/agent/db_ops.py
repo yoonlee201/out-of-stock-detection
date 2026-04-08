@@ -3,10 +3,10 @@ import psycopg2
 from psycopg2 import sql
 
 DB_PARAMS = {
-    'dbname': os.getenv('DB_NAME', 'shelf_monitor_db'),
-    'user': os.getenv('DB_USER', 'your_db_user'),
-    'password': os.getenv('DB_PASSWORD', 'your_db_password'),
-    'host': os.getenv('DB_HOST', 'localhost'),
+    'dbname': os.getenv('DB_NAME', 'oos_detection'),
+    'user': os.getenv('DB_USER', 'oos_detection'),
+    'password': os.getenv('DB_PASSWORD', 'oos_detection_dev_password'),
+    'host': os.getenv('DB_HOST', 'db'),
     'port': os.getenv('DB_PORT', '5432'),
 }
 
@@ -122,7 +122,7 @@ def insert_reorder(user_id, product_id, quantity):
 
 def insert_alert(user_id, product_id, alert_type):
     query = sql.SQL(
-        "INSERT INTO alerts (user_id, product_id, alert_type, sent_time) VALUES (%s, %s, %s, NOW()) RETURNING id"
+        "INSERT INTO alerts (user_id, product_id, alert_type, sent_time) VALUES (%s, %s, %s, NOW()) RETURNING alert_id"
     )
     conn = _connect()
     try:

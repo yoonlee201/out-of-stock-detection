@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.util.send import send_sms
 from app.services.product_services import get_low_stock_products
 from app.models import Users
+from agent.db_ops import insert_alert
 
 
 
@@ -35,6 +36,17 @@ def send_out_of_stock_sms():
             send_sms(employee.phone, message, carrier="tmobile")
             print("USING HARDCODED CARRIER")
             print(f"Sent SMS to {employee.email}")
+
+            print("BEFORE DB LOGGING")
+            print(f"About to log alerts for {len(products)} products")
+
+            for product in products:
+                try:
+                    print(f"Trying to log product_id: {product.product_id}")
+                    alert_id = insert_alert(employee.user_id, product.product_id, "out_of_stock")
+                    print(f"Logged alert {alert_id} for product {product.product_id}")
+                except Exception as e:
+                    print(f"Failed to log alert for product {product}: {e}")
 
         except Exception as e:
             print(f"Failed to send SMS to {getattr(employee, 'email', 'unknown user')}: {e}")
