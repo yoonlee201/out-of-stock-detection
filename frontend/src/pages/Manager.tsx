@@ -42,6 +42,9 @@ const Manager = () => {
         form: {},
     });
 
+    const [reorders, setReorders] = useState<any[]>([]);
+    const [creatingReorders, setCreatingReorders] = useState(false);
+
     useEffect(() => {
         apiGetEmployees()
             .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id), phone: e.phone ?? "" }))))
@@ -163,6 +166,28 @@ const Manager = () => {
         }
     };
 
+    const handleCreateReorders = async () => {
+        setCreatingReorders(true);
+        try {
+            const res = await fetch("http://localhost:8000/alerts/create_reorders", {
+                method: "POST",
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setReorders(data.reorders);
+                toast.success("Reorders created successfully.");
+            } else {
+                toast.error(data.message || "Failed to create reorders.");
+            }
+        } catch (err) {
+            toast.error("Error creating reorders.");
+        } finally {
+            setCreatingReorders(false);
+        }
+    };
+
     const renderRows = (rows: Employee[]) =>
         rows.map((e) => (
             <tr key={e.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
@@ -225,6 +250,38 @@ const Manager = () => {
                         <PlusIcon />
                         Add member
                     </button>
+                </div>
+
+                <div className="mx-8 mb-6 rounded-md border border-gray-200 bg-white p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-md font-semibold text-gray-900">Reorder System</h2>
+                            <p className="text-xs text-gray-400">Create mock reorders for low-stock products</p>
+                        </div>
+
+                        <button
+                            onClick={handleCreateReorders}
+                            disabled={creatingReorders}
+                            className="bg-primary hover:bg-primary-hover rounded-md px-4 py-2 text-sm text-white disabled:opacity-50"
+                        >
+                            {creatingReorders ? "Creating..." : "Create Reorders"}
+                        </button>
+                    </div>
+
+                    {reorders.length > 0 && (
+                        <div className="mt-4">
+                            <p className="mb-2 text-sm font-medium text-gray-700">Recent Reorders:</p>
+                            <div className="space-y-1 text-sm text-gray-600">
+                                {reorders.map((r) => (
+                                    <div key={r.reorder_id} className="flex justify-between">
+                                        <span>Product {r.product_id}</span>
+                                        <span>Qty: {r.quantity}</span>
+                                        <span className="text-gray-400">#{r.reorder_id}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
