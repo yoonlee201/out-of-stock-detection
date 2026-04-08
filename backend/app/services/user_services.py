@@ -1,3 +1,6 @@
+import logging
+import uuid
+
 from app.core.config import config
 from app.core.db import db
 from app.models import Tokens, Users, Employee
@@ -11,11 +14,11 @@ from app.util.send import (
     load_invitation_payload,
 )
 from datetime import datetime, timedelta
-import uuid
 import secrets
 
 EMPLOYEE_ROLES = ('associate', 'supervisor', 'manager')
 ALLOWED_ROLES = ('customer', 'associate', 'supervisor', 'manager')
+logger = logging.getLogger(__name__)
 
 def _resolve_role(user=None, role=None):
     if role is not None:
@@ -45,8 +48,23 @@ def generate_token(user):
     return str(token_value)
 
 
+def _coerce_token_uuid(token):
+    if isinstance(token, uuid.UUID):
+        return token
+    if not token:
+        return None
+    try:
+        return uuid.UUID(str(token))
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
 def get_user_by_token(token):
-    stored_token = Tokens.query.filter(Tokens.token_id == token).first()
+    token_uuid = _coerce_token_uuid(token)
+    if token_uuid is None:
+        return None
+
+    stored_token = Tokens.query.filter(Tokens.token_id == token_uuid).first()
     if not stored_token:
         return None
     if stored_token.expires <= datetime.utcnow():
@@ -57,7 +75,10 @@ def get_user_by_token(token):
 
 
 def delete_token(token):
-    Tokens.query.filter_by(token_id=token).delete()
+    token_uuid = _coerce_token_uuid(token)
+    if token_uuid is None:
+        return
+    Tokens.query.filter_by(token_id=token_uuid).delete()
     db.session.commit()
 
 
@@ -99,6 +120,8 @@ def create_user(first_name, last_name, role, email, password, phone=None, carrie
     """Create and persist a new user. Raises ValueError if email is already taken."""
     if Users.query.filter_by(email=email).first():
         raise ValueError("Email already registered")
+    if phone and Users.query.filter_by(phone=phone).first():
+        raise ValueError("Phone number already registered")
 
     user = Users(
         first_name=first_name,
@@ -109,10 +132,17 @@ def create_user(first_name, last_name, role, email, password, phone=None, carrie
         email=email,
     )
     user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-
-    send_verification_email(user)
+    try:
+        db.session.add(user)
+        db.session.flush()
+        send_verification_email(user)
+        db.session.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        logger.warning("User creation or verification email failed for %s: %s", user.email, exc)
+        raise RuntimeError(
+            "Could not send the verification email. Check the Gmail sender settings and try again."
+        ) from exc
     return user
 
 

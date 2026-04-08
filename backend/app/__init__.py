@@ -25,6 +25,9 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = config.SQLALCHEMY_DATABASE_URI
     db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
     
     prefix = "/api/v1" if config.check_production() else ""
 
