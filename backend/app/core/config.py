@@ -10,6 +10,7 @@ class Config:
     BACKEND_PORT = settings.BACKEND_PORT
     
     OPENAI_API_KEY = settings.OPENAI_API_KEY
+    OPENAI_API_BASE = settings.OPENAI_API_BASE
     OPENAI_MODEL = settings.OPENAI_MODEL
     
     # Alerting

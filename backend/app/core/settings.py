@@ -1,12 +1,17 @@
 import os
-from flask import request
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from dotenv import load_dotenv
 
 load_dotenv()  # optional; Pydantic can also load from .env via Config
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     PRODUCTION: bool = Field(
         default=(os.getenv("FLASK_ENV", "development") == "production" and True or False),
         description="Application mode: development or production"
@@ -34,11 +39,15 @@ class Settings(BaseSettings):
     )
   
     OPENAI_API_KEY: str | None = Field(
-        default=os.getenv("OPENAI_API_KEY"),
+        default=os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY"),
         description="OpenAI API Key"
     )
+    OPENAI_API_BASE: str | None = Field(
+        default=os.getenv("OPENAI_API_BASE") or os.getenv("openai_api_base"),
+        description="OpenAI-compatible API base URL"
+    )
     OPENAI_MODEL: str = Field(
-        default=os.getenv("OPENAI_MODEL", "gpt-5.1"),
+        default=os.getenv("OPENAI_MODEL") or os.getenv("API_MODEL") or os.getenv("api_model") or "gpt-5.1",
         description="OpenAI API Model"
     )
     
@@ -67,12 +76,6 @@ class Settings(BaseSettings):
         default=os.getenv("INVITATION_SECRET_KEY", "dev-secret-key"),
         description="Secret key for signing invitation tokens (falls back to SECRET_KEY)"
     )
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
 # single shared instance
 settings = Settings()
-
 

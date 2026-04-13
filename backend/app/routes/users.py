@@ -1,6 +1,7 @@
 # app/routes/users.py
 from flask import Blueprint, request, jsonify, make_response
 from app.core.config import config
+from app.core.db import db
 from app.util.auth import (
     session, 
     require_active_employee, 
@@ -87,8 +88,13 @@ def add_user():
     try:
         create_user(first_name, last_name, role, email, password, phone=phone, carrier=carrier)
     except ValueError as e:
+        db.session.rollback()
         return {"message": str(e)}, 409
+    except RuntimeError as e:
+        db.session.rollback()
+        return {"message": str(e)}, 503
     except Exception:
+        db.session.rollback()
         return {"message": "Internal server error"}, 500
 
     return {"message": "User added successfully"}, 201

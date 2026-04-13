@@ -1,1 +1,57 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
+# Secrets / local env files
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.ipynb_checkpoints/
+
+.venv/
+venv/
+env/
+backend/.venv/
+backend/venv/
+shelf_analyzer/.venv/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+
+# Logs / local databases
+*.log
+*.sqlite3
+*.db
+
+# ML models / generated artifacts
+*.pt
+*.pth
+*.onnx
+runs/
+weights/*.pt
+
+# Generated outputs / caches
+**/output/
+**/data/
+.cache/
+hf_cache/
+pip-cache/
+test_output.jpg
+test_shelf.jpg

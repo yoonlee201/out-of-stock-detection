@@ -7,3 +7,11 @@ psycopg2-binary
 bcrypt
 itsdangerous
 requests
+numpy
+pillow
+ultralytics
+transformers
+torch
+torchvision
+opencv-python-headless
+accelerate

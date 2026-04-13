@@ -21,23 +21,12 @@ RUN adduser \
 RUN apt-get update && \
     apt-get install -y \
     postgresql-client \
-    curl \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libx11-6 \
-    libxcb1 && \
+    curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
-
-COPY requirements.yolo.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install -r requirements.yolo.txt
 
 COPY . .
 

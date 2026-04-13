@@ -15,8 +15,8 @@ class Users(db.Model):
     __tablename__ = 'users'
     
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    first_name = db.Column(db.String(80), unique=True, nullable=False)
-    last_name = db.Column(db.String(80), unique=True, nullable=False)
+    first_name = db.Column(db.String(80), nullable=False)
+    last_name = db.Column(db.String(80), nullable=False)
     phone = db.Column(db.String(20), unique=True, nullable=True)
     carrier = db.Column(db.String(50), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='customer')
