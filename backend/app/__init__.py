@@ -8,6 +8,8 @@ from .routes.default import default_blueprint
 from .routes.users import users_blueprint
 from .routes.products import products_blueprint
 from .routes.shelf_analysis import shelf_analysis_blueprint
+from .routes.alert import alert_blueprint
+
 from app.core.config import config
 
 def create_app():
@@ -35,5 +37,6 @@ def create_app():
     app.register_blueprint(users_blueprint, url_prefix=f"{prefix}/users")
     app.register_blueprint(products_blueprint, url_prefix=f"{prefix}/products")
     app.register_blueprint(shelf_analysis_blueprint, url_prefix=f"{prefix}/shelf-analysis")
+    app.register_blueprint(alert_blueprint, url_prefix=f"{prefix}/alerts")
 
     return app

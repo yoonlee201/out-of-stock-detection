@@ -79,7 +79,11 @@ def add_user():
     if role_is_employee(role=role) and not phone:
         return {"message": "Phone number is required for employees"}, 400
     if phone:
-        carrier = lookup_carrier(phone)
+        try:
+            carrier = lookup_carrier(phone)
+        except Exception as e:
+            print(f"Carrier lookup failed: {e}")
+            carrier = "verizon"   
 
     try:
         create_user(first_name, last_name, role, email, password, phone=phone, carrier=carrier)
@@ -238,6 +242,8 @@ def update_employee_route(user_id, session):
     if not data:
         return {"message": "Invalid JSON payload"}, 400
 
+    print("update payload:", data)
+
     try:
         user = update_employee(
             user_id,
@@ -250,7 +256,11 @@ def update_employee_route(user_id, session):
     except LookupError as e:
         return {"message": str(e)}, 404
     except ValueError as e:
+        print("update_employee ValueError:", str(e))
         return {"message": str(e)}, 422
+    except Exception as e:
+        print("update_employee unexpected error:", str(e))
+        return {"message": str(e)}, 500
 
     return {
         "message": "Employee updated",

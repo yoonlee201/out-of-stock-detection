@@ -62,8 +62,8 @@ class Settings(BaseSettings):
         description="Gmail app password for sending alerts"
     )
     
-    NUMVERIFY_API_KEY: str = Field(
-        default=os.getenv("NUMVERIFY_API_KEY", ""),
+    IPQS_API_KEY: str = Field(
+        default=os.getenv("IPQS_API_KEY", ""),
         description="API key for NumVerify phone number validation"
     )
 

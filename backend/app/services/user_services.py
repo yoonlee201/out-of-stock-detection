@@ -155,8 +155,12 @@ def update_user_role(user_id, new_role):
     if new_role in EMPLOYEE_ROLES:
         if not user.phone:
             raise ValueError("User must have a phone number before being assigned an employee role")
-        if not user.carrier:
-            raise ValueError("User must have a carrier before being assigned an employee role")
+        else:
+            try:
+                user.carrier = lookup_carrier(user.phone)
+            except Exception as e:
+                print(f"Carrier lookup failed: {e}")
+                user.carrier = "verizon"
 
     user.role = new_role
     db.session.commit()
@@ -212,7 +216,11 @@ def update_employee(user_id, first_name=None, last_name=None, email=None, phone=
         user.email = email
     if phone is not None:
         user.phone = phone
-        user.carrier = lookup_carrier(phone)
+        try:
+            user.carrier = lookup_carrier(phone)
+        except Exception as e:
+            print(f"Carrier lookup failed: {e}")
+            user.carrier = "verizon"
     if role is not None:
         if role not in EMPLOYEE_ROLES:
             raise ValueError(f"Invalid role '{role}'")
@@ -409,7 +417,11 @@ def complete_invitation(token, phone, first_name=None, last_name=None, password=
         user.is_verified = True
 
     user.phone = phone
-    user.carrier = lookup_carrier(phone)
+    try:
+        user.carrier = lookup_carrier(phone)
+    except Exception as e:
+        print(f"Carrier lookup failed: {e}")
+        user.carrier = "verizon"
     user.role = invited_role
 
     employee = Employee.query.filter_by(user_id=user.user_id).first()

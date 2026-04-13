@@ -16,7 +16,7 @@ class Config:
     # Alerting
     GMAIL_ADDRESS = settings.GMAIL_ADDRESS
     GMAIL_PASSWORD = settings.GMAIL_PASSWORD
-    NUMVERIFY_API_KEY = settings.NUMVERIFY_API_KEY
+    IPQS_API_KEY = settings.IPQS_API_KEY
     
     SECRET_KEY = settings.SECRET_KEY
     INVITATION_SECRET_KEY = settings.INVITATION_SECRET_KEY

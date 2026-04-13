@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Sidebar from "../_components/Sidebar";
 import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
+import { useAuth } from "../hooks/useAuth";
+import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
 interface Product {
     product_id: number;
@@ -14,6 +16,7 @@ interface Product {
 }
 
 const Dashboard = () => {
+    const { user } = useAuth(); // Placeholder for actual user context
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -86,6 +89,20 @@ const Dashboard = () => {
 
             <div className="flex-1 overflow-y-auto p-8">
                 <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
+                {(user?.role === "manager" || user?.role === "supervisor") && (
+                    <button
+                        className="bg-secondary mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
+                        onClick={async () => {
+                            try {
+                                await apiMakeOutOfStockAlert();
+                            } catch (error) {
+                                console.error("Error sending out of stock alert:", error);
+                            }
+                        }}
+                    >
+                        Send Employees Alert
+                    </button>
+                )}
 
                 <div className="mb-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard title="Total Products" value={String(totalProducts)} color="text-blue-600" />
