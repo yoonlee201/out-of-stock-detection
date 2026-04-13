@@ -1,0 +1,10 @@
+ultralytics
+transformers>=4.45.0
+torch
+torchvision
+streamlit
+opencv-python-headless
+Pillow
+pandas
+polars
+accelerate

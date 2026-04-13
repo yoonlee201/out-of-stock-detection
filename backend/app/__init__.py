@@ -6,8 +6,8 @@ from app.core.db import db
 
 from .routes.default import default_blueprint
 from .routes.users import users_blueprint
-from .routes.space_detection import space_detection_blueprint
 from .routes.products import products_blueprint
+from .routes.shelf_analysis import shelf_analysis_blueprint
 from app.core.config import config
 
 def create_app():
@@ -33,7 +33,7 @@ def create_app():
 
     app.register_blueprint(default_blueprint, url_prefix=f"/")
     app.register_blueprint(users_blueprint, url_prefix=f"{prefix}/users")
-    app.register_blueprint(space_detection_blueprint, url_prefix=f"{prefix}/space-detection")
     app.register_blueprint(products_blueprint, url_prefix=f"{prefix}/products")
+    app.register_blueprint(shelf_analysis_blueprint, url_prefix=f"{prefix}/shelf-analysis")
 
     return app

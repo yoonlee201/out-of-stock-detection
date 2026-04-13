@@ -9,3 +9,9 @@ itsdangerous
 requests
 numpy
 pillow
+ultralytics
+transformers
+torch
+torchvision
+opencv-python-headless
+accelerate

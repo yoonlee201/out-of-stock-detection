@@ -3,7 +3,6 @@ import Invitation from "../pages/Invitation";
 import Login from "../pages/Login";
 import Manager from "../pages/Manager";
 import Register from "../pages/Register";
-import SpaceDetection from "../pages/SpaceDetection";
 import VerifyEmail from "../pages/VerifyEmail";
 import type { UserRole } from "../types/db";
 
@@ -24,7 +23,6 @@ const useRouter = (role: UserRole | null) => {
         verify_email: { path: "/verify-email", label: "Verify Email", element: <VerifyEmail /> },
         invitation: { path: "/invitation", label: "Invitation", element: <Invitation /> },
         dashboard: { path: "/dashboard", label: "Dashboard", element: <Dashboard /> },
-        space_detection: { path: "/space-detection", label: "Space Detection", element: <SpaceDetection /> },
         employee_management: { path: "/employee-management", label: "Employee Management", element: <Manager /> },
         // "Products": { path: "/products", label: "Products", element: <Products /> },
         // "Alerts": { path: "/alerts", label: "Alerts", element: <Alerts /> },
