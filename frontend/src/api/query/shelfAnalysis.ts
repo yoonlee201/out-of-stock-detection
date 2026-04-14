@@ -16,6 +16,7 @@ export interface ShelfDetection {
     type: "product" | "empty_space";
     sku: ShelfSkuDetails | null;
     expected_sku?: ShelfSkuDetails | null;
+    match_score?: number;
     audit_status?: "correct" | "missing" | "misplaced" | "unverified" | string;
     issue_marker?: string | null;
     slot_id?: string;
