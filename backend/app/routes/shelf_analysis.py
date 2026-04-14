@@ -19,15 +19,24 @@ shelf_analysis_blueprint = Blueprint("shelf_analysis", __name__)
 
 
 def _get_shelf_tools():
-    from shelf_analyzer.infer import analyze_shelf_image
+    from shelf_analyzer.compliance_reporter import build_compliance_report
+    from shelf_analyzer.infer import analyze_shelf_debug
     from shelf_analyzer.visualize import draw_annotations
 
-    return analyze_shelf_image, draw_annotations
+    return (
+        analyze_shelf_debug,
+        draw_annotations,
+        build_compliance_report,
+    )
 
 
 def _build_summary(detections: list[dict]) -> dict:
     product_count = sum(1 for item in detections if item.get("type") == "product")
     empty_space_count = sum(1 for item in detections if item.get("type") == "empty_space")
+    correct_count = sum(1 for item in detections if item.get("audit_status") == "correct")
+    missing_count = sum(1 for item in detections if item.get("audit_status") == "missing")
+    misplaced_count = sum(1 for item in detections if item.get("audit_status") == "misplaced")
+    unverified_count = sum(1 for item in detections if item.get("audit_status") == "unverified")
     unique_skus = {
         (
             (item.get("sku") or {}).get("brand", ""),
@@ -43,7 +52,50 @@ def _build_summary(detections: list[dict]) -> dict:
         "product_count": product_count,
         "empty_space_count": empty_space_count,
         "unique_sku_count": len(unique_skus),
+        "correct_count": correct_count,
+        "missing_count": missing_count,
+        "misplaced_count": misplaced_count,
+        "unverified_count": unverified_count,
     }
+
+
+def _attach_issue_markers(detections: list[dict]) -> list[dict]:
+    missing_index = 1
+    misplaced_index = 1
+    enriched: list[dict] = []
+
+    for detection in detections:
+        enriched_detection = dict(detection)
+        status = enriched_detection.get("audit_status")
+
+        if status == "missing":
+            enriched_detection["issue_marker"] = f"M{missing_index}"
+            missing_index += 1
+        elif status == "misplaced":
+            enriched_detection["issue_marker"] = f"W{misplaced_index}"
+            misplaced_index += 1
+        else:
+            enriched_detection["issue_marker"] = None
+
+        enriched.append(enriched_detection)
+
+    return enriched
+
+
+def _split_compliance_notes(detections: list[dict]) -> tuple[list[dict], list[str]]:
+    visible_detections: list[dict] = []
+    compliance_notes: list[str] = []
+
+    for detection in detections:
+        if detection.get("type") == "compliance_note":
+            note = str(detection.get("note") or "").strip()
+            if note:
+                compliance_notes.append(note)
+            continue
+
+        visible_detections.append(detection)
+
+    return visible_detections, compliance_notes
 
 
 @shelf_analysis_blueprint.route("/analyze", methods=["POST", "OPTIONS"])
@@ -61,15 +113,25 @@ def analyze_shelf():
 
     temp_path = None
     try:
-        analyze_shelf_image, draw_annotations = _get_shelf_tools()
+        (
+            analyze_shelf_debug,
+            draw_annotations,
+            build_compliance_report,
+        ) = _get_shelf_tools()
 
         image = Image.open(uploaded_file.stream).convert("RGB")
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             temp_path = temp_file.name
         image.save(temp_path, format="JPEG", quality=95)
 
-        detections = analyze_shelf_image(temp_path)
-        annotated_image = draw_annotations(image, detections)
+        debug_bundle = analyze_shelf_debug(temp_path)
+        raw_detections = debug_bundle["audit_results"]
+        visible_detections, compliance_notes = _split_compliance_notes(raw_detections)
+        detections = _attach_issue_markers(visible_detections)
+        compliance_report = build_compliance_report(raw_detections)
+        processed_image_path = debug_bundle["processed_image_path"]
+        processed_image = Image.open(processed_image_path).convert("RGB")
+        annotated_image = draw_annotations(processed_image, detections)
 
         buffer = BytesIO()
         annotated_image.save(buffer, format="PNG")
@@ -79,7 +141,9 @@ def analyze_shelf():
             {
                 "message": "Shelf analysis completed.",
                 "summary": _build_summary(detections),
+                "compliance_report": compliance_report,
                 "detections": detections,
+                "compliance_notes": compliance_notes,
                 "annotated_image": f"data:image/png;base64,{encoded_image}",
             }
         ), 200

@@ -8,3 +8,4 @@ Pillow
 pandas
 polars
 accelerate
+scikit-learn
