@@ -25,6 +25,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 

@@ -1,0 +1,13 @@
+name: oos_detection
+services:
+  backend:
+    container_name: oos_detection-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Pointing to the .env file we moved to the main directory
+    env_file: backend/.env
+    restart: unless-stopped
+    ports:
+      # Mapping the EC2's public HTTP port (80) to your Flask port (8000)
+      - "80:5000"
