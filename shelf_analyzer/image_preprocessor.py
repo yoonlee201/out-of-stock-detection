@@ -205,7 +205,16 @@ def preprocess_shelf_image(image_path: str) -> str:
     image = _resize_image(image)
     corrected_image, homography_applied = _apply_perspective_correction(image)
     corrected_image = _resize_image(corrected_image)
-    enhanced = cv2.convertScaleAbs(corrected_image, alpha=1.2, beta=10)
+
+    # Use local contrast enhancement to handle glare and uneven store lighting.
+    lab_image = cv2.cvtColor(corrected_image, cv2.COLOR_BGR2LAB)
+    l_channel, a_channel, b_channel = cv2.split(lab_image)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    l_channel = clahe.apply(l_channel)
+    enhanced_lab = cv2.merge((l_channel, a_channel, b_channel))
+    enhanced = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+    enhanced = cv2.convertScaleAbs(enhanced, alpha=1.08, beta=2)
+
     cv2.imwrite(PREPROCESSED_IMAGE_PATH, enhanced)
     print(
         "Preprocessing shelf image: "
