@@ -13,7 +13,7 @@ from app.util.send import (
     load_verification_payload,
     load_invitation_payload,
 )
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 
 EMPLOYEE_ROLES = ('associate', 'supervisor', 'manager')
@@ -40,7 +40,7 @@ def generate_token(user):
         raise ValueError("User ID is None")
 
     token_value = uuid.uuid4()
-    expires = datetime.utcnow() + timedelta(days=7)
+    expires = datetime.now(timezone.utc) + timedelta(days=7)
 
     token = Tokens(token_id=token_value, user_id=user.user_id, expires=expires)
     db.session.add(token)
@@ -67,7 +67,7 @@ def get_user_by_token(token):
     stored_token = Tokens.query.filter(Tokens.token_id == token_uuid).first()
     if not stored_token:
         return None
-    if stored_token.expires <= datetime.utcnow():
+    if stored_token.expires <= datetime.now(timezone.utc):
         db.session.delete(stored_token)
         db.session.commit()
         return None
