@@ -151,12 +151,15 @@ This project can be run on Virginia Tech ARC using an Owl CPU interactive job.
 
 ```bash
 ssh <pid>@owl2.arc.vt.edu
-cd ~/out_of_stock_detection
 interact -A cp-spring2026-iac --partition=normal_q --cpus-per-task=8 --mem=32G --time=4:00:00
 
 module reset
 module load Miniconda3/24.7.1-0
 source activate $HOME/.conda/envs/oos_arc
+
+cd ~/out_of_stock_detection
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements.txt
 
 mkdir -p /scratch/$USER/hf_cache /scratch/$USER/pip-cache
 export HF_HOME=/scratch/$USER/hf_cache
@@ -164,7 +167,7 @@ export HF_HUB_CACHE=$HF_HOME/hub
 export HF_DATASETS_CACHE=$HF_HOME/datasets
 export PIP_CACHE_DIR=/scratch/$USER/pip-cache
 
-cd ~/out_of_stock_detection/backend
+cd backend
 export MAX_SKU_IDENTIFICATIONS=all
 export SKU_IDENTIFICATION_CHUNK_SIZE=4
 python -m app.main
@@ -198,5 +201,5 @@ Copy local changes up to ARC:
 
 ```bash
 cd /path/to/out-of-stock-detection
-rsync -avh --progress ./ <pid>@owl2.arc.vt.edu:~/out_of_stock_detection
+rsync -avh --progress ./ stutishah9@owl2.arc.vt.edu:~/out_of_stock_detection
 ```
