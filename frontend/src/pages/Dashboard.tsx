@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [analysisLoading, setAnalysisLoading] = useState(false);
     const [analysisError, setAnalysisError] = useState("");
@@ -17,14 +18,6 @@ const Dashboard = () => {
         return analysisResult.detections.filter((detection) =>
             detection.audit_status === "missing" || detection.audit_status === "misplaced"
         );
-    }, [analysisResult]);
-
-    const reviewDetections = useMemo(() => {
-        if (!analysisResult) {
-            return [];
-        }
-
-        return analysisResult.detections.filter((detection) => detection.audit_status === "unverified");
     }, [analysisResult]);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -132,11 +125,6 @@ const Dashboard = () => {
                                         value={analysisResult.summary.misplaced_count ?? 0}
                                         accent="text-amber-600"
                                     />
-                                    <SummaryCard
-                                        label="Unverified"
-                                        value={analysisResult.summary.unverified_count ?? 0}
-                                        accent="text-blue-600"
-                                    />
                                 </div>
                             )}
 
@@ -194,23 +182,6 @@ const Dashboard = () => {
                                     ) : (
                                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-medium text-emerald-700">
                                             No missing or misplaced items were flagged in this audit.
-                                        </div>
-                                    )}
-
-                                    {reviewDetections.length > 0 && (
-                                        <div className="mt-6">
-                                            <h4 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                                Needs Review
-                                            </h4>
-                                            <div className="space-y-3">
-                                                {reviewDetections.map((detection, index) => (
-                                                    <IssueCard
-                                                        key={`review-${index}-${detection.bbox.join("-")}`}
-                                                        detection={detection}
-                                                        reviewOnly
-                                                    />
-                                                ))}
-                                            </div>
                                         </div>
                                     )}
 
