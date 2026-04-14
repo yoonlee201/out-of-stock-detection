@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 
 import torch
@@ -49,12 +50,12 @@ def _fallback_response() -> dict:
 def _model_load_kwargs() -> dict:
     if torch.cuda.is_available():
         return {
-            "torch_dtype": torch.float16,
+            "dtype": torch.float16,
             "device_map": "auto",
         }
 
     return {
-        "torch_dtype": torch.float32,
+        "dtype": torch.float32,
         "device_map": "cpu",
     }
 
@@ -69,7 +70,12 @@ def load_qwen_resources():
         )
 
     if _PROCESSOR is None or _MODEL is None:
-        _PROCESSOR = AutoProcessor.from_pretrained(MODEL_ID)
+        # ARC networks can be slow to respond to Hugging Face HEAD checks.
+        # Set longer default timeouts unless the user already configured them.
+        os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "60")
+        os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
+
+        _PROCESSOR = AutoProcessor.from_pretrained(MODEL_ID, use_fast=True)
         _MODEL = QwenModelClass.from_pretrained(
             MODEL_ID,
             **_model_load_kwargs(),

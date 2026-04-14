@@ -1,94 +1,14 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import Sidebar from "../_components/Sidebar";
 import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
 import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
-interface Product {
-    product_id: number;
-    name: string;
-    type: string;
-    qrcode: string;
-    quantity_in_store: number;
-    aisle: string;
-    shelf: string;
-    supplier_id: number;
-}
-
 const Dashboard = () => {
-    const { user } = useAuth(); // Placeholder for actual user context
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [analysisLoading, setAnalysisLoading] = useState(false);
     const [analysisError, setAnalysisError] = useState("");
     const [analysisResult, setAnalysisResult] = useState<ShelfAnalysisResponse | null>(null);
-    const SAMPLE_PRODUCTS: Product[] = [
-        {
-            product_id: 1,
-            name: "General Mills Rice Chex (Family Size)",
-            type: "Cereal",
-            qrcode: "SKU_CHEX_RICE_FAM",
-            quantity_in_store: 6,
-            aisle: "Aisle 4",
-            shelf: "Top",
-            supplier_id: 11,
-        },
-        {
-            product_id: 2,
-            name: "General Mills Cheerios Oat Crunch",
-            type: "Cereal",
-            qrcode: "SKU_CHEERIOS_OAT",
-            quantity_in_store: 0,
-            aisle: "Aisle 4",
-            shelf: "Middle",
-            supplier_id: 11,
-        },
-        {
-            product_id: 3,
-            name: "Kellogg's Crispix (Family Size)",
-            type: "Cereal",
-            qrcode: "SKU_CRISPIX_FAM",
-            quantity_in_store: 3,
-            aisle: "Aisle 4",
-            shelf: "Top",
-            supplier_id: 12,
-        },
-        {
-            product_id: 4,
-            name: "Quaker Life Original",
-            type: "Cereal",
-            qrcode: "SKU_LIFE_ORIG",
-            quantity_in_store: 2,
-            aisle: "Aisle 4",
-            shelf: "Bottom",
-            supplier_id: 13,
-        },
-    ];
-
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch("http://localhost:8000/products/");
-                if (!response.ok) {
-                    throw new Error("Failed to fetch products");
-                }
-
-                const data = await response.json();
-                setProducts(data);
-            } catch (err) {
-                console.error("Error fetching products:", err);
-                setError("Failed to load products.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, []);
-
-    const displayProducts = products.length > 0 ? products : SAMPLE_PRODUCTS;
     const issueDetections = useMemo(() => {
         if (!analysisResult) {
             return [];
@@ -321,49 +241,6 @@ const Dashboard = () => {
                             )}
                         </div>
                     </div>
-                </div>
-
-                <div className="rounded-xl bg-white p-6 shadow">
-                    <h2 className="mb-4 text-xl font-semibold">Products</h2>
-
-                    {loading && <p>Loading products...</p>}
-                    {error && null}
-
-                    {!loading && !error && (
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b">
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Quantity</th>
-                                    <th>Aisle</th>
-                                    <th>Shelf</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {displayProducts.map((p) => (
-                                    <tr key={p.product_id} className="border-b hover:bg-gray-50">
-                                        <td>{p.name}</td>
-                                        <td>{p.type}</td>
-                                        <td>{p.quantity_in_store}</td>
-                                        <td>{p.aisle}</td>
-                                        <td>{p.shelf}</td>
-                                        <td>
-                                            {p.quantity_in_store === 0 ? (
-                                                <span className="font-semibold text-red-600">Out of Stock</span>
-                                            ) : p.quantity_in_store <= 10 ? (
-                                                <span className="font-semibold text-yellow-600">Low Stock</span>
-                                            ) : (
-                                                <span className="font-semibold text-green-600">In Stock</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-
-                            </tbody>
-                        </table>
-                    )}
                 </div>
             </div>
         </div>
