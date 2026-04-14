@@ -14,7 +14,7 @@ from app.core.config import config
 
 def create_app():
     app = Flask(__name__)
-    frontend_url = [config.FRONTEND_URL, "127.0.0.1"] #config.FRONTEND_URL or "http://localhost:5173"
+    frontend_url = config.FRONTEND_URL #config.FRONTEND_URL or "http://localhost:5173"
     
     print("Allowed CORS origins:", frontend_url)
     CORS(app, resources={r"/*": {
