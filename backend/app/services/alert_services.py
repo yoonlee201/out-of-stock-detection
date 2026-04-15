@@ -3,25 +3,23 @@ from app.util.send import send_sms
 from app.services.product_services import get_low_stock_products
 from app.models import Users
 from agent.db_ops import insert_alert
-
+from datetime import datetime
 
 
 def send_out_of_stock_sms():
     products = get_low_stock_products()
+
     if not products:
         print("No out of stock products detected.")
-        return
+        message = f"[MCCS] No out-of-stock products detected at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    else:
+        message = f"[MCCS] {len(products)} item(s) out of stock. Please check the app for details. {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-    #if session.role not in ('supervisor', 'manager'):
-        #raise PermissionError("Only supervisors and managers can receive out of stock alerts")
-
-    test_employee = Users.query.filter_by(email='albertwang041006@gmail.com').first()
+    test_employee = Users.query.filter_by(email='one@example.com').first()
     employees = [test_employee] if test_employee else []
 
     print(f"Employees found: {len(employees)}")
-    print(f"Sending out of stock alert for {len(products)} products to {len(employees)} employees")
-
-    message = f"[MCCS] {len(products)} item(s) out of stock. Please check the app for details."
+    print(f"Sending alert to {len(employees)} employees")
 
     def send_to_one(employee):
         try:
@@ -37,16 +35,17 @@ def send_out_of_stock_sms():
             print("USING HARDCODED CARRIER")
             print(f"Sent SMS to {employee.email}")
 
-            print("BEFORE DB LOGGING")
-            print(f"About to log alerts for {len(products)} products")
+            if products:
+                print("BEFORE DB LOGGING")
+                print(f"About to log alerts for {len(products)} products")
 
-            for product in products:
-                try:
-                    print(f"Trying to log product_id: {product.product_id}")
-                    alert_id = insert_alert(employee.user_id, product.product_id, "out_of_stock")
-                    print(f"Logged alert {alert_id} for product {product.product_id}")
-                except Exception as e:
-                    print(f"Failed to log alert for product {product}: {e}")
+                for product in products:
+                    try:
+                        print(f"Trying to log product_id: {product.product_id}")
+                        alert_id = insert_alert(employee.user_id, product.product_id, "out_of_stock")
+                        print(f"Logged alert {alert_id} for product {product.product_id}")
+                    except Exception as e:
+                        print(f"Failed to log alert for product {product}: {e}")
 
         except Exception as e:
             print(f"Failed to send SMS to {getattr(employee, 'email', 'unknown user')}: {e}")
