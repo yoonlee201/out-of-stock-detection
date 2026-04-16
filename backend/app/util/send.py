@@ -153,16 +153,21 @@ def load_verification_payload(token: str):
 # ── Core SMTP helper ──────────────────────────────────────────────────────────
 def _send_via_gmail(to_address: str, subject: str, body: str, html: str = None) -> None:
     msg = MIMEMultipart("alternative")
-    msg["From"]    = config.GMAIL_ADDRESS
-    msg["To"]      = to_address
+    msg["From"] = config.GMAIL_ADDRESS
+    msg["To"] = to_address
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
     if html:
-        msg.attach(MIMEText(html, "html"))  # html part last = preferred by email clients
+        msg.attach(MIMEText(html, "html"))
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(config.GMAIL_ADDRESS, config.GMAIL_PASSWORD)
-        server.sendmail("MCPS Shelf Monitor", to_address, msg.as_string())
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(config.GMAIL_ADDRESS, config.GMAIL_PASSWORD)
+            server.sendmail(config.GMAIL_ADDRESS, to_address, msg.as_string())
+            print(f"[SMTP] Sent to {to_address}")
+    except Exception as e:
+        print(f"[SMTP ERROR] Failed to send to {to_address}: {e}")
+        raise
 
 
 # ── Email ─────────────────────────────────────────────────────────────────────
@@ -201,6 +206,8 @@ def send_sms(phone_number: str, message: str, carrier: str = None) -> None:
 
     import uuid
     gateway_address = f"{digits}@{get_gateway(carrier)}"
+    print(f"[SMS DEBUG] gateway address: {gateway_address}")
+
     _send_via_gmail(gateway_address, subject=str(uuid.uuid4()), body=message)
     print(f"[SMS] Sent to {phone_number} ({carrier}) ✓")
 
