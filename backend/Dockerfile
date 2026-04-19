@@ -21,7 +21,12 @@ RUN adduser \
 RUN apt-get update && \
     apt-get install -y \
     postgresql-client \
-    curl && \
+    curl \
+    libxcb1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -30,14 +35,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY . .
 
+RUN mkdir -p weights shelf_analyzer
+
 RUN chown -R appuser /usr/src/app
 
 USER appuser
 
-EXPOSE ${BACKEND_PORT}
-
-
 ENV PYTHONPATH=/usr/src/app
 
-# Default command: start the app
+EXPOSE ${BACKEND_PORT}
+
 CMD ["python", "-m", "app.main"]

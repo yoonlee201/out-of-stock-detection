@@ -67,7 +67,10 @@ def get_user_by_token(token):
     stored_token = Tokens.query.filter(Tokens.token_id == token_uuid).first()
     if not stored_token:
         return None
-    if stored_token.expires <= datetime.now(timezone.utc):
+    expires = stored_token.expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires <= datetime.now(timezone.utc):
         db.session.delete(stored_token)
         db.session.commit()
         return None

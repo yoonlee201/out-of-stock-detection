@@ -2,18 +2,59 @@
 
 Inventory tracking app with a React dashboard, a Flask backend, and a shelf-analysis pipeline that combines Ultralytics YOLO with Qwen2-VL SKU labeling.
 
+## Docker Quick Start (Recommended)
+
+### Prerequisites
+
+- Docker Desktop running
+- `weights/best.pt` YOLO model file in the repo root
+
+### Run
+
+```bash
+bash scripts/setup.sh
+```
+
+What it does:
+
+1. Prompts for a backend port (default `8000`).
+2. Writes `backend/.env` and `frontend/.env` from the example templates.
+3. Builds and starts all three services (`backend`, `db`, `frontend`) in detached mode.
+4. Waits for the backend to pass its health check.
+5. Optionally seeds the database with sample data.
+6. Attaches `docker compose watch` for hot-reload on file changes.
+
+Frontend is served at `http://localhost:5173`.
+
+### Useful commands
+
+```bash
+# View logs
+docker compose -f compose.dev.yml logs -f
+
+# Stop all services
+docker compose -f compose.dev.yml down
+
+# Rebuild after dependency changes
+docker compose -f compose.dev.yml up --build -d
+```
+
+---
+
 ## Repository Layout
 
 ```text
 out-of-stock-detection/
 ├── backend/                  # Flask API
 │   ├── app/
+│   ├── db/
+│   │   └── init_db.py        # Database init and seed script
 │   └── requirements.txt
 ├── frontend/                 # Vite + React dashboard
 ├── shelf_analyzer/           # YOLO + Qwen analysis pipeline
 ├── scripts/
-│   └── data.sql              # Optional seed data
-├── compose.dev.yml           # Optional Postgres dev stack
+│   ├── setup.sh              # Docker setup script
+├── compose.dev.yml
 └── weights/
     └── best.pt               # YOLO detector weights
 ```
@@ -26,15 +67,14 @@ out-of-stock-detection/
 - Uses Qwen2-VL on product crops to label detected SKUs.
 - Estimates horizontal gaps as empty shelf spaces.
 
-## Prerequisites
+## Local Quick Start (Without Docker)
+
+### Prerequisites
 
 - Python 3.11
 - Node.js 18+ and npm
-- Docker Desktop only if you want the optional Postgres container
 
-## Local Quick Start
-
-### 1. Set up the backend
+### 1. Set up the Python virtual environment
 
 ```bash
 cd backend
@@ -44,67 +84,51 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+This creates `backend/.venv` with all Python dependencies installed.
+
 ### 2. Set up the frontend
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 ```
 
-### 3. Run the backend
+### 3. Configure the backend environment
+
+Copy the example and fill in any values you need:
 
 ```bash
-cd ../backend
+cp env/.env.example.back backend/.env
+```
+
+### 4. Run the backend
+
+```bash
+cd backend
 source .venv/bin/activate
 python -m app.main
 ```
 
-The default backend port is `8000`, controlled by `backend/.env`.
+The default backend port is `8000`, controlled by `BACKEND_PORT` in `backend/.env`.
 
-### 4. Run the frontend
+### 5. Initialize the database
 
 ```bash
-cd ../frontend
+# Tables only
+docker exec oos_detection-backend python -m db.init_db
+
+# Tables + sample data
+docker exec oos_detection-backend python -m db.init_db --seed
+```
+
+### 6. Run the frontend
+
+```bash
+cd frontend
 npm run dev
 ```
 
 Open `http://localhost:5173`.
-
-## Database
-
-### Default setup: SQLite
-
-The app currently defaults to SQLite:
-
-```env
-SQLALCHEMY_DATABASE_URI=sqlite:///oos_detection.db
-```
-
-With that setting, no Docker database is required.
-
-### Optional dev setup: Postgres in Docker
-
-If you want to use the Postgres container from `compose.dev.yml`:
-
-```bash
-lsof -nP -iTCP:5432 -sTCP:LISTEN
-brew services stop postgresql@15
-docker compose -f compose.dev.yml up -d db
-docker ps
-```
-
-Then set this in `backend/.env`:
-
-```env
-SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://oos_detection:oos_detection_dev_password@127.0.0.1:5432/oos_detection
-```
-
-To load the seed script:
-
-```bash
-docker cp scripts/data.sql pg-oos_detection:/data.sql
-docker exec -it pg-oos_detection psql -U oos_detection -d oos_detection -f /data.sql
-```
 
 ## Shelf Analyzer Notes
 
