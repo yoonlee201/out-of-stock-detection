@@ -1,4 +1,5 @@
 import axios, { type AxiosRequestConfig } from "axios";
+import logger from "../utils/log";
 
 // All VITE_* vars are baked into the JS bundle at build time.
 // Never log import.meta.env in production — it exposes all build-time config
@@ -72,7 +73,7 @@ const retryRequestWithNewToken = async (originalRequest: AxiosRequestConfig, new
     try {
         return await axios(originalRequest);
     } catch (error) {
-        logger.error("재요청 실패");
+        logger.error("Failed to retry request");
         window.location.replace("/login");
         return Promise.reject(error);
     }
@@ -113,7 +114,7 @@ axiosAuth.interceptors.response.use(
                     return await retryRequestWithNewToken(originalRequest, newAccessToken);
                 }
             } catch (error) {
-                alert("토큰이 만료되었습니다. 다시 로그인 해주세요: " + error);
+                alert("The session has expired. Please log in again: " + error);
                 window.location.replace("/login");
             }
         }
