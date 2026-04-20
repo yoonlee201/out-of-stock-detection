@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 import bcrypt
 
+
 class Tokens(db.Model):
     __tablename__ = 'tokens'
         
@@ -88,3 +89,21 @@ class InventoryLogs(db.Model):
     change_type = db.Column(db.String(50), nullable=False)
     quantity_changed = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+
+class ShelfAnalysisJob(db.Model):
+    __tablename__ = "shelf_analysis_jobs"
+
+    job_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    requested_by_user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    original_filename = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="queued")
+    worker_id = db.Column(db.String(128), nullable=True)
+    input_image_b64 = db.Column(db.Text, nullable=False)
+    result_payload = db.Column(db.JSON, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    started_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    requester = db.relationship("Users", backref=db.backref("shelf_analysis_jobs", lazy=True))

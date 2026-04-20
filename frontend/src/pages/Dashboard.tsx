@@ -1,6 +1,12 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import Sidebar from "../_components/Sidebar";
-import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
+import {
+    apiCreateShelfAnalysisJob,
+    apiWaitForShelfAnalysisJob,
+    type ShelfAnalysisJob,
+    type ShelfAnalysisResponse,
+    type ShelfDetection,
+} from "../api/query/shelfAnalysis";
 import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
@@ -48,12 +54,24 @@ const Dashboard = () => {
 
             for (let index = 0; index < selectedImages.length; index += 1) {
                 const imageFile = selectedImages[index];
-                setAnalysisProgress(`Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
+                setAnalysisProgress(`Queueing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
 
                 try {
-                    const result = await apiAnalyzeShelf(imageFile);
+                    const job = await apiCreateShelfAnalysisJob(imageFile);
+                    setAnalysisProgress(
+                        `Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name} (${formatJobStatus(job.status)})`,
+                    );
+
+                    const result = await apiWaitForShelfAnalysisJob(job.job_id, {
+                        onUpdate: (updatedJob) => {
+                            setAnalysisProgress(
+                                `Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name} (${formatJobStatus(updatedJob.status)})`,
+                            );
+                        },
+                    });
                     successfulResults.push({ fileName: imageFile.name, result });
-                } catch {
+                } catch (error) {
+                    console.error("Shelf analysis failed for", imageFile.name, error);
                     failedFiles.push(imageFile.name);
                 }
             }
@@ -269,6 +287,14 @@ const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_me
     }
 
     return assignmentMethod.replace("_", " ");
+};
+
+const formatJobStatus = (status: ShelfAnalysisJob["status"]) => {
+    if (!status) {
+        return "queued";
+    }
+
+    return status.replace("_", " ");
 };
 
 const statusTone = (status: string) =>

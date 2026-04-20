@@ -33,6 +33,14 @@ def _needs_account_setup(user):
     )
 
 
+def _as_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 # --- Token helpers ---
 
 def generate_token(user):
@@ -67,7 +75,8 @@ def get_user_by_token(token):
     stored_token = Tokens.query.filter(Tokens.token_id == token_uuid).first()
     if not stored_token:
         return None
-    if stored_token.expires <= datetime.now(timezone.utc):
+    expires_at = _as_utc(stored_token.expires)
+    if expires_at is not None and expires_at <= datetime.now(timezone.utc):
         db.session.delete(stored_token)
         db.session.commit()
         return None

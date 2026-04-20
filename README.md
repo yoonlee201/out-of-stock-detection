@@ -147,6 +147,10 @@ What it does:
 
 This project can be run on Virginia Tech ARC using an Owl CPU interactive job.
 
+For a GPU-backed ARC workflow that runs the backend on Falcon or TinkerCliffs and keeps the frontend local, see [ARC_GPU_DEPLOY.md](/Users/Stuti/out-of-stock-detection/ARC_GPU_DEPLOY.md).
+
+For the preferred deployed architecture where Vercel serves the frontend, EC2 serves the API, and ARC runs the GPU worker asynchronously, see [EC2_ARC_WORKER_RUNBOOK.md](/Users/Stuti/out-of-stock-detection/EC2_ARC_WORKER_RUNBOOK.md).
+
 ### On ARC
 
 ```bash
@@ -201,5 +205,5 @@ Copy local changes up to ARC:
 
 ```bash
 cd /path/to/out-of-stock-detection
-rsync -avh --progress ./ stutishah9@owl2.arc.vt.edu:~/out_of_stock_detection
+rsync -avh --progress     --exclude '.git/'     --exclude '.venv/'     --exclude 'backend/.venv/'     --exclude 'frontend/'     --exclude '__pycache__/'     --exclude '*.pyc'     --exclude '.pytest_cache/'     --exclude '.mypy_cache/'     --exclude '.DS_Store'     --exclude 'runs/'     --exclude 'train/'     ./ stutishah9@falcon2.arc.vt.edu:~/out-of-stock-detection
 ```

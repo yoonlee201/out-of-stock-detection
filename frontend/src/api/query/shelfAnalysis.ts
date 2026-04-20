@@ -53,45 +53,115 @@ export interface ShelfAnalysisResponse {
     annotated_image: string;
 }
 
+export interface ShelfAnalysisJob {
+    job_id: string;
+    status: "queued" | "processing" | "completed" | "failed" | string;
+    original_filename?: string | null;
+    error_message?: string | null;
+    worker_id?: string | null;
+    created_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    result?: ShelfAnalysisResponse | null;
+}
+
+type PollOptions = {
+    timeoutMs?: number;
+    pollIntervalMs?: number;
+    onUpdate?: (job: ShelfAnalysisJob) => void;
+};
+
+const getAxiosErrorMessage = (error: unknown, fallback: string) => {
+    if (!isAxiosError(error)) {
+        return fallback;
+    }
+
+    const responseData = error.response?.data;
+    const backendMessage =
+        typeof responseData === "object" && responseData !== null
+            ? (responseData as { message?: string }).message
+            : undefined;
+
+    return backendMessage || fallback;
+};
+
 export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisResponse> => {
+    const job = await apiCreateShelfAnalysisJob(image);
+    return await apiWaitForShelfAnalysisJob(job.job_id);
+};
+
+export const apiCreateShelfAnalysisJob = async (image: File): Promise<ShelfAnalysisJob> => {
     const formData = new FormData();
     formData.append("image", image);
 
     try {
-        const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
+        const { data } = await axiosAuth.post<{ message: string; job: ShelfAnalysisJob }>("/shelf-analysis/jobs", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
-            timeout: 1800000,
+            timeout: 60_000,
         });
 
-        return data;
+        return data.job;
     } catch (error: unknown) {
         if (isAxiosError(error)) {
-            if (error.code === "ECONNABORTED") {
-                throw new Error(
-                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again."
-                );
-            }
-
             if (!error.response) {
                 throw new Error(
                     "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open."
                 );
             }
 
-            const responseData = error.response.data;
-            const backendMessage =
-                typeof responseData === "object" && responseData !== null
-                    ? (responseData as { message?: string }).message
-                    : undefined;
-            const fallbackHttpMessage = `Shelf analysis request failed with status ${error.response.status}.`;
-            const message = backendMessage || fallbackHttpMessage;
-            logger.error("Shelf analysis error:", backendMessage || fallbackHttpMessage);
+            const message = getAxiosErrorMessage(
+                error,
+                `Could not create shelf analysis job. Status ${error.response.status}.`,
+            );
+            logger.error("Shelf analysis job creation error:", message);
             throw new Error(message);
         }
 
         logger.error("Unexpected shelf analysis error:", error);
-        throw new Error("An unexpected error occurred while analyzing the shelf image.");
+        throw new Error("An unexpected error occurred while creating the shelf analysis job.");
+    }
+};
+
+export const apiGetShelfAnalysisJob = async (jobId: string): Promise<ShelfAnalysisJob> => {
+    try {
+        const { data } = await axiosAuth.get<{ job: ShelfAnalysisJob }>(`/shelf-analysis/jobs/${jobId}`, {
+            timeout: 30_000,
+        });
+        return data.job;
+    } catch (error: unknown) {
+        const message = getAxiosErrorMessage(error, "Failed to fetch shelf analysis job status.");
+        logger.error("Shelf analysis job polling error:", message);
+        throw new Error(message);
+    }
+};
+
+export const apiWaitForShelfAnalysisJob = async (
+    jobId: string,
+    { timeoutMs = 30 * 60 * 1000, pollIntervalMs = 3_000, onUpdate }: PollOptions = {},
+): Promise<ShelfAnalysisResponse> => {
+    const startedAt = Date.now();
+
+    while (true) {
+        const job = await apiGetShelfAnalysisJob(jobId);
+        onUpdate?.(job);
+
+        if (job.status === "completed") {
+            if (job.result) {
+                return job.result;
+            }
+            throw new Error("Shelf analysis job completed without a result payload.");
+        }
+
+        if (job.status === "failed") {
+            throw new Error(job.error_message || "Shelf analysis job failed.");
+        }
+
+        if (Date.now() - startedAt >= timeoutMs) {
+            throw new Error("Shelf analysis job timed out before completion.");
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, pollIntervalMs));
     }
 };
