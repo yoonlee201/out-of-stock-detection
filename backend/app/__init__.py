@@ -35,8 +35,8 @@ def create_app() -> Flask:
     # In local dev (PRODUCTION=False) HTTPS is not available, so it is disabled.
     Talisman(
         app,
-        force_https=config.PRODUCTION,
-        strict_transport_security=config.PRODUCTION,
+        force_https=False,           # SSL is terminated at Vercel; EC2 only speaks HTTP
+        strict_transport_security=False,  # HSTS only meaningful at the TLS-terminating edge
         strict_transport_security_max_age=31536000,
         strict_transport_security_include_subdomains=True,
         content_security_policy=_API_CSP,
