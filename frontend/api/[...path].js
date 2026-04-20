@@ -1,11 +1,13 @@
 export default async function handler(req, res) {
     const backendUrl = process.env.BACKEND_URL; // http://[public_ip]
+    console.log("Received request:", req.method, req.url);
+    console.log("backendUrl:", backendUrl);
     if (!backendUrl) {
         return res.status(500).json({ error: "BACKEND_URL not configured" });
     }
 
-    // req.url contains the full path starting with /api/...
-    const targetUrl = `${backendUrl}${req.url}`;
+    // req.url contains the full path starting with /api/...// Change this line in api/[...path].js
+    const targetUrl = `${backendUrl}${req.url.replace(/^\/api/, '')}`;
 
     const skipHeaders = new Set(["host", "connection", "transfer-encoding", "content-length"]);
     const forwardedHeaders = {};
