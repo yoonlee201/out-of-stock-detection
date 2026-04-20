@@ -37,9 +37,9 @@ const useRouter = (role: UserRole | null) => {
 
     const employeeRoutes: { [key in UserRole]: Route[] } = {
         customer: [],
-        associate: [allRoutes.space_detection],
-        supervisor: [allRoutes.space_detection, allRoutes.employee_management],
-        manager: [allRoutes.space_detection, allRoutes.employee_management],
+        associate: [],
+        supervisor: [allRoutes.employee_management],
+        manager: [allRoutes.employee_management],
     };
 
     const dashboardRoutes = [...publicSidebarRoutes, ...(role && employeeRoutes[role] ? employeeRoutes[role] : [])];

@@ -6,10 +6,13 @@ import { apiMakeOutOfStockAlert } from "../api/query/alert";
 
 const Dashboard = () => {
     const { user } = useAuth();
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
+    const [analysisProgress, setAnalysisProgress] = useState("");
     const [analysisError, setAnalysisError] = useState("");
-    const [analysisResult, setAnalysisResult] = useState<ShelfAnalysisResponse | null>(null);
+    const [analysisResults, setAnalysisResults] = useState<Array<{ fileName: string; result: ShelfAnalysisResponse }>>([]);
+    const [activeResultIndex, setActiveResultIndex] = useState(0);
+    const analysisResult = analysisResults[activeResultIndex]?.result ?? null;
     const issueDetections = useMemo(() => {
         if (!analysisResult) {
             return [];
@@ -21,26 +24,57 @@ const Dashboard = () => {
     }, [analysisResult]);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] || null;
-        setSelectedImage(file);
+        const files = Array.from(event.target.files || []);
+        setSelectedImages(files);
+        setAnalysisResults([]);
+        setActiveResultIndex(0);
         setAnalysisError("");
+        setAnalysisProgress("");
     };
 
     const handleAnalyzeShelf = async () => {
-        if (!selectedImage) {
-            setAnalysisError("Please upload a shelf image first.");
+        if (selectedImages.length === 0) {
+            setAnalysisError("Please upload at least one shelf image first.");
             return;
         }
 
         try {
             setAnalysisLoading(true);
             setAnalysisError("");
-            const result = await apiAnalyzeShelf(selectedImage);
-            setAnalysisResult(result);
+            setAnalysisProgress("");
+
+            const successfulResults: Array<{ fileName: string; result: ShelfAnalysisResponse }> = [];
+            const failedFiles: string[] = [];
+
+            for (let index = 0; index < selectedImages.length; index += 1) {
+                const imageFile = selectedImages[index];
+                setAnalysisProgress(`Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
+
+                try {
+                    const result = await apiAnalyzeShelf(imageFile);
+                    successfulResults.push({ fileName: imageFile.name, result });
+                } catch {
+                    failedFiles.push(imageFile.name);
+                }
+            }
+
+            if (successfulResults.length === 0) {
+                throw new Error("None of the selected images could be analyzed.");
+            }
+
+            setAnalysisResults(successfulResults);
+            setActiveResultIndex(0);
+
+            if (failedFiles.length > 0) {
+                setAnalysisError(
+                    `Processed ${successfulResults.length}/${selectedImages.length} images. Failed: ${failedFiles.join(", ")}`
+                );
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : "Shelf analysis failed.";
             setAnalysisError(message);
         } finally {
+            setAnalysisProgress("");
             setAnalysisLoading(false);
         }
     };
@@ -71,16 +105,9 @@ const Dashboard = () => {
                         <div>
                             <h2 className="text-xl font-semibold">Shelf Analyzer</h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Upload a shelf image to compare it against the planogram, mark empty slots, and flag misplaced items.
+                                Upload one or more shelf images to compare them against the planogram, mark empty slots, and flag misplaced items.
                             </p>
                         </div>
-                        {analysisResult && (
-                            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-                                {analysisResult.summary.correct_count ?? 0} correct · {analysisResult.summary.missing_count ?? analysisResult.summary.empty_space_count} missing · {analysisResult.summary.misplaced_count ?? 0} misplaced
-                                {analysisResult.compliance_report &&
-                                    ` · Rows visible ${analysisResult.compliance_report.visible_rows.length}/${analysisResult.compliance_report.total_planogram_rows} · Compliance ${analysisResult.compliance_report.compliance_score}%`}
-                            </div>
-                        )}
                     </div>
 
                     <div className="grid gap-6 xl:grid-cols-[minmax(320px,360px),minmax(0,1fr)]">
@@ -88,43 +115,36 @@ const Dashboard = () => {
                             <h3 className="text-lg font-semibold text-slate-800">Upload</h3>
                             <input
                                 type="file"
+                                multiple
                                 accept="image/jpeg,image/jpg,image/png,image/webp"
                                 onChange={handleFileChange}
                                 className="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-secondary/12 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-secondary"
                             />
 
+                            {selectedImages.length > 0 && (
+                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                                    {selectedImages.length} image{selectedImages.length === 1 ? "" : "s"} selected
+                                </p>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={handleAnalyzeShelf}
-                                disabled={!selectedImage || analysisLoading}
+                                disabled={selectedImages.length === 0 || analysisLoading}
                                 className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active w-full rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                             >
-                                {analysisLoading ? "Analyzing..." : "Analyze Shelf"}
+                                {analysisLoading ? "Analyzing..." : "Analyze Shelf Images"}
                             </button>
+
+                            {analysisProgress && (
+                                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
+                                    {analysisProgress}
+                                </div>
+                            )}
 
                             {analysisError && (
                                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                                     {analysisError}
-                                </div>
-                            )}
-
-                            {analysisResult && (
-                                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-                                    <SummaryCard
-                                        label="Correct"
-                                        value={analysisResult.summary.correct_count ?? 0}
-                                        accent="text-emerald-600"
-                                    />
-                                    <SummaryCard
-                                        label="Missing"
-                                        value={analysisResult.summary.missing_count ?? analysisResult.summary.empty_space_count}
-                                        accent="text-rose-600"
-                                    />
-                                    <SummaryCard
-                                        label="Misplaced"
-                                        value={analysisResult.summary.misplaced_count ?? 0}
-                                        accent="text-amber-600"
-                                    />
                                 </div>
                             )}
 
@@ -141,6 +161,28 @@ const Dashboard = () => {
                         </div>
 
                         <div className="space-y-4">
+                            {analysisResults.length > 1 && (
+                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                                    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Showing Result For</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {analysisResults.map((entry, index) => (
+                                            <button
+                                                key={`${entry.fileName}-${index}`}
+                                                type="button"
+                                                onClick={() => setActiveResultIndex(index)}
+                                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    activeResultIndex === index
+                                                        ? "bg-slate-900 text-white"
+                                                        : "bg-slate-100 text-slate-700"
+                                                }`}
+                                            >
+                                                {entry.fileName}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 {analysisResult ? (
                                     <div className="space-y-4">
@@ -195,7 +237,7 @@ const Dashboard = () => {
                                                     <th className="py-3">Observed</th>
                                                     <th className="py-3">Expected</th>
                                                     <th className="py-3">Assignment</th>
-                                                    <th className="py-3">Confidence</th>
+                                                    <th className="py-3">Match Score</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -217,13 +259,6 @@ const Dashboard = () => {
         </div>
     );
 };
-
-const SummaryCard = ({ label, value, accent }: { label: string; value: number; accent: string }) => (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</div>
-        <div className={`mt-2 text-2xl font-bold ${accent}`}>{value}</div>
-    </div>
-);
 
 const formatSkuLine = (sku: ShelfDetection["sku"] | ShelfDetection["expected_sku"]) =>
     [sku?.brand, sku?.product_name, sku?.variant].filter(Boolean).join(" ");
@@ -250,6 +285,7 @@ const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
     const observed = formatSkuLine(detection.sku);
     const expected = formatSkuLine(detection.expected_sku);
     const assignmentMethod = formatAssignmentMethod(detection.assignment_method);
+    const matchScore = (detection as ShelfDetection & { match_score?: number }).match_score;
 
     return (
         <tr className={`border-b ${statusTone(status)}`}>
@@ -260,7 +296,7 @@ const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
             <td className="py-3 text-slate-600">{expected || "-"}</td>
             <td className="py-3 text-slate-600 capitalize">{assignmentMethod}</td>
             <td className="py-3 text-slate-600">
-                {typeof detection.sku?.confidence === "number" ? detection.sku.confidence.toFixed(2) : "-"}
+                {typeof matchScore === "number" ? matchScore.toFixed(2) : "-"}
             </td>
         </tr>
     );

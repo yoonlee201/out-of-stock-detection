@@ -18,6 +18,7 @@ BOUNDARY_ZONE_RATIO = 0.15
 BOUNDARY_MATCH_THRESHOLD = 0.5
 MISPLACED_CONFIDENCE_THRESHOLD = 0.9
 MISPLACED_MATCH_SCORE_THRESHOLD = 0.3
+MISPLACED_CONTENT_CONFIDENCE_THRESHOLD = 0.75
 ROW_SKIP_PLANOGRAM_PENALTY = 6.0
 ROW_SKIP_DETECTED_PENALTY = 18.0
 SLOT_SKIP_PRODUCT_PENALTY = 0.55
@@ -1011,7 +1012,8 @@ def audit_planogram(
                 best_slot_index is not None
                 and best_slot_index != slot_index
                 and best_slot_score >= BOUNDARY_MATCH_THRESHOLD
-                and sku_confidence >= 0.45
+                and sku_confidence >= MISPLACED_CONTENT_CONFIDENCE_THRESHOLD
+                and sku_visibility == "full"
             ):
                 audit_status = "misplaced"
             elif sku_confidence < MISPLACED_CONFIDENCE_THRESHOLD or sku_visibility != "full" or match_score > MISPLACED_MATCH_SCORE_THRESHOLD:
