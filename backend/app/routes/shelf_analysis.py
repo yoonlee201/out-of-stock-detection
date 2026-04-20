@@ -10,9 +10,15 @@ from flask import Blueprint, jsonify, request
 from PIL import Image
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+def _find_project_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "shelf_analyzer").is_dir():
+            return parent
+    raise RuntimeError("shelf_analyzer directory not found in any parent of this file")
+
+_project_root = _find_project_root()
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
 
 shelf_analysis_blueprint = Blueprint("shelf_analysis", __name__)

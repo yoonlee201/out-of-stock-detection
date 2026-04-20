@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11-slim
+ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION} AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -22,11 +22,7 @@ RUN apt-get update && \
     apt-get install -y \
     postgresql-client \
     curl \
-    libxcb1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 && \
+    libgl1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
