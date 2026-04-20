@@ -13,6 +13,10 @@ services:
     ports:
       # Mapping the EC2's public HTTP port (80) to Flask's port (5000).
       - "80:5000"
+    environment:
+      # Gunicorn 25.x control server needs a writable home directory.
+      # appuser's home is /nonexistent (intentionally absent), so redirect to /tmp.
+      HOME: /tmp
     volumes:
       - ./weights:/usr/src/app/weights
     # Use Gunicorn in production — the Flask dev server is single-threaded
@@ -23,5 +27,6 @@ services:
       --bind 0.0.0.0:5000
       --workers 2
       --timeout 120
+      --worker-tmp-dir /dev/shm
       --access-logfile -
       --error-logfile -

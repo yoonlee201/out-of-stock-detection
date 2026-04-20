@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_talisman import Talisman
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.core.db import db
 from app.core.config import config
@@ -22,6 +23,12 @@ _API_CSP = {
 
 def create_app() -> Flask:
     app = Flask(__name__)
+
+    # Trust one proxy hop (Vercel → EC2).
+    # This lets Flask see X-Forwarded-Proto: https from Vercel so Talisman
+    # doesn't redirect those requests to HTTPS again (they're already HTTPS).
+    if config.PRODUCTION:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # ── Security headers (Flask-Talisman) ─────────────────────────────────────
     # force_https redirects HTTP → HTTPS in production.
