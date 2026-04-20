@@ -59,13 +59,12 @@ def create_app() -> Flask:
         db.create_all()
 
     # ── Routes ────────────────────────────────────────────────────────────────
-    # No /api/v1 prefix on the backend — Vercel's rewrite rule already
-    # strips /api/ before forwarding to EC2, so the backend always sees
-    # plain /users/..., /products/..., etc.
+    prefix = "/api/v1" if config.check_production() else ""
+
     app.register_blueprint(default_blueprint,        url_prefix="/")
-    app.register_blueprint(users_blueprint,          url_prefix="/users")
-    app.register_blueprint(products_blueprint,       url_prefix="/products")
-    app.register_blueprint(shelf_analysis_blueprint, url_prefix="/shelf-analysis")
-    app.register_blueprint(alert_blueprint,          url_prefix="/alerts")
+    app.register_blueprint(users_blueprint,          url_prefix=f"{prefix}/users")
+    app.register_blueprint(products_blueprint,       url_prefix=f"{prefix}/products")
+    app.register_blueprint(shelf_analysis_blueprint, url_prefix=f"{prefix}/shelf-analysis")
+    app.register_blueprint(alert_blueprint,          url_prefix=f"{prefix}/alerts")
 
     return app
