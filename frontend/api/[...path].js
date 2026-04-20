@@ -6,8 +6,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "BACKEND_URL not configured" });
     }
 
-    // req.url contains the full path starting with /api/...// Change this line in api/[...path].js
-    const targetUrl = `${backendUrl}${req.url.replace(/^\/api/, '')}`;
+    const targetUrl = `${backendUrl}${req.url}`;
 
     const skipHeaders = new Set(["host", "connection", "transfer-encoding", "content-length"]);
     const forwardedHeaders = {};
