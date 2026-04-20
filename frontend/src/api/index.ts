@@ -4,7 +4,7 @@ import logger from "../utils/log";
 // All VITE_* vars are baked into the JS bundle at build time.
 // Never log import.meta.env in production — it exposes all build-time config
 // (including any VITE_* secrets) to anyone who opens DevTools.
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 const ACCESSTOKEN = import.meta.env.VITE_ACCESS_TOKEN || "accessToken";
 
 export const axiosDefault = axios.create({
