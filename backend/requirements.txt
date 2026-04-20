@@ -16,3 +16,8 @@ transformers
 opencv-python-headless
 accelerate
 scikit-learn
+# Security
+flask-talisman
+marshmallow
+# Production WSGI server (replaces Flask dev server)
+gunicorn

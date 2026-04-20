@@ -1,81 +1,83 @@
 import os
+import sys
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
-from dotenv import load_dotenv
+from pydantic import Field, model_validator
 
-load_dotenv()  # optional; Pydantic can also load from .env via Config
+# Resolve FLASK_ENV once at import time so SettingsConfigDict can branch on it.
+_FLASK_ENV = os.getenv("FLASK_ENV", "development")
+_IS_PRODUCTION = _FLASK_ENV == "production"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Zero-Trust boundary: production instances MUST inject secrets as OS
+        # environment variables (e.g. via ECS task definitions, AWS Secrets
+        # Manager, or EC2 instance metadata). Reading from a file on disk is
+        # disabled in production to prevent accidental secret exposure.
+        env_file=None if _IS_PRODUCTION else ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    PRODUCTION: bool = Field(
-        default=(os.getenv("FLASK_ENV", "development") == "production" and True or False),
-        description="Application mode: development or production"
-    )
-    
-    FRONTEND_URL: str = Field(
-        default=os.getenv("FRONTEND_URL", "http://localhost:5173"),
-        description="Frontend application URL"
-    )
+    # ── Runtime mode ─────────────────────────────────────────────────────────
+    FLASK_ENV: str = Field(default=_FLASK_ENV)
+    PRODUCTION: bool = Field(default=_IS_PRODUCTION)
 
-    BACKEND_PORT: int = Field(
-        default=int(os.getenv("BACKEND_PORT", 5000)),
-        description="Port for the backend server"
-    )
-    
-    SERVER_API_URL: str = Field(
-        default=os.getenv("SERVER_API_URL", f"http://localhost:{BACKEND_PORT}"),
-        description="Backend API URL"
-    )
+    # ── Network ───────────────────────────────────────────────────────────────
+    FRONTEND_URL: str = Field(default="http://localhost:5173")
+    BACKEND_PORT: int = Field(default=8000)
+    SERVER_API_URL: str = Field(default="")
 
-    # Database
-    SQLALCHEMY_DATABASE_URI: str = Field(
-        default=os.getenv("SQLALCHEMY_DATABASE_URI"),
-        description="Database connection URI"
-    )
-  
-    OPENAI_API_KEY: str | None = Field(
-        default=os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY"),
-        description="OpenAI API Key"
-    )
-    OPENAI_API_BASE: str | None = Field(
-        default=os.getenv("OPENAI_API_BASE") or os.getenv("openai_api_base"),
-        description="OpenAI-compatible API base URL"
-    )
-    OPENAI_MODEL: str = Field(
-        default=os.getenv("OPENAI_MODEL") or os.getenv("API_MODEL") or os.getenv("api_model") or "gpt-5.1",
-        description="OpenAI API Model"
-    )
-    
-    # Alerting
-    GMAIL_ADDRESS: str = Field(
-        default=os.getenv("GMAIL_ADDRESS", ""),
-        description="Gmail address for sending alerts"
-    )
-    
-    GMAIL_PASSWORD: str = Field(
-        default=os.getenv("GMAIL_PASSWORD", ""),
-        description="Gmail app password for sending alerts"
-    )
-    
-    IPQS_API_KEY: str = Field(
-        default=os.getenv("IPQS_API_KEY", ""),
-        description="API key for NumVerify phone number validation"
-    )
+    # ── Database ──────────────────────────────────────────────────────────────
+    SQLALCHEMY_DATABASE_URI: str = Field(default="")
 
-    SECRET_KEY: str = Field(
-        default=os.getenv("SECRET_KEY", "dev-secret-key"),
-        description="Secret key for signing tokens"
-    )
+    # ── Optional LLM integration ──────────────────────────────────────────────
+    OPENAI_API_KEY: str | None = Field(default=None)
+    OPENAI_API_BASE: str | None = Field(default=None)
+    OPENAI_MODEL: str = Field(default="gpt-4o")
 
-    INVITATION_SECRET_KEY: str = Field(
-        default=os.getenv("INVITATION_SECRET_KEY", "dev-secret-key"),
-        description="Secret key for signing invitation tokens (falls back to SECRET_KEY)"
-    )
-# single shared instance
+    # ── Alerting ──────────────────────────────────────────────────────────────
+    GMAIL_ADDRESS: str = Field(default="")
+    GMAIL_PASSWORD: str = Field(default="")
+    IPQS_API_KEY: str = Field(default="")
+
+    # ── Auth tokens ───────────────────────────────────────────────────────────
+    SECRET_KEY: str = Field(default="dev-secret-key-change-in-production")
+    INVITATION_SECRET_KEY: str = Field(default="")
+
+    @model_validator(mode="after")
+    def _enforce_production_secrets(self) -> "Settings":
+        """Fail fast at startup if required production secrets are missing or weak."""
+        if not self.PRODUCTION:
+            return self
+
+        errors: list[str] = []
+
+        if not self.SQLALCHEMY_DATABASE_URI:
+            errors.append("SQLALCHEMY_DATABASE_URI must be set")
+
+        if "dev-secret-key" in self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+            errors.append(
+                "SECRET_KEY must be a strong random value (≥ 32 chars). "
+                "Generate one: python -c \"import secrets; print(secrets.token_hex(64))\""
+            )
+
+        if not self.FRONTEND_URL or self.FRONTEND_URL.startswith("http://localhost"):
+            errors.append(
+                "FRONTEND_URL must be the deployed frontend origin (not localhost)"
+            )
+
+        if errors:
+            print("\nFATAL: Production configuration is invalid:", file=sys.stderr)
+            for msg in errors:
+                print(f"  ✗ {msg}", file=sys.stderr)
+            print("", file=sys.stderr)
+            sys.exit(1)
+
+        return self
+
+    def check_production(self) -> bool:
+        return self.PRODUCTION
+
+
 settings = Settings()
-

@@ -1,12 +1,12 @@
 from app.core.db import db
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
 import bcrypt
 
 class Tokens(db.Model):
     __tablename__ = 'tokens'
-        
-    token_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # String(36) stores UUID as text — works on PostgreSQL, SQLite, and MySQL.
+    token_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     expires = db.Column(db.DateTime(timezone=True), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=db.func.now())

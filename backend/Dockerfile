@@ -19,20 +19,20 @@ RUN adduser \
     appuser
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     postgresql-client \
-    curl \
-    libgl1 && \
+    curl && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 
-COPY . .
+COPY backend/ .
+COPY shelf_analyzer/ ./shelf_analyzer/
 
-RUN mkdir -p weights shelf_analyzer
+RUN mkdir -p weights
 
 RUN chown -R appuser /usr/src/app
 

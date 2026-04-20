@@ -45,6 +45,11 @@ def load_yolo_model():
     global _YOLO_MODEL
 
     if _YOLO_MODEL is None:
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"YOLO weights not found at {MODEL_PATH}. "
+                "Place your trained best.pt in the weights/ directory."
+            )
         _YOLO_MODEL = YOLO(MODEL_PATH)
 
     return _YOLO_MODEL
