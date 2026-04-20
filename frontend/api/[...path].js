@@ -1,13 +1,13 @@
 export default async function handler(req, res) {
-    const backendUrl = process.env.BACKEND_URL;
+    const backendUrl = process.env.BACKEND_URL; // http://[public_ip]
     if (!backendUrl) {
-        res.status(500).json({ error: "BACKEND_URL not configured" });
-        return;
+        return res.status(500).json({ error: "BACKEND_URL not configured" });
     }
 
+    // req.url contains the full path starting with /api/...
     const targetUrl = `${backendUrl}${req.url}`;
 
-    const skipHeaders = new Set(["host", "connection", "transfer-encoding"]);
+    const skipHeaders = new Set(["host", "connection", "transfer-encoding", "content-length"]);
     const forwardedHeaders = {};
     for (const [key, value] of Object.entries(req.headers)) {
         if (!skipHeaders.has(key.toLowerCase())) {
@@ -15,21 +15,28 @@ export default async function handler(req, res) {
         }
     }
 
-    const hasBody = !["GET", "HEAD"].includes(req.method ?? "");
+    const hasBody = !["GET", "HEAD"].includes(req.method);
+    
+    try {
+        const response = await fetch(targetUrl, {
+            method: req.method,
+            headers: forwardedHeaders,
+            // Use req.body directly; Vercel parses JSON bodies automatically
+            body: hasBody ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : undefined,
+        });
 
-    const response = await fetch(targetUrl, {
-        method: req.method,
-        headers: forwardedHeaders,
-        body: hasBody ? JSON.stringify(req.body) : undefined,
-    });
+        res.status(response.status);
 
-    res.status(response.status);
+        // Forward essential headers
+        const setCookie = response.headers.get("set-cookie");
+        if (setCookie) res.setHeader("Set-Cookie", setCookie);
+        
+        const contentType = response.headers.get("content-type");
+        if (contentType) res.setHeader("Content-Type", contentType);
 
-    const setCookie = response.headers.get("set-cookie");
-    if (setCookie) res.setHeader("Set-Cookie", setCookie);
-
-    const contentType = response.headers.get("content-type");
-    if (contentType) res.setHeader("Content-Type", contentType);
-
-    res.send(await response.text());
+        const data = await response.text();
+        res.send(data);
+    } catch (error) {
+        res.status(500).json({ error: "Proxy error", details: error.message });
+    }
 }
