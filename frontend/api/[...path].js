@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const pathSegments = req.query.path ?? [];
     const path = pathSegments.join("/");
     const queryString = req.url?.split("?")[1];
-    const targetUrl = `${backendUrl}/${path}${queryString ? "?" + queryString : ""}`;
+    const targetUrl = `${backendUrl}/api/v1/${path}${queryString ? "?" + queryString : ""}`;
 
     const skipHeaders = new Set(["host", "connection", "transfer-encoding"]);
     const forwardedHeaders = {};
