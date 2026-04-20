@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11-slim
+ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION} AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -21,7 +21,8 @@ RUN adduser \
 RUN apt-get update && \
     apt-get install -y \
     postgresql-client \
-    curl && \
+    curl \
+    libgl1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -31,14 +32,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY . .
 
+RUN mkdir -p weights shelf_analyzer
+
 RUN chown -R appuser /usr/src/app
 
 USER appuser
 
-EXPOSE ${BACKEND_PORT}
-
-
 ENV PYTHONPATH=/usr/src/app
 
-# Default command: start the app
+EXPOSE ${BACKEND_PORT}
+
 CMD ["python", "-m", "app.main"]

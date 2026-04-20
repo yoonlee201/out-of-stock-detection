@@ -30,7 +30,7 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-64 flex-col border-r border-black/10 bg-white">
+        <div className="fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-black/10 bg-white">
             <div className="flex flex-col items-center gap-4 border-b border-black/10 px-6 py-8">
                 <div className="border-secondary flex h-20 w-20 items-center justify-center rounded-full border-4 bg-white text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)]">
                     📦

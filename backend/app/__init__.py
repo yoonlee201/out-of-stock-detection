@@ -14,11 +14,11 @@ from app.core.config import config
 
 def create_app():
     app = Flask(__name__)
-    frontend_url = config.FRONTEND_URL #config.FRONTEND_URL or "http://localhost:5173"
-    
-    print("Allowed CORS origins:", frontend_url)
+    allowed_origins = [o.strip() for o in config.FRONTEND_URL.split(",") if o.strip()]
+
+    print("Allowed CORS origins:", allowed_origins)
     CORS(app, resources={r"/*": {
-        "origins": frontend_url}},
+        "origins": allowed_origins}},
          allow_headers=["Content-Type", "Authorization"], 
          supports_credentials=True, 
          methods=["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"])

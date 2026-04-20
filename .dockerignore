@@ -1,0 +1,56 @@
+# OS / Editor
+**/.DS_Store
+**/Thumbs.db
+**/.vscode/
+**/.idea/
+
+# Secrets / env files
+**/.env
+**/.env.*
+
+# Git
+**/.git/
+**/.gitignore
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/.venv/
+**/venv/
+**/*.egg-info/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# Node
+**/node_modules/
+**/dist/
+**/npm-debug.log
+
+# Docker files (already read; no need to include in context)
+**/Dockerfile*
+**/docker-compose*
+**/compose.y*ml
+
+# ML model weights (large; bind-mounted at runtime instead)
+**/*.pt
+**/*.pth
+**/*.onnx
+
+# Exclude frontend and training directories from backend build context
+frontend/
+train/
+
+# Logs / databases
+**/*.log
+**/*.sqlite3
+**/*.db
+**/test_output.jpg
+**/test_shelf.jpg
+
+# Misc
+**/runs/
+**/.cache/
+**/hf_cache/
+**/pip-cache/
