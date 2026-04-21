@@ -69,7 +69,7 @@ export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisRespons
          */
         const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
             timeout: 1800000,
-            headers: { "Content-Type": 'multipart/form-data' },
+            headers: { "Content-Type": "multipart/form-data" },
         });
 
         return data;
@@ -77,13 +77,13 @@ export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisRespons
         if (isAxiosError(error)) {
             if (error.code === "ECONNABORTED") {
                 throw new Error(
-                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again."
+                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again.",
                 );
             }
 
             if (!error.response) {
                 throw new Error(
-                    "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open."
+                    "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open.",
                 );
             }
 

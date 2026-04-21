@@ -23,12 +23,12 @@ const ProtectedRoute = ({ loading, user }: { loading: boolean; user: User | null
                     justifyContent: "center",
                     alignItems: "center",
                     height: "100vh",
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor: "var(--color-background)",
                 }}
             >
                 <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: "24px", marginBottom: "16px" }}>Loading...</div>
-                    <div style={{ fontSize: "14px", color: "#666" }}>Please wait</div>
+                    <div style={{ fontSize: "14px", color: "var(--color-text-secondary)" }}>Please wait</div>
                 </div>
             </div>
         );
@@ -53,7 +53,16 @@ function Routers() {
             <Route element={<ProtectedRoute loading={loading} user={user} />}>
                 <Route element={<DashboardLayout />}>
                     {dashboardRoutes.map(({ path, element }, i) => (
-                        <Route key={i} path={path} element={element ?? <></>} />
+                        <Route
+                            key={i}
+                            path={path}
+                            element={
+                                <div className="flex min-h-screen bg-(--color-background)">
+                                    <Sidebar />
+                                    <div className="flex-1 overflow-y-auto p-8">{element}</div>
+                                </div>
+                            }
+                        />
                     ))}
                 </Route>
             </Route>

@@ -36,7 +36,7 @@ export default function handler(req, res) {
             }
 
             proxyRes.pipe(res);
-        }
+        },
     );
 
     proxyReq.on("error", (err) => {

@@ -10,7 +10,6 @@ import {
 import { formatDate } from "../utils/functions";
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
 import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
-import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import { ChevronIcon, PlusIcon, SearchIcon, TrashIcon } from "../_components/Icons";
@@ -232,10 +231,8 @@ const Manager = () => {
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            <Sidebar />
-
-            <div className="flex flex-1 flex-col">
+        <>
+            <div>
                 <div className="flex items-start justify-between px-8 py-6">
                     <div>
                         <h1 className="text-xl font-semibold text-gray-900">People</h1>
@@ -245,7 +242,7 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="bg-secondary hover:bg-secondary-hover inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
@@ -551,7 +548,7 @@ const Manager = () => {
                     </button>
                 </div>
             </Dialog>
-        </div>
+        </>
     );
 };
 

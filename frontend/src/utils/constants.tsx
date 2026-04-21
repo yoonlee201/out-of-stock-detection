@@ -8,7 +8,7 @@ export const STATUS_STYLES: Record<EmployeeStatus, string> = {
 
 export const ROLE_STYLES: Record<UserRole, string> = {
     associate: "bg-blue/10 text-blue",
-    supervisor: "bg-tertiary/10 text-tertiary",
+    supervisor: "bg-secondary/10 text-secondary",
     manager: "bg-primary/10 text-primary",
     customer: "bg-red/10 text-red",
 };

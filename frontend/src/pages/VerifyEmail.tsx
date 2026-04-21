@@ -43,7 +43,7 @@ const VerifyEmail = () => {
                     <div className="mt-6">
                         <Link
                             to="/login"
-                            className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active inline-flex w-full items-center justify-center rounded px-4 py-2 font-semibold text-white"
+                            className="bg-primary hover:bg-primary-hover active:bg-primary-active inline-flex w-full items-center justify-center rounded px-4 py-2 font-semibold text-white"
                         >
                             Continue to Login
                         </Link>
