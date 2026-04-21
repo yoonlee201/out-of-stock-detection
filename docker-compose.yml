@@ -17,16 +17,21 @@ services:
       # Gunicorn 25.x control server needs a writable home directory.
       # appuser's home is /nonexistent (intentionally absent), so redirect to /tmp.
       HOME: /tmp
+      HF_HOME: /tmp/huggingface
     volumes:
       - ./weights:/usr/src/app/weights
+      - hf_cache:/tmp/huggingface
     # Use Gunicorn in production — the Flask dev server is single-threaded
     # and not hardened. 2 workers handle concurrent requests; raise for
-    # multi-core instances. 120 s timeout covers slow Qwen VL requests.
+    # multi-core instances. 300 s timeout covers model download + Qwen VL inference.
     command: >
       gunicorn "app.main:app"
       --bind 0.0.0.0:5000
       --workers 2
-      --timeout 120
+      --timeout 300
       --worker-tmp-dir /dev/shm
       --access-logfile -
       --error-logfile -
+
+volumes:
+  hf_cache:
