@@ -2,6 +2,15 @@ export const config = {
     api: { bodyParser: false },
 };
 
+function readRawBody(req) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        req.on("end", () => resolve(Buffer.concat(chunks)));
+        req.on("error", reject);
+    });
+}
+
 export default async function handler(req, res) {
     const backendUrl = process.env.BACKEND_URL;
     if (!backendUrl) {
@@ -21,11 +30,12 @@ export default async function handler(req, res) {
     const hasBody = !["GET", "HEAD"].includes(req.method);
 
     try {
+        const rawBody = hasBody ? await readRawBody(req) : undefined;
+
         const response = await fetch(targetUrl, {
             method: req.method,
             headers: forwardedHeaders,
-            body: hasBody ? req : undefined,
-            ...(hasBody && { duplex: "half" }),
+            body: rawBody,
         });
 
         res.status(response.status);
