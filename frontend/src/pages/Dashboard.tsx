@@ -82,7 +82,6 @@ const Dashboard = () => {
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
-
             <div className="flex-1 overflow-y-auto p-8">
                 <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
                 {(user?.role === "manager" || user?.role === "supervisor") && (
