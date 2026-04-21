@@ -49,7 +49,6 @@ weights/*.pt
 
 # Generated outputs / caches
 **/output/
-**/data/
 .cache/
 hf_cache/
 pip-cache/
