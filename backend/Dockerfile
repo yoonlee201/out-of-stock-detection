@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY backend/ .
 COPY shelf_analyzer/ ./shelf_analyzer/
 
-RUN mkdir -p weights
+RUN mkdir -p weights && mkdir -p .cache/huggingface
 
 RUN chown -R appuser /usr/src/app
 
