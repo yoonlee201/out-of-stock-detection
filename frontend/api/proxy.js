@@ -1,53 +1,47 @@
-export const config = {
-    api: { bodyParser: false },
-};
+import http from "node:http";
 
-function readRawBody(req) {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-        req.on("end", () => resolve(Buffer.concat(chunks)));
-        req.on("error", reject);
-    });
-}
-
-export default async function handler(req, res) {
+export default function handler(req, res) {
     const backendUrl = process.env.BACKEND_URL;
     if (!backendUrl) {
-        return res.status(500).json({ error: "BACKEND_URL not configured" });
+        res.status(500).json({ error: "BACKEND_URL not configured" });
+        return;
     }
 
-    const targetUrl = `${backendUrl}${req.url}`;
+    const url = new URL(`${backendUrl}${req.url}`);
 
-    const skipHeaders = new Set(["host", "connection", "transfer-encoding", "content-length"]);
-    const forwardedHeaders = {};
+    const skipHeaders = new Set(["host", "connection", "transfer-encoding"]);
+    const headers = {};
     for (const [key, value] of Object.entries(req.headers)) {
         if (!skipHeaders.has(key.toLowerCase())) {
-            forwardedHeaders[key] = value;
+            headers[key] = value;
         }
     }
 
-    const hasBody = !["GET", "HEAD"].includes(req.method);
-
-    try {
-        const rawBody = hasBody ? await readRawBody(req) : undefined;
-
-        const response = await fetch(targetUrl, {
+    const proxyReq = http.request(
+        {
+            hostname: url.hostname,
+            port: url.port || 80,
+            path: url.pathname + url.search,
             method: req.method,
-            headers: forwardedHeaders,
-            body: rawBody,
-        });
+            headers,
+        },
+        (proxyRes) => {
+            res.status(proxyRes.statusCode);
 
-        res.status(response.status);
+            if (proxyRes.headers["content-type"]) {
+                res.setHeader("Content-Type", proxyRes.headers["content-type"]);
+            }
+            if (proxyRes.headers["set-cookie"]) {
+                res.setHeader("Set-Cookie", proxyRes.headers["set-cookie"]);
+            }
 
-        const setCookie = response.headers.get("set-cookie");
-        if (setCookie) res.setHeader("Set-Cookie", setCookie);
+            proxyRes.pipe(res);
+        }
+    );
 
-        const contentType = response.headers.get("content-type");
-        if (contentType) res.setHeader("Content-Type", contentType);
+    proxyReq.on("error", (err) => {
+        res.status(502).json({ error: "Proxy error", details: err.message });
+    });
 
-        res.send(await response.text());
-    } catch (error) {
-        res.status(500).json({ error: "Proxy error", details: error.message });
-    }
+    req.pipe(proxyReq);
 }
