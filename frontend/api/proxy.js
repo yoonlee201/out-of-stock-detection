@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
     const backendUrl = process.env.BACKEND_URL; // http://[public_ip]
-    console.log("Received request:", req.method, req.url);
-    console.log("backendUrl:", backendUrl);
+    // console.log("Received request:", req.method, req.url);
+    // console.log("backendUrl:", backendUrl);
     if (!backendUrl) {
         return res.status(500).json({ error: "BACKEND_URL not configured" });
     }

@@ -59,9 +59,6 @@ export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisRespons
 
     try {
         const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
             timeout: 1800000,
         });
 
