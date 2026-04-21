@@ -55,7 +55,7 @@ def _model_load_kwargs() -> dict:
         }
 
     return {
-        "dtype": torch.float32,
+        "dtype": torch.bfloat16,
         "device_map": "cpu",
     }
 
