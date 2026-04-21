@@ -108,8 +108,8 @@ const Invitation = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 px-4 py-12">
-            <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-12">
+            <div className="w-full max-w-lg rounded-xl border border-border bg-background p-6 shadow-sm">
                 <h1 className="text-primary text-2xl font-bold">Continue Invitation</h1>
 
                 {loading && <p className="mt-4 text-sm text-gray-500">Checking your invitation link...</p>}
@@ -183,7 +183,7 @@ const Invitation = () => {
                             <Button
                                 type="submit"
                                 disabled={submitting}
-                                className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full text-white disabled:opacity-60"
+                                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active w-full text-white disabled:opacity-60"
                             >
                                 {submitting ? "Saving..." : form.isNew ? "Create Account" : "Continue"}
                             </Button>

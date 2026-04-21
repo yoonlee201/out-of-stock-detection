@@ -15,14 +15,13 @@ const Sidebar = () => {
             <button
                 key={label}
                 onClick={() => navigate(path)}
-                className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${
-                    isActive
-                        ? "border-primary bg-primary/10 text-primary"
+                className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${isActive
+                        ? "border-primary bg-[var(--color-primary)]/10 text-primary"
                         : "text-primary hover:border-primary hover:text-primary border-transparent"
-                }`}
+                    }`}
             >
                 {!isActive && (
-                    <span className="bg-primary/5 absolute inset-0 -translate-x-full transition-transform duration-300 ease-out group-hover:translate-x-0" />
+                    <span className="bg-[var(--color-primary)]/5 absolute inset-0 -translate-x-full transition-transform duration-300 ease-out group-hover:translate-x-0" />
                 )}
                 <span className="relative">{label}</span>
             </button>
@@ -30,9 +29,12 @@ const Sidebar = () => {
     };
 
     return (
-        <nav className="fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-black/10 bg-white dark:border-white/10 dark:bg-gray-800">
-            <div className="flex flex-col items-center gap-4 border-b border-black/10 px-6 py-8 dark:border-white/10">
-                <div className="border-primary flex h-20 w-20 items-center justify-center rounded-full border-4 bg-white text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)] dark:bg-gray-700">
+        <nav className="bg-surface border-border fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r">
+            <div className="border-border flex flex-col items-center gap-4 border-b px-6 py-8">
+                <div
+                    className="border-primary flex h-20 w-20 items-center justify-center rounded-full border-4 text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)]"
+                // style={{ backgroundColor: "var(--color-background)" }}
+                >
                     📦
                 </div>
                 <div className="text-center">
@@ -51,7 +53,7 @@ const Sidebar = () => {
             </nav>
 
             {user && (
-                <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-white px-3 py-3 dark:border-white/10 dark:bg-gray-800">
+                <div className="bg-surface border-border flex items-center justify-between gap-3 border-t px-3 py-3">
                     <div className="overflow-hidden">
                         <p className="text-primary mb-1 truncate text-xs leading-none font-bold tracking-wider uppercase">
                             {user.firstName} {user.lastName}
@@ -66,8 +68,9 @@ const Sidebar = () => {
                     </button>
                 </div>
             )}
-            <div className="border-t border-black/10 bg-white px-4 py-3 dark:border-white/10 dark:bg-gray-800">
-                <p className="text-center text-[8px] font-black tracking-[0.3em] text-black/20 uppercase dark:text-white/20">
+
+            <div className="bg-surface border-border mt-5 border-t px-4 py-3">
+                <p className="text-text-muted/50 text-center text-[8px] font-black tracking-[0.3em] uppercase">
                     Semper Fidelis
                 </p>
             </div>

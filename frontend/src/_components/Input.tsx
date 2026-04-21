@@ -15,16 +15,16 @@ const Input = ({ className, icon, type = "text", visible, placeholder, ...props 
     return (
         <div
             className={twMerge(
-                "focus-within:border-primary flex items-center gap-2 rounded border-2 border-gray-400 bg-white px-3 py-2.5 transition-colors",
+                "focus-within:border-primary border-border-input bg-surface flex items-center gap-2 rounded border-2 px-3 py-2.5 transition-colors",
                 className,
             )}
         >
-            {icon && <span className="shrink-0 text-gray-400">{icon}</span>}
+            {icon && <span className="text-text-muted shrink-0">{icon}</span>}
 
             <input
                 type={isPassword ? (show ? "text" : "password") : type}
                 placeholder={placeholder}
-                className="text-gray-700/ flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400"
+                className="placeholder:text-text-muted flex-1 bg-transparent text-sm outline-none"
                 {...props}
             />
 
@@ -32,7 +32,7 @@ const Input = ({ className, icon, type = "text", visible, placeholder, ...props 
                 <button
                     type="button"
                     onClick={() => setShow((prev) => !prev)}
-                    className="shrink-0 text-gray-400 transition-colors hover:text-gray-600"
+                    className="text-text-muted hover:text-text-secondary shrink-0 transition-colors"
                 >
                     {show ? <EyeOpenIcon /> : <EyeClosedIcon />}
                 </button>

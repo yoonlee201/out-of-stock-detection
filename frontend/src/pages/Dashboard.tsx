@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type CSSProperties, type ChangeEvent } from "react";
 import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
 import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
@@ -15,13 +15,8 @@ const Dashboard = () => {
     const [activeResultIndex, setActiveResultIndex] = useState(0);
     const analysisResult = analysisResults[activeResultIndex]?.result ?? null;
     const issueDetections = useMemo(() => {
-        if (!analysisResult) {
-            return [];
-        }
-
-        return analysisResult.detections.filter(
-            (detection) => detection.audit_status === "missing" || detection.audit_status === "misplaced",
-        );
+        if (!analysisResult) return [];
+        return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
     }, [analysisResult]);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -38,19 +33,15 @@ const Dashboard = () => {
             setAnalysisError("Please upload at least one shelf image first.");
             return;
         }
-
         try {
             setAnalysisLoading(true);
             setAnalysisError("");
             setAnalysisProgress("");
-
             const successfulResults: Array<{ fileName: string; result: ShelfAnalysisResponse }> = [];
             const failedFiles: string[] = [];
-
-            for (let index = 0; index < selectedImages.length; index += 1) {
-                const imageFile = selectedImages[index];
-                setAnalysisProgress(`Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
-
+            for (let i = 0; i < selectedImages.length; i += 1) {
+                const imageFile = selectedImages[i];
+                setAnalysisProgress(`Analyzing ${i + 1}/${selectedImages.length}: ${imageFile.name}`);
                 try {
                     const result = await apiAnalyzeShelf(imageFile);
                     successfulResults.push({ fileName: imageFile.name, result });
@@ -58,22 +49,16 @@ const Dashboard = () => {
                     failedFiles.push(imageFile.name);
                 }
             }
-
-            if (successfulResults.length === 0) {
-                throw new Error("None of the selected images could be analyzed.");
-            }
-
+            if (successfulResults.length === 0) throw new Error("None of the selected images could be analyzed.");
             setAnalysisResults(successfulResults);
             setActiveResultIndex(0);
-
             if (failedFiles.length > 0) {
                 setAnalysisError(
                     `Processed ${successfulResults.length}/${selectedImages.length} images. Failed: ${failedFiles.join(", ")}`,
                 );
             }
         } catch (err) {
-            const message = err instanceof Error ? err.message : "Shelf analysis failed.";
-            setAnalysisError(message);
+            setAnalysisError(err instanceof Error ? err.message : "Shelf analysis failed.");
         } finally {
             setAnalysisProgress("");
             setAnalysisLoading(false);
@@ -83,9 +68,10 @@ const Dashboard = () => {
     return (
         <>
             <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
+
             {(user?.role === "manager" || user?.role === "supervisor") && (
                 <button
-                    className="bg-primary mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
+                    className="bg-[var(--color-primary)] mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
                     onClick={async () => {
                         try {
                             await apiMakeOutOfStockAlert();
@@ -98,11 +84,11 @@ const Dashboard = () => {
                 </button>
             )}
 
-            <div className="mb-8 rounded-xl bg-white p-6 shadow dark:bg-gray-800 dark:shadow-gray-900/50">
+            <div className="bg-surface mb-8 rounded-xl p-6 shadow">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-semibold">Shelf Analyzer</h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-text-muted mt-1 text-sm">
                             Upload one or more shelf images to compare them against the planogram, mark empty slots, and
                             flag misplaced items.
                         </p>
@@ -110,18 +96,19 @@ const Dashboard = () => {
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[minmax(320px,360px),minmax(0,1fr)]">
-                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-gray-600 dark:bg-gray-700/50">
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Upload</h3>
+                    {/* Upload panel */}
+                    <div className="bg-surface-muted border-border space-y-4 rounded-2xl border p-5">
+                        <h3 className="text-lg font-semibold">Upload</h3>
                         <input
                             type="file"
                             multiple
                             accept="image/jpeg,image/jpg,image/png,image/webp"
                             onChange={handleFileChange}
-                            className="file:bg-primary/12 file:text-primary block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-sm file:font-semibold dark:border-gray-600 dark:bg-gray-700 dark:text-slate-300"
+                            className="file:bg-[var(--color-primary)]/12 file:text-primary bg-surface border-border text-text-muted block w-full rounded-2xl border px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-sm file:font-semibold"
                         />
 
                         {selectedImages.length > 0 && (
-                            <p className="text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
+                            <p className="text-text-muted text-xs font-medium tracking-[0.14em] uppercase">
                                 {selectedImages.length} image{selectedImages.length === 1 ? "" : "s"} selected
                             </p>
                         )}
@@ -130,29 +117,29 @@ const Dashboard = () => {
                             type="button"
                             onClick={handleAnalyzeShelf}
                             disabled={selectedImages.length === 0 || analysisLoading}
-                            className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
+                            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active w-full rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                         >
                             {analysisLoading ? "Analyzing..." : "Analyze Shelf Images"}
                         </button>
 
                         {analysisProgress && (
-                            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                            <div className="bg-status-info-bg border-status-info-border text-status-info-text rounded-2xl border px-4 py-3 text-sm font-medium">
                                 {analysisProgress}
                             </div>
                         )}
 
                         {analysisError && (
-                            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">
+                            <div className="bg-status-missing-bg border-status-missing-border text-status-missing-text rounded-2xl border px-4 py-3 text-sm font-medium">
                                 {analysisError}
                             </div>
                         )}
 
                         {analysisResult?.compliance_report && (
-                            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-gray-600 dark:bg-gray-700">
-                                <div className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase dark:text-slate-400">
+                            <div className="bg-surface border-border rounded-2xl border px-4 py-4">
+                                <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
                                     Planogram Visibility
                                 </div>
-                                <div className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                <div className="text-secondary mt-2 text-sm font-semibold">
                                     Rows visible in image: {analysisResult.compliance_report.visible_rows.length} of{" "}
                                     {analysisResult.compliance_report.total_planogram_rows} | Compliance:{" "}
                                     {analysisResult.compliance_report.compliance_score}%
@@ -161,10 +148,11 @@ const Dashboard = () => {
                         )}
                     </div>
 
+                    {/* Results panel */}
                     <div className="space-y-4">
                         {analysisResults.length > 1 && (
-                            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-gray-600 dark:bg-gray-700">
-                                <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase dark:text-slate-400">
+                            <div className="bg-surface border-border rounded-2xl border px-4 py-4">
+                                <div className="text-text-muted mb-3 text-xs font-semibold tracking-[0.18em] uppercase">
                                     Showing Result For
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -173,11 +161,18 @@ const Dashboard = () => {
                                             key={`${entry.fileName}-${index}`}
                                             type="button"
                                             onClick={() => setActiveResultIndex(index)}
-                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                            className="rounded-full px-3 py-1 text-xs font-semibold"
+                                            style={
                                                 activeResultIndex === index
-                                                    ? "bg-slate-900 text-white dark:bg-white dark:text-gray-900"
-                                                    : "bg-slate-100 text-slate-700 dark:bg-gray-600 dark:text-slate-200"
-                                            }`}
+                                                    ? {
+                                                        backgroundColor: "var(--color-text)",
+                                                        color: "var(--color-background)",
+                                                    }
+                                                    : {
+                                                        backgroundColor: "var(--color-surface-muted)",
+                                                        color: "var(--color-text-secondary)",
+                                                    }
+                                            }
                                         >
                                             {entry.fileName}
                                         </button>
@@ -186,31 +181,40 @@ const Dashboard = () => {
                             </div>
                         )}
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
+                        <div className="bg-surface border-border rounded-2xl border p-4">
                             {analysisResult ? (
                                 <div className="space-y-4">
-                                    <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase dark:text-slate-400">
-                                        <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+                                    <div className="text-text-muted flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
+                                        <span
+                                            className="rounded-full px-3 py-1"
+                                            style={{
+                                                backgroundColor: "var(--color-status-missing-bg)",
+                                                color: "var(--color-status-missing-text)",
+                                            }}
+                                        >
                                             M = Missing item
                                         </span>
-                                        <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                        <span
+                                            className="rounded-full px-3 py-1"
+                                            style={{
+                                                backgroundColor: "var(--color-status-misplaced-bg)",
+                                                color: "var(--color-status-misplaced-text)",
+                                            }}
+                                        >
                                             W = Wrong product
                                         </span>
                                     </div>
-
                                     <img
                                         src={analysisResult.annotated_image}
                                         alt="Shelf analysis result"
-                                        className="w-full rounded-2xl border border-slate-200 bg-white object-contain dark:border-gray-600 dark:bg-gray-700"
+                                        className="bg-surface border-border w-full rounded-2xl border object-contain"
                                     />
                                 </div>
                             ) : (
-                                <div className="flex min-h-[340px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center text-slate-500 dark:border-gray-600 dark:bg-gray-700 dark:text-slate-400">
+                                <div className="bg-surface border-border flex min-h-[340px] items-center justify-center rounded-2xl border border-dashed text-center">
                                     <div className="max-w-md px-6">
-                                        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">
-                                            No analysis yet
-                                        </p>
-                                        <p className="mt-2 text-sm leading-6">
+                                        <p className="text-lg font-semibold">No analysis yet</p>
+                                        <p className="text-text-muted mt-2 text-sm leading-6">
                                             The annotated shelf image will appear here after you upload and analyze a
                                             shelf photo.
                                         </p>
@@ -220,7 +224,7 @@ const Dashboard = () => {
                         </div>
 
                         {analysisResult && (
-                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:shadow-gray-900/30">
+                            <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
                                 <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
                                 {issueDetections.length > 0 ? (
                                     <div className="space-y-3">
@@ -232,7 +236,7 @@ const Dashboard = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                                    <div className="bg-status-success-bg border-status-success-border text-status-success-text rounded-2xl border px-4 py-4 text-sm font-medium">
                                         No missing or misplaced items were flagged in this audit.
                                     </div>
                                 )}
@@ -240,7 +244,7 @@ const Dashboard = () => {
                                 <div className="mt-6 overflow-x-auto">
                                     <table className="w-full min-w-[900px] text-left text-sm">
                                         <thead>
-                                            <tr className="border-b text-slate-500 dark:border-gray-600 dark:text-slate-400">
+                                            <tr className="border-border text-text-muted border-b">
                                                 <th className="py-3">Marker</th>
                                                 <th className="py-3">Slot</th>
                                                 <th className="py-3">Status</th>
@@ -272,22 +276,8 @@ const Dashboard = () => {
 const formatSkuLine = (sku: ShelfDetection["sku"] | ShelfDetection["expected_sku"]) =>
     [sku?.brand, sku?.product_name, sku?.variant].filter(Boolean).join(" ");
 
-const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_method"]) => {
-    if (!assignmentMethod) {
-        return "-";
-    }
-
-    return assignmentMethod.replace("_", " ");
-};
-
-const statusTone = (status: string) =>
-    status === "missing"
-        ? "bg-rose-50 dark:bg-rose-900/20"
-        : status === "misplaced"
-          ? "bg-amber-50 dark:bg-amber-900/20"
-          : status === "unverified"
-            ? "bg-blue-50 dark:bg-blue-900/20"
-            : "hover:bg-gray-50 dark:hover:bg-gray-700/50";
+const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_method"]) =>
+    assignmentMethod ? assignmentMethod.replace("_", " ") : "-";
 
 const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
     const status = detection.audit_status || (detection.type === "empty_space" ? "missing" : "correct");
@@ -295,20 +285,27 @@ const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
     const expected = formatSkuLine(detection.expected_sku);
     const assignmentMethod = formatAssignmentMethod(detection.assignment_method);
     const matchScore = (detection as ShelfDetection & { match_score?: number }).match_score;
-
     return (
-        <tr className={`border-b dark:border-gray-600 ${statusTone(status)}`}>
-            <td className="py-3 font-semibold text-slate-700 dark:text-slate-200">{detection.issue_marker || "-"}</td>
-            <td className="py-3 font-medium text-slate-700 dark:text-slate-200">{detection.slot_id || "-"}</td>
-            <td className="py-3 font-medium text-slate-700 capitalize dark:text-slate-200">
-                {status.replace("_", " ")}
-            </td>
-            <td className="py-3 text-slate-600 dark:text-slate-300">{observed || "-"}</td>
-            <td className="py-3 text-slate-600 dark:text-slate-300">{expected || "-"}</td>
-            <td className="py-3 text-slate-600 capitalize dark:text-slate-300">{assignmentMethod}</td>
-            <td className="py-3 text-slate-600 dark:text-slate-300">
-                {typeof matchScore === "number" ? matchScore.toFixed(2) : "-"}
-            </td>
+        <tr
+            className="border-border border-b"
+            style={{
+                backgroundColor:
+                    status === "missing"
+                        ? "var(--color-status-missing-bg)"
+                        : status === "misplaced"
+                            ? "var(--color-status-misplaced-bg)"
+                            : status === "unverified"
+                                ? "var(--color-status-info-bg)"
+                                : undefined,
+            }}
+        >
+            <td className="text-text-secondary py-3 font-semibold">{detection.issue_marker || "-"}</td>
+            <td className="text-text-secondary py-3 font-medium">{detection.slot_id || "-"}</td>
+            <td className="text-text-secondary py-3 font-medium capitalize">{status.replace("_", " ")}</td>
+            <td className="text-text-muted py-3">{observed || "-"}</td>
+            <td className="text-text-muted py-3">{expected || "-"}</td>
+            <td className="text-text-muted py-3 capitalize">{assignmentMethod}</td>
+            <td className="text-text-muted py-3">{typeof matchScore === "number" ? matchScore.toFixed(2) : "-"}</td>
         </tr>
     );
 };
@@ -319,50 +316,61 @@ const IssueCard = ({ detection, reviewOnly = false }: { detection: ShelfDetectio
     const expected = formatSkuLine(detection.expected_sku);
     const marker = detection.issue_marker || (reviewOnly ? "CHECK" : "ISSUE");
     const assignmentMethod = formatAssignmentMethod(detection.assignment_method);
-    const badgeTone =
+
+    const badgeStyle: CSSProperties =
         status === "missing"
-            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+            ? { backgroundColor: "var(--color-status-missing-bg)", color: "var(--color-status-missing-text)" }
             : status === "misplaced"
-              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+                ? { backgroundColor: "var(--color-status-misplaced-bg)", color: "var(--color-status-misplaced-text)" }
+                : { backgroundColor: "var(--color-status-info-bg)", color: "var(--color-status-info-text)" };
 
     return (
-        <div className={`rounded-2xl border border-slate-200 px-4 py-4 dark:border-gray-600 ${statusTone(status)}`}>
+        <div
+            className="border-border rounded-2xl border px-4 py-4"
+            style={{
+                backgroundColor:
+                    status === "missing"
+                        ? "var(--color-status-missing-bg)"
+                        : status === "misplaced"
+                            ? "var(--color-status-misplaced-bg)"
+                            : status === "unverified"
+                                ? "var(--color-status-info-bg)"
+                                : undefined,
+            }}
+        >
             <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold tracking-[0.18em] text-white dark:bg-white dark:text-gray-900">
+                <span
+                    className="rounded-full px-3 py-1 text-xs font-bold tracking-[0.18em]"
+                    style={{ backgroundColor: "var(--color-text)", color: "var(--color-background)" }}
+                >
                     {marker}
                 </span>
                 <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeTone}`}
+                    className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase"
+                    style={badgeStyle}
                 >
                     {status.replace("_", " ")}
                 </span>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {detection.slot_id || "Unknown slot"}
-                </span>
+                <span className="text-text-secondary text-sm font-semibold">{detection.slot_id || "Unknown slot"}</span>
             </div>
 
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl bg-white/80 px-4 py-3 dark:bg-gray-700/80">
-                    <div className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                        Observed
-                    </div>
-                    <div className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <div className="bg-surface-muted rounded-2xl px-4 py-3">
+                    <div className="text-text-muted text-xs font-semibold tracking-[0.16em] uppercase">Observed</div>
+                    <div className="text-text-secondary mt-1 text-sm font-medium">
                         {observed || "No confirmed product"}
                     </div>
                 </div>
-                <div className="rounded-2xl bg-white/80 px-4 py-3 dark:bg-gray-700/80">
-                    <div className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                        Expected
-                    </div>
-                    <div className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <div className="bg-surface-muted rounded-2xl px-4 py-3">
+                    <div className="text-text-muted text-xs font-semibold tracking-[0.16em] uppercase">Expected</div>
+                    <div className="text-text-secondary mt-1 text-sm font-medium">
                         {expected || "No expected product"}
                     </div>
                 </div>
             </div>
 
-            <div className="mt-3 text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                Assignment Method: <span className="text-slate-700 dark:text-slate-200">{assignmentMethod}</span>
+            <div className="text-text-muted mt-3 text-xs font-semibold tracking-[0.16em] uppercase">
+                Assignment Method: <span className="text-text-secondary">{assignmentMethod}</span>
             </div>
         </div>
     );

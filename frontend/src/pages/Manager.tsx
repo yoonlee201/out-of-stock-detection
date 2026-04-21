@@ -40,7 +40,6 @@ const Manager = () => {
         target: null,
         form: {},
     });
-
     const [reorders, setReorders] = useState<any[]>([]);
     const [creatingReorders, setCreatingReorders] = useState(false);
 
@@ -85,14 +84,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
+                ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-              : STATUSES.reduce(
+                : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -168,19 +167,15 @@ const Manager = () => {
     const handleCreateReorders = async () => {
         setCreatingReorders(true);
         try {
-            const res = await fetch("http://localhost:8000/alerts/create_reorders", {
-                method: "POST",
-            });
-
+            const res = await fetch("http://localhost:8000/alerts/create_reorders", { method: "POST" });
             const data = await res.json();
-
             if (data.success) {
                 setReorders(data.reorders);
                 toast.success("Reorders created successfully.");
             } else {
                 toast.error(data.message || "Failed to create reorders.");
             }
-        } catch (err) {
+        } catch {
             toast.error("Error creating reorders.");
         } finally {
             setCreatingReorders(false);
@@ -189,30 +184,26 @@ const Manager = () => {
 
     const renderRows = (rows: Employee[]) =>
         rows.map((e) => (
-            <tr key={e.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
-                {/* Name + email stacked */}
+            <tr key={e.id} className="border-border hover-surface border-b transition-colors">
                 <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium">
                         {e.firstName} {e.lastName}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-400">{e.email}</p>
+                    <p className="text-text-muted mt-0.5 text-xs">{e.email}</p>
                 </td>
-                {/* Role — plain text, no capsule */}
-                <td className="px-4 py-3 text-sm text-gray-600 capitalize">{e.role}</td>
-                {/* Status — dot + text, no capsule */}
+                <td className="text-text-muted px-4 py-3 text-sm capitalize">{e.role}</td>
                 <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
-                        <span className="text-sm text-gray-600">{STATUS_TEXT[e.status]}</span>
+                        <span className="text-text-muted text-sm">{STATUS_TEXT[e.status]}</span>
                     </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-500">{e.phone}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">{formatDate(e.joinedAt)}</td>
-                {/* Actions — kebab / edit button */}
+                <td className="text-text-muted px-4 py-3 text-sm">{e.phone}</td>
+                <td className="text-text-muted px-4 py-3 text-sm">{formatDate(e.joinedAt)}</td>
                 <td className="px-4 py-3 text-right">
                     <button
                         onClick={() => openEdit(e)}
-                        className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        className="hover-surface-btn text-text-muted rounded p-1.5 transition-colors"
                         aria-label="Edit employee"
                     >
                         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -235,31 +226,31 @@ const Manager = () => {
             <div>
                 <div className="flex items-start justify-between px-8 py-6">
                     <div>
-                        <h1 className="text-xl font-semibold text-gray-900">People</h1>
-                        <p className="mt-0.5 text-sm text-gray-400">
+                        <h1 className="text-xl font-semibold">People</h1>
+                        <p className="text-text-muted mt-0.5 text-sm">
                             Manage and collaborate within your organization's teams
                         </p>
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="bg-primary hover:bg-primary-hover inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
                     </button>
                 </div>
 
-                <div className="mx-8 mb-6 rounded-md border border-gray-200 bg-white p-4">
+                {/* Reorder System */}
+                <div className="border-border bg-surface mx-8 mb-6 rounded-md border p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-md font-semibold text-gray-900">Reorder System</h2>
-                            <p className="text-xs text-gray-400">Create mock reorders for low-stock products</p>
+                            <h2 className="text-md font-semibold">Reorder System</h2>
+                            <p className="text-text-muted text-xs">Create mock reorders for low-stock products</p>
                         </div>
-
                         <button
                             onClick={handleCreateReorders}
                             disabled={creatingReorders}
-                            className="bg-primary hover:bg-primary-hover rounded-md px-4 py-2 text-sm text-white disabled:opacity-50"
+                            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover rounded-md px-4 py-2 text-sm text-white disabled:opacity-50"
                         >
                             {creatingReorders ? "Creating..." : "Create Reorders"}
                         </button>
@@ -267,13 +258,13 @@ const Manager = () => {
 
                     {reorders.length > 0 && (
                         <div className="mt-4">
-                            <p className="mb-2 text-sm font-medium text-gray-700">Recent Reorders:</p>
-                            <div className="space-y-1 text-sm text-gray-600">
+                            <p className="text-text-secondary mb-2 text-sm font-medium">Recent Reorders:</p>
+                            <div className="text-text-muted space-y-1 text-sm">
                                 {reorders.map((r) => (
                                     <div key={r.reorder_id} className="flex justify-between">
                                         <span>Product {r.product_id}</span>
                                         <span>Qty: {r.quantity}</span>
-                                        <span className="text-gray-400">#{r.reorder_id}</span>
+                                        <span>#{r.reorder_id}</span>
                                     </div>
                                 ))}
                             </div>
@@ -281,30 +272,33 @@ const Manager = () => {
                     )}
                 </div>
 
+                {/* Filter bar */}
                 <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
-                    <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-1">
+                    <div className="border-border bg-surface flex items-center gap-1 rounded-md border p-1">
                         {(["all", ...STATUSES] as const).map((s) => (
                             <button
                                 key={s}
                                 onClick={() => setFilters((f) => ({ ...f, status: s }))}
-                                className={`rounded-sm px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                                className="rounded-sm px-3 py-1.5 text-sm font-medium capitalize transition-colors"
+                                style={
                                     filters.status === s
-                                        ? "bg-gray-900 text-white"
-                                        : "text-gray-500 hover:text-gray-800"
-                                }`}
+                                        ? { backgroundColor: "var(--color-text)", color: "var(--color-background)" }
+                                        : { color: "var(--color-text-muted)" }
+                                }
                             >
                                 {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2">
+
+                    <div className="border-border bg-surface flex items-center gap-2 rounded-sm border px-3 py-2">
                         <SearchIcon />
                         <input
                             type="text"
                             placeholder="Search"
                             value={filters.search}
                             onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                            className="w-48 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                            className="placeholder:text-text-muted w-48 bg-transparent text-sm outline-none"
                         />
                     </div>
 
@@ -336,20 +330,22 @@ const Manager = () => {
                     {hasActiveFilters && (
                         <button
                             onClick={resetFilters}
-                            className="text-xs text-gray-400 transition-colors hover:text-gray-600"
+                            className="hover-surface-btn text-text-muted rounded px-1 py-0.5 text-xs transition-colors"
                         >
                             Clear
                         </button>
                     )}
 
-                    <span className="ml-auto text-sm text-gray-400">
+                    <span className="text-text-muted ml-auto text-sm">
                         {filtered.length} employee{filtered.length !== 1 ? "s" : ""}
                     </span>
                 </div>
-                <div className="mx-8 overflow-hidden rounded-md border border-gray-200 bg-white">
+
+                {/* Table */}
+                <div className="border-border bg-surface mx-8 overflow-hidden rounded-md border">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50">
-                            <tr className="border-b border-gray-200">
+                        <thead className="bg-surface-muted">
+                            <tr className="border-border border-b">
                                 {[
                                     { field: "firstName", label: "Name" },
                                     { field: "role", label: "Job title" },
@@ -358,8 +354,9 @@ const Manager = () => {
                                     { field: "joinedAt", label: "Date" },
                                 ].map(({ field, label }) => (
                                     <th
+                                        key={field}
                                         onClick={() => handleSort(field as SortField)}
-                                        className={`cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase transition-colors select-none hover:text-gray-700`}
+                                        className="text-text-muted cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider uppercase transition-colors select-none"
                                     >
                                         {label}
                                         {filters.sortField === field && (
@@ -375,13 +372,13 @@ const Manager = () => {
                         <tbody>
                             {fetching ? (
                                 <tr>
-                                    <td colSpan={6} className="py-20 text-center text-gray-400">
+                                    <td colSpan={6} className="text-text-muted py-20 text-center">
                                         Loading…
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-20 text-center text-gray-400">
+                                    <td colSpan={6} className="text-text-muted py-20 text-center">
                                         No employees found.
                                     </td>
                                 </tr>
@@ -391,10 +388,10 @@ const Manager = () => {
                                 groupKeys.map((key) =>
                                     grouped[key]?.length > 0 ? (
                                         <React.Fragment key={key}>
-                                            <tr className="border-b border-gray-100 bg-gray-50">
+                                            <tr className="border-border bg-surface-muted border-b">
                                                 <td
                                                     colSpan={6}
-                                                    className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 uppercase"
+                                                    className="text-text-muted px-4 py-2 text-xs font-semibold tracking-wider uppercase"
                                                 >
                                                     {key} ({grouped[key].length})
                                                 </td>
@@ -408,13 +405,15 @@ const Manager = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Invite Dialog */}
             <Dialog
                 open={invite.open}
                 title="Invite New Employee"
                 description="They'll receive an email with instructions to join."
                 onClose={() => setInvite((s) => ({ ...s, open: false }))}
             >
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Email Address</label>
+                <label className="text-text-secondary mb-1.5 block text-sm font-medium">Email Address</label>
                 <input
                     autoFocus
                     type="email"
@@ -422,13 +421,13 @@ const Manager = () => {
                     value={invite.email}
                     onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))}
                     onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                    className="focus:ring-primary w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none placeholder:text-gray-400 focus:border-transparent focus:ring-2"
+                    className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
                 />
-                <label className="mt-3 mb-1.5 block text-sm font-medium text-gray-700">Role</label>
+                <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
                 <select
                     value={invite.role}
                     onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-                    className="focus:ring-primary w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+                    className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
                     {EMPLOYEE_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -439,19 +438,21 @@ const Manager = () => {
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: false }))}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                        className="hover-surface-btn text-text-muted rounded px-4 py-2 text-sm font-medium transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleInvite}
                         disabled={!invite.email || invite.loading}
-                        className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {invite.loading ? "Sending…" : "Send Invitation"}
                     </button>
                 </div>
             </Dialog>
+
+            {/* Edit Dialog */}
             <Dialog
                 open={!!edit.target}
                 title="Edit Employee"
@@ -460,46 +461,46 @@ const Manager = () => {
             >
                 <div className="flex gap-3">
                     <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium text-gray-600">First Name</label>
+                        <label className="text-text-muted mb-1 block text-xs font-medium">First Name</label>
                         <input
                             value={edit.form.firstName ?? ""}
                             onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, firstName: e.target.value } }))}
-                            className="focus:ring-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                            className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                         />
                     </div>
                     <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium text-gray-600">Last Name</label>
+                        <label className="text-text-muted mb-1 block text-xs font-medium">Last Name</label>
                         <input
                             value={edit.form.lastName ?? ""}
                             onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, lastName: e.target.value } }))}
-                            className="focus:ring-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                            className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                         />
                     </div>
                 </div>
                 <div className="mt-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
+                    <label className="text-text-muted mb-1 block text-xs font-medium">Email</label>
                     <input
                         value={edit.form.email ?? ""}
                         onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, email: e.target.value } }))}
-                        className="focus:ring-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     />
                 </div>
                 <div className="mt-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-600">Phone</label>
+                    <label className="text-text-muted mb-1 block text-xs font-medium">Phone</label>
                     <input
                         value={edit.form.phone ?? ""}
                         onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, phone: e.target.value } }))}
-                        className="focus:ring-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     />
                 </div>
                 <div className="mt-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-600">Role</label>
+                    <label className="text-text-muted mb-1 block text-xs font-medium">Role</label>
                     <select
                         value={edit.form.role ?? "associate"}
                         onChange={(e) =>
                             setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))
                         }
-                        className="focus:ring-primary w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     >
                         {EMPLOYEE_ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -509,10 +510,10 @@ const Manager = () => {
                     </select>
                 </div>
                 {edit.target?.status === "active" && (
-                    <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                    <div className="border-border mt-4 flex items-center justify-between rounded-lg border px-4 py-3">
                         <div>
-                            <p className="text-sm font-medium text-gray-700">Deactivate Employee</p>
-                            <p className="mt-0.5 text-xs text-gray-400">Employee will lose access to the system.</p>
+                            <p className="text-text-secondary text-sm font-medium">Deactivate Employee</p>
+                            <p className="text-text-muted mt-0.5 text-xs">Employee will lose access to the system.</p>
                         </div>
                         <button
                             onClick={() => {
@@ -536,13 +537,13 @@ const Manager = () => {
                     )}
                     <button
                         onClick={() => setEdit({ target: null, form: {} })}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                        className="hover-surface-btn text-text-muted rounded px-4 py-2 text-sm font-medium transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleEditSave}
-                        className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         Save
                     </button>

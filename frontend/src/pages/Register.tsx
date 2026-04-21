@@ -145,7 +145,7 @@ const Register = () => {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-primary hover:bg-primary-hover active:bg-primary-active mt-4 w-full text-white disabled:opacity-60"
+                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active mt-4 w-full text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Registering..." : "Register"}
                     </Button>
@@ -159,7 +159,7 @@ const Register = () => {
 
                 <div className="mt-8 flex items-center justify-center gap-1">
                     {"Do you have an account? "}
-                    <a href="/login" className="text-gray-500 underline transition-colors hover:text-gray-700">
+                    <a href="/login" className="text-text-muted hover:text-text-secondary underline transition-colors">
                         Login here.
                     </a>
                 </div>

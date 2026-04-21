@@ -61,18 +61,7 @@ const Login = () => {
     }
 
     return (
-        <div className="flex h-screen w-screen flex-1 items-center justify-center bg-white px-8 py-12">
-            <style>{`
-                @keyframes fadeSlideUp {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                .anim-item {
-                    opacity: 0;
-                    animation: fadeSlideUp 0.5s ease forwards;
-                }
-            `}</style>
-
+        <div className="bg-(--color-background) flex h-screen w-screen flex-1 items-center justify-center px-8 py-12">
             <form
                 onSubmit={handleSubmit(onSubmit)}
                 className="flex w-full max-w-sm flex-col gap-3"
@@ -110,14 +99,14 @@ const Login = () => {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-primary hover:bg-primary-hover active:bg-primary-active w-full text-white disabled:opacity-60"
+                        className="bg-primary hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active w-full text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Logging in..." : "Log In"}
                     </Button>
                 </div>
 
                 {errors.root && (
-                    <p className="text-sm text-red-600" style={{ animation: "fadeSlideUp 0.3s ease forwards" }}>
+                    <p className="text-sm text-red" style={{ animation: "fadeSlideUp 0.3s ease forwards" }}>
                         {errors.root.message}
                     </p>
                 )}
@@ -128,12 +117,18 @@ const Login = () => {
                 >
                     <div className="text-center text-sm">
                         {"Don't have an account? "}
-                        <a href="/register" className="text-gray-500 underline transition-colors hover:text-gray-700">
+                        <a
+                            href="/register"
+                            className="text-text-muted hover:text-text-secondary underline transition-colors"
+                        >
                             Register here.
                         </a>
                     </div>
                     <div className="text-center">
-                        <a href="#" className="text-sm text-gray-500 underline transition-colors hover:text-gray-700">
+                        <a
+                            href="#"
+                            className="text-text-muted hover:text-text-secondary text-sm underline transition-colors"
+                        >
                             Forgot Password?
                         </a>
                     </div>

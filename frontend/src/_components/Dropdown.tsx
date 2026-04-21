@@ -26,29 +26,35 @@ const Dropdown = ({ label, options, value, onChange, sectionLabel }: DropdownPro
     }, []);
 
     const active = options.find((o) => o.value === value);
+    const isFiltered = value !== options[0].value;
 
     return (
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen((v) => !v)}
-                className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    value !== options[0].value
-                        ? "border-primary/40 bg-primary/5 text-primary"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800"
-                }`}
+                className="flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors"
+                style={
+                    isFiltered
+                        ? {
+                            borderColor: "var(--color-primary)",
+                            backgroundColor: "var(--color-primary)/5",
+                            color: "var(--color-primary)",
+                        }
+                        : { borderColor: "var(--color-border)", color: "var(--color-text-muted)" }
+                }
             >
                 {label}
-                {value !== options[0].value && `: ${active?.label}`}
+                {isFiltered && `: ${active?.label}`}
                 <svg className="h-3 w-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
 
             {open && (
-                <div className="absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
+                <div className="border-border bg-surface absolute top-full left-0 z-20 mt-1 w-44 rounded-lg border shadow-lg">
                     <div className="p-1.5">
                         {sectionLabel && (
-                            <p className="px-2 py-1 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
+                            <p className="text-text-muted px-2 py-1 text-[10px] font-semibold tracking-wider uppercase">
                                 {sectionLabel}
                             </p>
                         )}
@@ -59,11 +65,10 @@ const Dropdown = ({ label, options, value, onChange, sectionLabel }: DropdownPro
                                     onChange(option.value);
                                     setOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm capitalize transition-colors ${
-                                    value === option.value
-                                        ? "bg-primary/10 text-primary font-medium"
-                                        : "text-gray-700 hover:bg-gray-50"
-                                }`}
+                                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm capitalize transition-colors ${value === option.value
+                                        ? "bg-[var(--color-primary)]/10 text-primary font-medium"
+                                        : "hover-surface text-secondary"
+                                    }`}
                             >
                                 {value === option.value && (
                                     <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
