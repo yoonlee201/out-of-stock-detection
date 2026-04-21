@@ -110,8 +110,15 @@ def analyze_shelf():
     if request.method == "OPTIONS":
         return ("", 204)
 
-    if "image" not in request.files:
+    uploaded_file = request.files.get("image")
+    if uploaded_file is None:
         return jsonify({"message": "Upload an image file under the `image` field."}), 400
+
+    if not uploaded_file.filename:
+        return jsonify({"message": "Please choose an image file."}), 400
+
+    if not (uploaded_file.mimetype or "").startswith("image/"):
+        return jsonify({"message": "Only image uploads are allowed."}), 400
 
     uploaded_file = request.files["image"]
     if not uploaded_file.filename:
