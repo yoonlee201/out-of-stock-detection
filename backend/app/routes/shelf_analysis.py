@@ -120,10 +120,6 @@ def analyze_shelf():
     if not (uploaded_file.mimetype or "").startswith("image/"):
         return jsonify({"message": "Only image uploads are allowed."}), 400
 
-    uploaded_file = request.files["image"]
-    if not uploaded_file.filename:
-        return jsonify({"message": "Please choose an image file."}), 400
-
     temp_path = None
     try:
         (

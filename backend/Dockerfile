@@ -21,7 +21,8 @@ RUN adduser \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     postgresql-client \
-    curl && \
+    curl \
+    libgl1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt .
