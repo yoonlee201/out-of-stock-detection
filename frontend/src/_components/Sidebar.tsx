@@ -41,7 +41,7 @@ const Sidebar = () => {
                     <p className="text-primary text-base leading-tight font-black tracking-[0.25em] uppercase">
                         Stock Detection
                     </p>
-                    <div className="via-primary mt-2 h-px w-full bg-gradient-to-r from-transparent to-transparent" />
+                    <div className="via-primary mt-2 h-px w-full bg-linear-to-r from-transparent to-transparent" />
                     <p className="text-primary mt-2 text-[10px] font-bold tracking-[0.3em] uppercase">
                         Inventory Command
                     </p>

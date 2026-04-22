@@ -3,6 +3,7 @@ import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from
 // import { useAuth } from "../hooks/useAuth";
 // import { apiMakeOutOfStockAlert } from "../api/query/alert";
 import { mockAnalysisResults } from "../mockData";
+import { PlusIcon } from "../_components/Icons";
 
 interface HistoryEntry {
     fileName: string;
@@ -146,9 +147,9 @@ const Dashboard = () => {
                 <button
                     type="button"
                     onClick={() => setUploadDialogOpen(true)}
-                    className="bg-primary rounded-2xl px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
+                    className="hover:bg-primary-hover inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-white transition-colors"
                 >
-                    + New Analysis
+                <PlusIcon/> New Analysis
                 </button>
             </div>
 
@@ -156,7 +157,7 @@ const Dashboard = () => {
             <div className="bg-surface mb-6 rounded-xl p-6 shadow">
                 <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
                 {history.length === 0 ? (
-                    <div className="border-border flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed text-center">
+                    <div className="border-border flex min-h-50 items-center justify-center rounded-2xl border border-dashed text-center">
                         <div>
                             <p className="font-semibold">No analyses yet</p>
                             <p className="text-text-muted mt-1 text-sm">Click "+ New Analysis" to get started.</p>
@@ -265,7 +266,7 @@ const Dashboard = () => {
                             )}
 
                             <div className="mt-6 overflow-x-auto">
-                                <table className="w-full min-w-[900px] text-left text-sm">
+                                <table className="w-full min-w-225 text-left text-sm">
                                     <thead>
                                         <tr className="border-border text-text-muted border-b">
                                             <th className="py-3">Marker</th>

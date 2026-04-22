@@ -241,14 +241,12 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="hover:bg-[var(--color-primary)]-hover inline-flex items-center gap-2 rounded-sm bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
                     </button>
                 </div>
-
-                {/* Reorder System */}
                 <div className="border-border bg-surface mx-8 mb-6 rounded-md border p-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -258,7 +256,7 @@ const Manager = () => {
                         <button
                             onClick={handleCreateReorders}
                             disabled={creatingReorders}
-                            className="hover:bg-[var(--color-primary)]-hover rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm text-white disabled:opacity-50"
+                            className="hover:bg-primary-hover rounded-md bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
                         >
                             {creatingReorders ? "Creating..." : "Create Reorders"}
                         </button>
@@ -453,7 +451,7 @@ const Manager = () => {
                     <button
                         onClick={handleInvite}
                         disabled={!invite.email || invite.loading}
-                        className="hover:bg-[var(--color-primary)]-hover rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        className="hover:bg-primary-hover rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {invite.loading ? "Sending…" : "Send Invitation"}
                     </button>
@@ -531,7 +529,7 @@ const Manager = () => {
                             }}
                             className="ml-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                         >
-                           Inactivate
+                            Inactivate
                         </button>
                     </div>
                 )}
@@ -552,7 +550,7 @@ const Manager = () => {
                     </button>
                     <button
                         onClick={handleEditSave}
-                        className="hover:bg-[var(--color-primary)]-hover rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         Save
                     </button>

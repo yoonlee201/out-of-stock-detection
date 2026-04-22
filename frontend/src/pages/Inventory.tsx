@@ -34,7 +34,6 @@ const Inventory = () => {
     const view = user?.role === "customer" ? "customer" : "employee";
 
     const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
-    // const [view, setView] = useState<"employee" | "customer">("employee");
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
@@ -102,26 +101,33 @@ const Inventory = () => {
 
     const setField = (field: keyof EditForm, value: string) =>
         setEditForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+
     if (loading || !user) return <Loading message="Checking authentication..." />;
+
     return (
         <>
             <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-3xl font-semibold">Inventory</h1>
             </div>
-            <div className="mb-8 grid grid-cols-4 gap-4">
-                <SummaryCard label="Total Products" value={summary.total} />
-                <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-status-success-text" />
-                <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-status-misplaced-text" />
-                <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-status-missing-text" />
-            </div>
 
+            {view === "employee" && (
+                <div className="mb-8 grid grid-cols-4 gap-4">
+                    <SummaryCard label="Total Products" value={summary.total} />
+                    <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-status-success-text" />
+                    <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-status-misplaced-text" />
+                    <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-status-missing-text" />
+                </div>
+            )}
+
+            {/* Filters — customer view constrains search width to avoid stretching */}
             <div className="bg-surface mb-4 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow">
                 <input
                     type="text"
                     placeholder="Search product..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="bg-surface-muted border-border text-text placeholder:text-text-muted min-w-[180px] flex-1 rounded-xl border px-4 py-2 text-sm outline-none"
+                    className={`bg-surface-muted border-border text-text placeholder:text-text-muted rounded-xl border px-4 py-2 text-sm outline-none ${view === "employee" ? "min-w-45 flex-1" : "w-56"
+                        }`}
                 />
                 <CategoryDropdown categories={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
                 {view === "employee" && (
@@ -330,14 +336,24 @@ const CategoryDropdown = ({
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
+    // Focus the search input when the dropdown opens
+    useEffect(() => {
+        if (open) {
+            searchInputRef.current?.focus();
+        } else {
+            setSearch("");
+        }
+    }, [open]);
+
+    // Close on outside click
     useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setOpen(false);
-                setSearch("");
             }
         };
         document.addEventListener("mousedown", handler);
@@ -351,13 +367,10 @@ const CategoryDropdown = ({
     const displayLabel = value === "All" ? "All Categories" : value;
 
     return (
-        <div ref={ref} className="relative">
+        <div ref={containerRef} className="relative">
             <button
                 type="button"
-                onClick={() => {
-                    setOpen((o) => !o);
-                    setSearch("");
-                }}
+                onClick={() => setOpen((o) => !o)}
                 className="bg-surface-muted border-border flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition"
                 style={{ color: "var(--color-text-secondary)" }}
             >
@@ -383,22 +396,18 @@ const CategoryDropdown = ({
                 <div className="bg-surface border-border absolute top-full left-0 z-20 mt-1.5 w-56 rounded-2xl border shadow-xl">
                     <div className="border-border border-b px-3 py-2">
                         <input
+                            ref={searchInputRef}
                             type="text"
                             placeholder="Search categories..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            autoFocus
                             className="bg-surface-muted text-text placeholder:text-text-muted w-full rounded-lg px-3 py-1.5 text-xs outline-none"
                         />
                     </div>
                     <div className="max-h-52 overflow-y-auto p-1.5">
                         <button
                             type="button"
-                            onClick={() => {
-                                onChange("All");
-                                setOpen(false);
-                                setSearch("");
-                            }}
+                            onClick={() => { onChange("All"); setOpen(false); }}
                             className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                             style={{ color: value === "All" ? "var(--color-text)" : "var(--color-text-secondary)" }}
                         >
@@ -411,15 +420,9 @@ const CategoryDropdown = ({
                                 <button
                                     key={cat}
                                     type="button"
-                                    onClick={() => {
-                                        onChange(cat);
-                                        setOpen(false);
-                                        setSearch("");
-                                    }}
+                                    onClick={() => { onChange(cat); setOpen(false); }}
                                     className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
-                                    style={{
-                                        color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)",
-                                    }}
+                                    style={{ color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)" }}
                                 >
                                     {cat}
                                 </button>
