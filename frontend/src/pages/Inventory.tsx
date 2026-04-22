@@ -284,21 +284,6 @@ const Inventory = () => {
     );
 };
 
-const ViewToggle = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        className="rounded-lg px-4 py-1.5 text-xs font-semibold transition"
-        style={
-            active
-                ? { backgroundColor: "var(--color-text)", color: "var(--color-background)" }
-                : { color: "var(--color-text-secondary)" }
-        }
-    >
-        {label}
-    </button>
-);
-
 const SummaryCard = ({ label, value, valueClass }: { label: string; value: number; valueClass?: string }) => (
     <div className="bg-surface rounded-xl p-5 shadow">
         <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">{label}</p>

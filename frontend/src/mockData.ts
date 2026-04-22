@@ -614,7 +614,7 @@ export const mockInventory: InventoryItem[] = [
         size: "600ml",
         category: "Soft Drinks",
         stockCount: 30,
-        shelfStatus: "on_shelf",
+        shelfStatus: "misplaced",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
