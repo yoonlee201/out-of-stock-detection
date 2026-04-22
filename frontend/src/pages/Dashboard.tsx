@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ChangeEvent } from "react";
 import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
 import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
@@ -13,7 +13,15 @@ const Dashboard = () => {
         [],
     );
     const [activeResultIndex, setActiveResultIndex] = useState(0);
+    const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const analysisResult = analysisResults[activeResultIndex]?.result ?? null;
+
+    useEffect(() => {
+        if (!imageDialogOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setImageDialogOpen(false); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [imageDialogOpen]);
     const issueDetections = useMemo(() => {
         if (!analysisResult) return [];
         return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
@@ -207,7 +215,8 @@ const Dashboard = () => {
                                     <img
                                         src={analysisResult.annotated_image}
                                         alt="Shelf analysis result"
-                                        className="bg-surface border-border w-full rounded-2xl border object-contain"
+                                        onClick={() => setImageDialogOpen(true)}
+                                        className="bg-surface border-border w-full cursor-zoom-in rounded-2xl border object-contain"
                                     />
                                 </div>
                             ) : (
@@ -269,6 +278,28 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {imageDialogOpen && analysisResult && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+                    onClick={() => setImageDialogOpen(false)}
+                >
+                    <div className="relative max-h-full max-w-full" onClick={(e: MouseEvent) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setImageDialogOpen(false)}
+                            className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-gray-100"
+                            aria-label="Close"
+                        >
+                            ✕
+                        </button>
+                        <img
+                            src={analysisResult.annotated_image}
+                            alt="Shelf analysis result (full size)"
+                            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+                        />
+                    </div>
+                </div>
+            )}
         </>
     );
 };
