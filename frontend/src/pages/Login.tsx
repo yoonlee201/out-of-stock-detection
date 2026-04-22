@@ -36,13 +36,13 @@ const Login = () => {
     }, []);
 
     useEffect(() => {
-        if (!loading && user) navigate("/dashboard");
+        if (!loading && user) navigate("/inventory");
     }, [user, loading, navigate]);
 
     const onSubmit = async (data: LoginForm) => {
         try {
             await login(data.email, data.password);
-            navigate("/dashboard");
+            navigate("/inventory");
         } catch (err: unknown) {
             logger.error("Login error:", err);
             const message = err instanceof Error ? err.message : "Login failed.";
@@ -61,7 +61,7 @@ const Login = () => {
     }
 
     return (
-        <div className="bg-(--color-background) flex h-screen w-screen flex-1 items-center justify-center px-8 py-12">
+        <div className="flex h-screen w-screen flex-1 items-center justify-center bg-(--color-background) px-8 py-12">
             <form
                 onSubmit={handleSubmit(onSubmit)}
                 className="flex w-full max-w-sm flex-col gap-3"
@@ -106,7 +106,7 @@ const Login = () => {
                 </div>
 
                 {errors.root && (
-                    <p className="text-sm text-red" style={{ animation: "fadeSlideUp 0.3s ease forwards" }}>
+                    <p className="text-red text-sm" style={{ animation: "fadeSlideUp 0.3s ease forwards" }}>
                         {errors.root.message}
                     </p>
                 )}

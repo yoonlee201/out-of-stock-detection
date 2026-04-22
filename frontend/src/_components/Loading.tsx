@@ -1,8 +1,9 @@
 const Loading = ({ fullscreen = true, message = "Loading..." }: { fullscreen?: boolean; message?: string }) => {
     return (
         <div
-            className={`bg-background flex flex-col items-center justify-center gap-4 ${fullscreen ? "h-screen w-screen" : "h-full w-full"
-                }`}
+            className={`bg-background flex flex-col items-center justify-center gap-4 ${
+                fullscreen ? "h-screen w-screen" : "h-full w-full"
+            }`}
         >
             {/* Spinner */}
             <div className="relative flex h-14 w-14 items-center justify-center">
@@ -27,15 +28,15 @@ const Loading = ({ fullscreen = true, message = "Loading..." }: { fullscreen?: b
                 </svg>
 
                 {/* Center dot */}
-                <div className="bg-[var(--color-primary)] loading-dot-1 h-2 w-2 rounded-full" />
+                <div className="loading-dot-1 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
             </div>
 
             {/* Dots + text */}
             <div className="flex flex-col items-center gap-2">
                 <div className="flex gap-1.5">
-                    <div className="loading-dot-1 bg-[var(--color-primary)]/60 h-1.5 w-1.5 rounded-full" />
-                    <div className="loading-dot-2 bg-[var(--color-primary)]/60 h-1.5 w-1.5 rounded-full" />
-                    <div className="loading-dot-3 bg-[var(--color-primary)]/60 h-1.5 w-1.5 rounded-full" />
+                    <div className="loading-dot-1 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]/60" />
+                    <div className="loading-dot-2 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]/60" />
+                    <div className="loading-dot-3 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]/60" />
                 </div>
                 {message && (
                     <p className="loading-text text-text-muted text-xs font-medium tracking-widest uppercase">

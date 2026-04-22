@@ -32,7 +32,7 @@ const Register = () => {
     } = useForm<RegisterForm>();
 
     useEffect(() => {
-        if (!loading && user) navigate("/dashboard");
+        if (!loading && user) navigate("/inventory");
     }, [user, loading, navigate]);
 
     useEffect(() => {
@@ -145,7 +145,7 @@ const Register = () => {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active mt-4 w-full text-white disabled:opacity-60"
+                        className="hover:bg-[var(--color-primary)]-hover active:bg-[var(--color-primary)]-active mt-4 w-full bg-[var(--color-primary)] text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Registering..." : "Register"}
                     </Button>

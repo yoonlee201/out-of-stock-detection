@@ -53,23 +53,24 @@ export interface ShelfAnalysisResponse {
     annotated_image: string;
 }
 
-export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisResponse> => {
+export const apiAnalyzeShelf = async (
+    image: File,
+    onUploadProgress?: (percent: number) => void,
+): Promise<ShelfAnalysisResponse> => {
     const formData = new FormData();
     formData.append("image", image);
 
     try {
-        /**
-         * Sends the shelf-analysis request with a `FormData` payload and returns typed response data.
-         *
-         * @remarks
-         * - `FormData` is used as the request body for `/shelf-analysis/analyze`.
-         * - A long timeout (`1,800,000 ms`, i.e. 30 minutes) is configured because analysis may take significant time.
-         * - You typically do **not** need to manually set the `Content-Type` header for `FormData`; Axios/browser will set
-         *   `multipart/form-data` with the correct boundary automatically.
-         */
         const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
             timeout: 1800000,
             headers: { "Content-Type": "multipart/form-data" },
+            onUploadProgress: onUploadProgress
+                ? (event) => {
+                      if (event.total) {
+                          onUploadProgress(Math.round((event.loaded / event.total) * 100));
+                      }
+                  }
+                : undefined,
         });
 
         return data;
