@@ -1,14 +1,28 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11
-FROM python:${PYTHON_VERSION} AS base
+ARG CUDA_VERSION=12.1.1
+FROM docker.io/nvidia/cuda:${CUDA_VERSION}-cudnn8-runtime-ubuntu22.04 AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /usr/src/app
 
 ARG UID=10001
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    postgresql-client \
+    curl \
+    libgl1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
+
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -18,15 +32,8 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    postgresql-client \
-    curl \
-    libgl1 && \
-    rm -rf /var/lib/apt/lists/*
-
 COPY backend/requirements.txt .
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 
@@ -41,6 +48,6 @@ USER appuser
 
 ENV PYTHONPATH=/usr/src/app
 
-EXPOSE ${BACKEND_PORT}
+EXPOSE 5000
 
 CMD ["python", "-m", "app.main"]

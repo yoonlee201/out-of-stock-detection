@@ -18,6 +18,13 @@ services:
       # appuser's home is /nonexistent (intentionally absent), so redirect to /tmp.
       HOME: /tmp
       HF_HOME: /usr/src/app/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
       - ./weights:/usr/src/app/weights
       - hf_cache:/usr/src/app/.cache/huggingface

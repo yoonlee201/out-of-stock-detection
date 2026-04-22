@@ -50,7 +50,7 @@ def _fallback_response() -> dict:
 def _model_load_kwargs() -> dict:
     if torch.cuda.is_available():
         return {
-            "dtype": torch.float16,
+            "dtype": torch.bfloat16,
             "device_map": "auto",
         }
 
