@@ -113,9 +113,9 @@ const Inventory = () => {
             {view === "employee" && (
                 <div className="mb-8 grid grid-cols-4 gap-4">
                     <SummaryCard label="Total Products" value={summary.total} />
-                    <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-status-success-text" />
-                    <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-status-misplaced-text" />
-                    <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-status-missing-text" />
+                    <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
+                    <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
+                    <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
                 </div>
             )}
 

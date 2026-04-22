@@ -49,13 +49,14 @@ export const QUANTITY_STATUS_LABEL: Record<InventoryStatus, string> = {
 export const quantityStatusClass = (status: InventoryStatus): string => {
     switch (status) {
         case "in_stock":
-            return "bg-status-success-bg text-status-success-text";
+            return "border border-status-success-text text-status-success-text";
         case "low_stock":
-            return "bg-status-misplaced-bg text-status-misplaced-text";
+            return "border border-status-misplaced-text text-status-misplaced-text";
         case "out_of_stock":
-            return "bg-status-missing-bg text-status-missing-text";
+            return "border border-status-missing-text text-status-missing-text";
     }
 };
+
 
 // ── Shelf status ───────────────────────────────────────────────────────────────
 export const SHELF_STATUS_LABEL: Record<ShelfStatus, string> = {
