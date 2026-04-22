@@ -29,8 +29,6 @@ export const STATUS_DOT: Record<EmployeeStatus, string> = {
     pending: "bg-yellow-400",
 };
 
-
-
 // ── Quantity status ────────────────────────────────────────────────────────────
 export const LOW_STOCK_THRESHOLD = 10;
 
@@ -56,7 +54,6 @@ export const quantityStatusClass = (status: InventoryStatus): string => {
             return "border border-status-missing-text text-status-missing-text";
     }
 };
-
 
 // ── Shelf status ───────────────────────────────────────────────────────────────
 export const SHELF_STATUS_LABEL: Record<ShelfStatus, string> = {

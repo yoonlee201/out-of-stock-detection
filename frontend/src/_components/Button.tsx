@@ -9,7 +9,7 @@ const Button = ({ className, icon, children, ...props }: ButtonProps) => (
     <button
         type="button"
         className={twMerge(
-            "flex items-center justify-center gap-2 rounded px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors bg-primary hover:bg-primary-hover",
+            "bg-primary hover:bg-primary-hover flex items-center justify-center gap-2 rounded px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors",
             className,
         )}
         {...props}

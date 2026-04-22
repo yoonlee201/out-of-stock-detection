@@ -3,7 +3,14 @@ import { mockInventory } from "../mockData";
 import Dialog from "../_components/Dialog";
 import Field from "../_components/Field";
 import type { InventoryItem, InventoryStatus } from "../types/inventory";
-import { deriveCustomerAvailability, deriveStatus, QUANTITY_STATUS_FILTERS, QUANTITY_STATUS_LABEL, SHELF_STATUS_LABEL, shelfStatusClass } from "../utils/constants";
+import {
+    deriveCustomerAvailability,
+    deriveStatus,
+    QUANTITY_STATUS_FILTERS,
+    QUANTITY_STATUS_LABEL,
+    SHELF_STATUS_LABEL,
+    shelfStatusClass,
+} from "../utils/constants";
 import { CustomerRow, EmployeeRow } from "../_components/InventoryRows";
 import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
@@ -84,15 +91,15 @@ const Inventory = () => {
             prev.map((i) =>
                 i.id === editTarget.id
                     ? {
-                        ...i,
-                        brand: editForm.brand.trim(),
-                        productName: editForm.productName.trim(),
-                        variant: editForm.variant.trim(),
-                        size: editForm.size.trim(),
-                        category: editForm.category.trim(),
-                        stockCount: qty,
-                        lastChecked: new Date(),
-                    }
+                          ...i,
+                          brand: editForm.brand.trim(),
+                          productName: editForm.productName.trim(),
+                          variant: editForm.variant.trim(),
+                          size: editForm.size.trim(),
+                          category: editForm.category.trim(),
+                          stockCount: qty,
+                          lastChecked: new Date(),
+                      }
                     : i,
             ),
         );
@@ -126,8 +133,9 @@ const Inventory = () => {
                     placeholder="Search product..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className={`bg-surface-muted border-border text-text placeholder:text-text-muted rounded-xl border px-4 py-2 text-sm outline-none ${view === "employee" ? "min-w-45 flex-1" : "w-56"
-                        }`}
+                    className={`bg-surface-muted border-border text-text placeholder:text-text-muted rounded-xl border px-4 py-2 text-sm outline-none ${
+                        view === "employee" ? "min-w-45 flex-1" : "w-56"
+                    }`}
                 />
                 <CategoryDropdown categories={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
                 {view === "employee" && (
@@ -407,7 +415,10 @@ const CategoryDropdown = ({
                     <div className="max-h-52 overflow-y-auto p-1.5">
                         <button
                             type="button"
-                            onClick={() => { onChange("All"); setOpen(false); }}
+                            onClick={() => {
+                                onChange("All");
+                                setOpen(false);
+                            }}
                             className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                             style={{ color: value === "All" ? "var(--color-text)" : "var(--color-text-secondary)" }}
                         >
@@ -420,9 +431,14 @@ const CategoryDropdown = ({
                                 <button
                                     key={cat}
                                     type="button"
-                                    onClick={() => { onChange(cat); setOpen(false); }}
+                                    onClick={() => {
+                                        onChange(cat);
+                                        setOpen(false);
+                                    }}
                                     className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
-                                    style={{ color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)" }}
+                                    style={{
+                                        color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)",
+                                    }}
                                 >
                                     {cat}
                                 </button>

@@ -1,5 +1,12 @@
 import type { CustomerAvailability, InventoryItem, InventoryStatus } from "../types/inventory";
-import { CUSTOMER_AVAILABILITY_LABEL, customerAvailabilityClass, QUANTITY_STATUS_LABEL, quantityStatusClass, SHELF_STATUS_LABEL, shelfStatusClass } from "../utils/constants";
+import {
+    CUSTOMER_AVAILABILITY_LABEL,
+    customerAvailabilityClass,
+    QUANTITY_STATUS_LABEL,
+    quantityStatusClass,
+    SHELF_STATUS_LABEL,
+    shelfStatusClass,
+} from "../utils/constants";
 
 export const EmployeeRow = ({
     item,
@@ -67,10 +74,9 @@ export const CustomerRow = ({ item, availability }: { item: InventoryItem; avail
             {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
         </td>
         <td className="px-5 py-4">
-            {(item.shelfStatus === "missing" || item.shelfStatus === "misplaced") && (item.stockCount > 0) && (
+            {(item.shelfStatus === "missing" || item.shelfStatus === "misplaced") && item.stockCount > 0 && (
                 <p className="text-text-muted text-xs">In store — not on shelf yet</p>
             )}
         </td>
     </tr>
 );
-

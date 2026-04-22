@@ -2,14 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckIcon } from "./Icons";
 
 const ConfettiPiece = ({ index }: { index: number }) => {
-    const colors = [
-        "bg-primary",
-        "bg-primary/70",
-        "bg-primary/50",
-        "bg-primary/30",
-        "bg-primary/80",
-        "bg-primary/60",
-    ];
+    const colors = ["bg-primary", "bg-primary/70", "bg-primary/50", "bg-primary/30", "bg-primary/80", "bg-primary/60"];
     const color = colors[index % colors.length];
     const left = `${5 + ((index * 6.5) % 90)}%`;
     const delay = `${(index * 0.15) % 1.5}s`;
@@ -136,7 +129,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
                 )}
 
                 {/* Top accent */}
-                <div className="h-1 w-full rounded-t-3xl bg-primary" />
+                <div className="bg-primary h-1 w-full rounded-t-3xl" />
 
                 <div className="flex flex-col items-center px-10 py-12 text-center">
                     {/* Check icon */}
@@ -151,7 +144,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
                             </>
                         )}
                         <div
-                            className={`border-primary/20 relative flex h-20 w-20 items-center justify-center rounded-full border bg-primary/10 ${step >= 2 ? "rs-check-animate" : "opacity-0"}`}
+                            className={`border-primary/20 bg-primary/10 relative flex h-20 w-20 items-center justify-center rounded-full border ${step >= 2 ? "rs-check-animate" : "opacity-0"}`}
                             style={{ boxShadow: "0 0 40px rgba(var(--color-primary), 0.15)" }}
                         >
                             <CheckIcon />
@@ -176,7 +169,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
                             <div className="rs-t4 w-full opacity-0">
                                 <button
                                     onClick={handleContinue}
-                                    className="rs-btn-go rs-font-syne w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-white hover:bg-primary/90"
+                                    className="rs-btn-go rs-font-syne bg-primary hover:bg-primary/90 w-full rounded-xl py-3.5 text-sm font-semibold text-white"
                                 >
                                     Continue to Login →
                                 </button>

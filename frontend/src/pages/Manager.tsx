@@ -90,14 +90,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-                ? EMPLOYEE_ROLES.reduce(
+              ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-                : STATUSES.reduce(
+              : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -241,7 +241,7 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="hover:bg-primary-hover inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
@@ -256,7 +256,7 @@ const Manager = () => {
                         <button
                             onClick={handleCreateReorders}
                             disabled={creatingReorders}
-                            className="hover:bg-primary-hover rounded-md bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
+                            className="hover:bg-primary-hover bg-primary rounded-md px-4 py-2 text-sm text-white disabled:opacity-50"
                         >
                             {creatingReorders ? "Creating..." : "Create Reorders"}
                         </button>
@@ -451,7 +451,7 @@ const Manager = () => {
                     <button
                         onClick={handleInvite}
                         disabled={!invite.email || invite.loading}
-                        className="hover:bg-primary-hover rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        className="hover:bg-primary-hover bg-primary rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {invite.loading ? "Sending…" : "Send Invitation"}
                     </button>
@@ -550,7 +550,7 @@ const Manager = () => {
                     </button>
                     <button
                         onClick={handleEditSave}
-                        className="hover:bg-primary-hover rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         Save
                     </button>

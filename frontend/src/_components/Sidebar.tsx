@@ -15,13 +15,14 @@ const Sidebar = () => {
             <button
                 key={label}
                 onClick={() => navigate(path)}
-                className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${isActive
+                className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${
+                    isActive
                         ? "border-primary text-primary bg-primary/10"
                         : "text-primary hover:border-primary hover:text-primary border-transparent"
-                    }`}
+                }`}
             >
                 {!isActive && (
-                    <span className="absolute inset-0 -translate-x-full bg-primary/5 transition-transform duration-300 ease-out group-hover:translate-x-0" />
+                    <span className="bg-primary/5 absolute inset-0 -translate-x-full transition-transform duration-300 ease-out group-hover:translate-x-0" />
                 )}
                 <span className="relative">{label}</span>
             </button>
@@ -33,7 +34,7 @@ const Sidebar = () => {
             <div className="border-border flex flex-col items-center gap-4 border-b px-6 py-8">
                 <div
                     className="border-primary flex h-20 w-20 items-center justify-center rounded-full border-4 text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)]"
-                // style={{ backgroundColor: "var(--color-background)" }}
+                    // style={{ backgroundColor: "var(--color-background)" }}
                 >
                     📦
                 </div>

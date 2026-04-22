@@ -183,7 +183,7 @@ const Invitation = () => {
                             <Button
                                 type="submit"
                                 disabled={submitting}
-                                className="hover:bg-primary-hover active:bg-primary-active w-full bg-primary text-white disabled:opacity-60"
+                                className="hover:bg-primary-hover active:bg-primary-active bg-primary w-full text-white disabled:opacity-60"
                             >
                                 {submitting ? "Saving..." : form.isNew ? "Create Account" : "Continue"}
                             </Button>

@@ -36,10 +36,10 @@ const Dropdown = ({ label, options, value, onChange, sectionLabel }: DropdownPro
                 style={
                     isFiltered
                         ? {
-                            borderColor: "var(--color-primary)",
-                            backgroundColor: "var(--color-primary)/5",
-                            color: "var(--color-primary)",
-                        }
+                              borderColor: "var(--color-primary)",
+                              backgroundColor: "var(--color-primary)/5",
+                              color: "var(--color-primary)",
+                          }
                         : { borderColor: "var(--color-border)", color: "var(--color-text-muted)" }
                 }
             >
@@ -65,10 +65,11 @@ const Dropdown = ({ label, options, value, onChange, sectionLabel }: DropdownPro
                                     onChange(option.value);
                                     setOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm capitalize transition-colors ${value === option.value
+                                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm capitalize transition-colors ${
+                                    value === option.value
                                         ? "text-primary bg-primary/10 font-medium"
                                         : "hover-surface text-secondary"
-                                    }`}
+                                }`}
                             >
                                 {value === option.value && (
                                     <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
