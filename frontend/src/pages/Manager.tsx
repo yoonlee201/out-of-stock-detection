@@ -19,6 +19,12 @@ type SortDir = "asc" | "desc";
 type GroupBy = "none" | "role" | "status";
 type EmployeeRole = Exclude<UserRole, "customer">;
 
+interface Reorder {
+    reorder_id: number | string;
+    product_id: number | string;
+    quantity: number;
+}
+
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [fetching, setFetching] = useState(true);
@@ -40,7 +46,7 @@ const Manager = () => {
         target: null,
         form: {},
     });
-    const [reorders, setReorders] = useState<any[]>([]);
+    const [reorders, setReorders] = useState<Reorder[]>([]);
     const [creatingReorders, setCreatingReorders] = useState(false);
 
     useEffect(() => {
@@ -84,14 +90,14 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
+                ? EMPLOYEE_ROLES.reduce(
                     (acc, r) => {
                         acc[r] = filtered.filter((e) => e.role === r);
                         return acc;
                     },
                     {} as Record<string, Employee[]>,
                 )
-              : STATUSES.reduce(
+                : STATUSES.reduce(
                     (acc, s) => {
                         acc[s] = filtered.filter((e) => e.status === s);
                         return acc;
@@ -101,11 +107,13 @@ const Manager = () => {
 
     const groupKeys = filters.groupBy === "none" ? ["all"] : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
+    // Deactivate = mark as inactive (off shift). Role is preserved.
+    // Delete = permanently removes the employee record entirely.
     const handleDeactivate = async (id: string) => {
         try {
             await apiDeactivateEmployee(Number(id));
-            setEmployees((prev) => prev.map((e) => (e.id !== id ? e : { ...e, status: "inactive", role: "customer" })));
-            toast.success("Employee deactivated successfully.");
+            setEmployees((prev) => prev.map((e) => (e.id !== id ? e : { ...e, status: "inactive" })));
+            toast.success("Employee set to inactive.");
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to deactivate employee.");
         }
@@ -170,7 +178,7 @@ const Manager = () => {
             const res = await fetch("http://localhost:8000/alerts/create_reorders", { method: "POST" });
             const data = await res.json();
             if (data.success) {
-                setReorders(data.reorders);
+                setReorders(data.reorders as Reorder[]);
                 toast.success("Reorders created successfully.");
             } else {
                 toast.error(data.message || "Failed to create reorders.");
@@ -452,7 +460,6 @@ const Manager = () => {
                 </div>
             </Dialog>
 
-            {/* Edit Dialog */}
             <Dialog
                 open={!!edit.target}
                 title="Edit Employee"
@@ -512,8 +519,10 @@ const Manager = () => {
                 {edit.target?.status === "active" && (
                     <div className="border-border mt-4 flex items-center justify-between rounded-lg border px-4 py-3">
                         <div>
-                            <p className="text-text-secondary text-sm font-medium">Deactivate Employee</p>
-                            <p className="text-text-muted mt-0.5 text-xs">Employee will lose access to the system.</p>
+                            <p className="text-text-secondary text-sm font-medium">Set as Inactive</p>
+                            <p className="text-text-muted mt-0.5 text-xs">
+                                Employee is off shift and will not appear as active.
+                            </p>
                         </div>
                         <button
                             onClick={() => {
@@ -522,7 +531,7 @@ const Manager = () => {
                             }}
                             className="ml-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                         >
-                            Deactivate
+                           Inactivate
                         </button>
                     </div>
                 )}
