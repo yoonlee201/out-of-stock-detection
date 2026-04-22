@@ -12,10 +12,12 @@ export const EmployeeRow = ({
     item,
     status,
     onEdit,
+    onReorder,
 }: {
     item: InventoryItem;
     status: InventoryStatus;
     onEdit: () => void;
+    onReorder: () => void;
 }) => (
     <tr className="border-border hover:bg-surface-muted border-b transition-colors">
         <td className="px-5 py-4">
@@ -41,13 +43,20 @@ export const EmployeeRow = ({
         <td className="text-text-muted px-5 py-4 text-xs">
             {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
         </td>
-        <td className="px-5 py-4">
+        <td className="flex items-center gap-2 px-5 py-4">
             <button
                 type="button"
                 onClick={onEdit}
                 className="border-border text-text-secondary hover:bg-surface-muted rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
             >
                 Edit
+            </button>
+            <button
+                type="button"
+                onClick={onReorder}
+                className="border-border text-text-secondary hover:bg-surface-muted rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+            >
+                Reorder
             </button>
         </td>
     </tr>

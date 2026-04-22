@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { mockInventory } from "../mockData";
 import Dialog from "../_components/Dialog";
 import Field from "../_components/Field";
 import type { InventoryItem, InventoryStatus } from "../types/inventory";
@@ -14,6 +13,8 @@ import {
 import { CustomerRow, EmployeeRow } from "../_components/InventoryRows";
 import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
+import { apiGetProducts, apiUpdateProduct } from "../api/query/products";
+import { apiCreateReorder } from "../api/query/reorders";
 
 // this should be fetched from the backend in a real app, but hardcoded here for simplicity and to focus on UI/UX
 const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
@@ -40,13 +41,33 @@ const Inventory = () => {
     const { user, loading } = useAuth();
     const view = user?.role === "customer" ? "customer" : "employee";
 
-    const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [inventoryLoading, setInventoryLoading] = useState(true);
+    const [inventoryError, setInventoryError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
 
     const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
     const [editForm, setEditForm] = useState<EditForm | null>(null);
+    const [saveLoading, setSaveLoading] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    const [reorderTarget, setReorderTarget] = useState<InventoryItem | null>(null);
+    const [reorderQty, setReorderQty] = useState("50");
+    const [reorderLoading, setReorderLoading] = useState(false);
+    const [reorderError, setReorderError] = useState<string | null>(null);
+    const [reorderSuccess, setReorderSuccess] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+        setInventoryLoading(true);
+        setInventoryError(null);
+        apiGetProducts()
+            .then(setInventory)
+            .catch((e: Error) => setInventoryError(e.message))
+            .finally(() => setInventoryLoading(false));
+    }, [user]);
 
     const summary = useMemo(() => {
         const statuses = inventory.map((i) => deriveStatus(i.stockCount));
@@ -84,32 +105,63 @@ const Inventory = () => {
         setEditForm(null);
     };
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (!editTarget || !editForm) return;
         const qty = Math.max(0, parseInt(editForm.stockCount, 10) || 0);
-        setInventory((prev) =>
-            prev.map((i) =>
-                i.id === editTarget.id
-                    ? {
-                          ...i,
-                          brand: editForm.brand.trim(),
-                          productName: editForm.productName.trim(),
-                          variant: editForm.variant.trim(),
-                          size: editForm.size.trim(),
-                          category: editForm.category.trim(),
-                          stockCount: qty,
-                          lastChecked: new Date(),
-                      }
-                    : i,
-            ),
-        );
-        closeEdit();
+        setSaveLoading(true);
+        setSaveError(null);
+        try {
+            const updated = await apiUpdateProduct(editTarget.id, {
+                name: editForm.productName.trim(),
+                brand: editForm.brand.trim(),
+                variant: editForm.variant.trim(),
+                size: editForm.size.trim(),
+                type: editForm.category.trim(),
+                quantity_in_store: qty,
+            });
+            setInventory((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+            closeEdit();
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : "Failed to save.");
+        } finally {
+            setSaveLoading(false);
+        }
+    };
+
+    const openReorder = (item: InventoryItem) => {
+        setReorderTarget(item);
+        setReorderQty("50");
+        setReorderError(null);
+        setReorderSuccess(false);
+    };
+
+    const closeReorder = () => {
+        setReorderTarget(null);
+        setReorderError(null);
+        setReorderSuccess(false);
+    };
+
+    const submitReorder = async () => {
+        if (!reorderTarget) return;
+        const qty = Math.max(1, parseInt(reorderQty, 10) || 1);
+        setReorderLoading(true);
+        setReorderError(null);
+        try {
+            await apiCreateReorder(reorderTarget.id, qty);
+            setReorderSuccess(true);
+        } catch (e) {
+            setReorderError(e instanceof Error ? e.message : "Failed to create reorder.");
+        } finally {
+            setReorderLoading(false);
+        }
     };
 
     const setField = (field: keyof EditForm, value: string) =>
         setEditForm((prev) => (prev ? { ...prev, [field]: value } : prev));
 
     if (loading || !user) return <Loading message="Checking authentication..." />;
+    if (inventoryLoading) return <Loading message="Loading inventory..." />;
+    if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
 
     return (
         <>
@@ -194,6 +246,7 @@ const Inventory = () => {
                                             item={item}
                                             status={deriveStatus(item.stockCount)}
                                             onEdit={() => openEdit(item)}
+                                            onReorder={() => openReorder(item)}
                                         />
                                     ) : (
                                         <CustomerRow
@@ -275,6 +328,7 @@ const Inventory = () => {
                                 <span className="text-text-muted text-xs">Set by shelf detection</span>
                             </div>
                         </div>
+                        {saveError && <p className="text-red text-xs">{saveError}</p>}
                         <div className="mt-2 flex gap-3">
                             <button
                                 type="button"
@@ -286,11 +340,69 @@ const Inventory = () => {
                             <button
                                 type="button"
                                 onClick={saveEdit}
-                                className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90"
+                                disabled={saveLoading}
+                                className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
                             >
-                                Save Changes
+                                {saveLoading ? "Saving…" : "Save Changes"}
                             </button>
                         </div>
+                    </div>
+                )}
+            </Dialog>
+
+            {/* Reorder dialog — employee only */}
+            <Dialog
+                open={!!reorderTarget}
+                title="Create Reorder"
+                description={
+                    reorderTarget
+                        ? `Reorder ${reorderTarget.brand} ${reorderTarget.productName} (${reorderTarget.variant} · ${reorderTarget.size})`
+                        : ""
+                }
+                onClose={closeReorder}
+            >
+                {reorderTarget && (
+                    <div className="space-y-3">
+                        {reorderSuccess ? (
+                            <div className="space-y-3">
+                                <p className="text-green text-sm font-semibold">Reorder created successfully.</p>
+                                <button
+                                    type="button"
+                                    onClick={closeReorder}
+                                    className="bg-surface-muted text-text-secondary w-full rounded-xl px-4 py-3 font-semibold transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <Field
+                                    label="Quantity"
+                                    type="number"
+                                    min={1}
+                                    value={reorderQty}
+                                    onChange={(e) => setReorderQty(e.target.value)}
+                                />
+                                {reorderError && <p className="text-red text-xs">{reorderError}</p>}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={closeReorder}
+                                        className="bg-surface-muted text-text-secondary flex-1 rounded-xl px-4 py-3 font-semibold transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={submitReorder}
+                                        disabled={reorderLoading}
+                                        className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                                    >
+                                        {reorderLoading ? "Submitting…" : "Submit Reorder"}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </Dialog>

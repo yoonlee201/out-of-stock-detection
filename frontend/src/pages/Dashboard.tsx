@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
+import { apiAnalyzeShelf, apiGetAnalysisHistory, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
 import { mockAnalysisResults } from "../mockData";
 import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
@@ -21,7 +21,8 @@ const Dashboard = () => {
     const [progressValue, setProgressValue] = useState(0);
     const [analysisError, setAnalysisError] = useState("");
     const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const [history, setHistory] = useState<HistoryEntry[]>(toHistoryEntries(mockAnalysisResults));
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
@@ -32,6 +33,30 @@ const Dashboard = () => {
         if (!analysisResult) return [];
         return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
     }, [analysisResult]);
+
+    // Load history from backend; fall back to mock data in dev if unavailable
+    useEffect(() => {
+        let cancelled = false;
+        setHistoryLoading(true);
+        apiGetAnalysisHistory()
+            .then((entries) => {
+                if (cancelled) return;
+                if (entries.length > 0) {
+                    setHistory(entries.map((e) => ({
+                        fileName: e.file_name,
+                        result: e.result,
+                        analyzedAt: new Date(e.created_at),
+                    })));
+                } else {
+                    setHistory(toHistoryEntries(mockAnalysisResults));
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setHistory(toHistoryEntries(mockAnalysisResults));
+            })
+            .finally(() => { if (!cancelled) setHistoryLoading(false); });
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         if (!imageDialogOpen) return;
@@ -152,7 +177,11 @@ const Dashboard = () => {
             {/* History list */}
             <div className="bg-surface mb-6 rounded-xl p-6 shadow">
                 <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
-                {history.length === 0 ? (
+                {historyLoading ? (
+                    <div className="border-border flex min-h-50 items-center justify-center rounded-2xl border border-dashed">
+                        <p className="text-text-muted text-sm">Loading history...</p>
+                    </div>
+                ) : history.length === 0 ? (
                     <div className="border-border flex min-h-50 items-center justify-center rounded-2xl border border-dashed text-center">
                         <div>
                             <p className="font-semibold">No analyses yet</p>

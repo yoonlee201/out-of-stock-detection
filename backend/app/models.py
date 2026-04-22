@@ -52,15 +52,31 @@ class Suppliers(db.Model):
 
 class Products(db.Model):
     __tablename__ = 'products'
-    
+
     product_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    brand = db.Column(db.String(80), nullable=False, server_default='')
+    variant = db.Column(db.String(80), nullable=False, server_default='')
+    size = db.Column(db.String(50), nullable=False, server_default='')
     type = db.Column(db.String(50), nullable=False)
     qrcode = db.Column(db.String(100), unique=True, nullable=False)
     quantity_in_store = db.Column(db.Integer, nullable=False)
     shelf = db.Column(db.String(50), nullable=False)
     aisle = db.Column(db.String(50), nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    # Set by shelf detection — 'on_shelf', 'missing', 'misplaced', 'unknown'
+    shelf_status = db.Column(db.String(50), nullable=False, server_default='unknown')
+    last_checked = db.Column(db.DateTime(timezone=True), nullable=True)
+
+
+class ShelfAnalysisLog(db.Model):
+    __tablename__ = 'shelf_analysis_logs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    result_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 class Reorders(db.Model):
     __tablename__ = 'reorders'

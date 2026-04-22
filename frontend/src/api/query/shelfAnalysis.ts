@@ -103,3 +103,22 @@ export const apiAnalyzeShelf = async (
         throw new Error("An unexpected error occurred while analyzing the shelf image.");
     }
 };
+
+export interface AnalysisHistoryEntry {
+    id: number;
+    file_name: string;
+    created_at: string;
+    result: ShelfAnalysisResponse;
+}
+
+export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
+    try {
+        const { data } = await axiosAuth.get<AnalysisHistoryEntry[]>("/shelf-analysis/history");
+        return data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to load analysis history.");
+        }
+        throw new Error("Failed to load analysis history.");
+    }
+};
