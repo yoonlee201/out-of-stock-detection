@@ -49,12 +49,10 @@ def generate_token(user):
 
 
 def _coerce_token_uuid(token):
-    if isinstance(token, uuid.UUID):
-        return token
     if not token:
         return None
     try:
-        return uuid.UUID(str(token))
+        return str(uuid.UUID(str(token)))
     except (ValueError, TypeError, AttributeError):
         return None
 
