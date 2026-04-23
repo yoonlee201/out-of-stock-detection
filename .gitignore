@@ -1,16 +1,16 @@
 # OS / Editor
 .DS_Store
 Thumbs.db
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 
 # Secrets / local env files — never commit these
 .env
 .env.*
 !.env.example
-frontend/.env
-frontend/.env.*
-!frontend/.env.example
 
 # SSH / TLS key material — keep out of version control unconditionally
 *.pem
@@ -31,8 +31,6 @@ ops/*.key
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
 *.so
 *.egg-info/
 .pytest_cache/
@@ -43,9 +41,6 @@ __pycache__/
 .venv/
 venv/
 env/
-backend/.venv/
-backend/venv/
-shelf_analyzer/.venv/
 
 # Node / Vite
 frontend/node_modules/
@@ -61,11 +56,9 @@ frontend/dist/
 *.pth
 *.onnx
 runs/
-weights/*.pt
 
 # Generated outputs / caches
 **/output/
-**/data/
 .cache/
 hf_cache/
 pip-cache/
