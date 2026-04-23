@@ -102,6 +102,19 @@ else
     fi
 fi
 
+# GPU-mode env block: container's appuser has no writable HOME,
+# so HF / Ultralytics caches must point at a chown'd path inside the image.
+gpu_env_block() {
+    cat <<'EOF'
+# GPU mode — HF/Ultralytics cache paths (container's appuser has no writable HOME)
+HF_HOME=/usr/src/app/.cache/huggingface
+HF_HUB_CACHE=/usr/src/app/.cache/huggingface/hub
+HF_DATASETS_CACHE=/usr/src/app/.cache/huggingface/datasets
+TRANSFORMERS_CACHE=/usr/src/app/.cache/huggingface/hub
+YOLO_CONFIG_DIR=/usr/src/app/.cache/ultralytics
+EOF
+}
+
 # ── Write backend/.env ────────────────────────────────────────────────────────
 if [ ! -f backend/.env ]; then
     MAX_SKU=0   # default: Qwen disabled
@@ -115,20 +128,23 @@ if [ ! -f backend/.env ]; then
         DB_URI="postgresql://oos_detection:oos_detection_dev_password@db:5432/oos_detection"
     fi
 
-    # Build backend/.env from template, substituting key values
+    # Build backend/.env from template, substituting key values.
+    # MAX_SKU_IDENTIFICATIONS keeps its original template position (inline sed
+    # replace) so it stays grouped with SKU_IDENTIFICATION_CHUNK_SIZE at the bottom.
     {
         echo "BACKEND_PORT=${PORT}"
         echo "SQLALCHEMY_DATABASE_URI=${DB_URI}"
-        echo "MAX_SKU_IDENTIFICATIONS=${MAX_SKU}"
-        # Preserve every other line from the template (skip lines we already set)
         grep -v "^BACKEND_PORT=" config/backend.env.example \
           | grep -v "^SQLALCHEMY_DATABASE_URI=" \
-          | grep -v "^MAX_SKU_IDENTIFICATIONS=" \
           | grep -v "^# Option [ABC]" \
-          | grep -v "^# SQLALCHEMY_DATABASE_URI="
+          | grep -v "^# SQLALCHEMY_DATABASE_URI=" \
+          | sed "s|^MAX_SKU_IDENTIFICATIONS=.*|MAX_SKU_IDENTIFICATIONS=${MAX_SKU}|"
+        if [ "$GPU" = "true" ]; then
+            gpu_env_block
+        fi
     } > backend/.env
 
-    info "backend/.env written (port=${PORT}, db=$([ "$NO_DOCKER" = "true" ] && echo SQLite || echo PostgreSQL), qwen=$([ "$LITE" = "true" ] && echo disabled || echo enabled))."
+    info "backend/.env written (port=${PORT}, db=$([ "$NO_DOCKER" = "true" ] && echo SQLite || echo PostgreSQL), qwen=$([ "$LITE" = "true" ] && echo disabled || echo enabled)$([ "$GPU" = "true" ] && echo ", gpu cache env set" || true))."
 else
     # Env exists — apply --lite override if requested
     if [ "$LITE" = "true" ]; then
@@ -141,6 +157,12 @@ else
             fi
             info "[--lite] Set MAX_SKU_IDENTIFICATIONS=0 in existing backend/.env."
         fi
+    fi
+
+    # Env exists — append GPU cache vars if --gpu and they're not already present
+    if [ "$GPU" = "true" ] && ! grep -q "^HF_HOME=" backend/.env; then
+        gpu_env_block >> backend/.env
+        info "[--gpu] Appended HF/Ultralytics cache vars to existing backend/.env."
     fi
 fi
 
