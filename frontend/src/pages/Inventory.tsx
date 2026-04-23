@@ -6,7 +6,6 @@ import {
     deriveCustomerAvailability,
     deriveStatus,
     QUANTITY_STATUS_FILTERS,
-    QUANTITY_STATUS_LABEL,
     SHELF_STATUS_LABEL,
     shelfStatusClass,
 } from "../utils/constants";
@@ -15,9 +14,31 @@ import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
 import { apiGetProducts, apiUpdateProduct } from "../api/query/products";
 import { apiCreateReorder } from "../api/query/reorders";
+import { mockInventory } from "../mockData";
+import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 
-// this should be fetched from the backend in a real app, but hardcoded here for simplicity and to focus on UI/UX
 const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
+
+const INVENTORY_COLUMNS_EMPLOYEE = [
+    { field: "product", label: "Product", sortable: false },
+    { field: "category", label: "Category", sortable: false },
+    { field: "stock", label: "Stock", sortable: false },
+    { field: "quantityStatus", label: "Quantity Status", sortable: false },
+    { field: "shelfStatus", label: "Shelf Status", sortable: false },
+    { field: "lastChecked", label: "Last Checked", sortable: false },
+    { field: "actions", label: "Actions", sortable: false },
+];
+
+const INVENTORY_COLUMNS_CUSTOMER = [
+    { field: "product", label: "Product", sortable: false },
+    { field: "category", label: "Category", sortable: false },
+    { field: "stock", label: "Stock", sortable: false },
+    { field: "availability", label: "Availability", sortable: false },
+    { field: "lastChecked", label: "Last Checked", sortable: false },
+    { field: "actions", label: "", sortable: false },
+];
+
+const QUANTITY_STATUS_OPTIONS = QUANTITY_STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }));
 
 interface EditForm {
     brand: string;
@@ -41,14 +62,14 @@ const Inventory = () => {
     const { user, loading } = useAuth();
     const view = user?.role === "customer" ? "customer" : "employee";
 
-    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
     const [inventoryLoading, setInventoryLoading] = useState(true);
     const [inventoryError, setInventoryError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
 
-    const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
+    const [editTarget, setEditTarget] = useState<InventoryItem | null>();
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -159,110 +180,79 @@ const Inventory = () => {
     const setField = (field: keyof EditForm, value: string) =>
         setEditForm((prev) => (prev ? { ...prev, [field]: value } : prev));
 
+    const renderRows = () => {
+        if (filtered.length === 0) {
+            return (
+                <tr key="empty">
+                    <td
+                        colSpan={view === "employee" ? 7 : 6}
+                        className="text-text-muted py-16 text-center text-sm"
+                    >
+                        No products match your filters.
+                    </td>
+                </tr>
+            );
+        }
+        return filtered.map((item) =>
+            view === "employee" ? (
+                <EmployeeRow
+                    key={item.id}
+                    item={item}
+                    status={deriveStatus(item.stockCount)}
+                    onEdit={() => openEdit(item)}
+                    onReorder={() => openReorder(item)}
+                />
+            ) : (
+                <CustomerRow
+                    key={item.id}
+                    item={item}
+                    availability={deriveCustomerAvailability(item)}
+                />
+            ),
+        );
+    };
+
     if (loading || !user) return <Loading message="Checking authentication..." />;
     if (inventoryLoading) return <Loading message="Loading inventory..." />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
+
+    const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
 
     return (
         <>
             <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-3xl font-semibold">Inventory</h1>
             </div>
+            <div className="mb-8 grid grid-cols-4 gap-4">
+                <SummaryCard label="Total Products" value={summary.total} />
+                <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
+                <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
+                <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
+            </div>
 
-            {view === "employee" && (
-                <div className="mb-8 grid grid-cols-4 gap-4">
-                    <SummaryCard label="Total Products" value={summary.total} />
-                    <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
-                    <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
-                    <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
-                </div>
-            )}
-
-            {/* Filters — customer view constrains search width to avoid stretching */}
-            <div className="bg-surface mb-4 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow">
-                <input
-                    type="text"
-                    placeholder="Search product..."
+            <FilterBar>
+                <SearchInput
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className={`bg-surface-muted border-border text-text placeholder:text-text-muted rounded-xl border px-4 py-2 text-sm outline-none ${
-                        view === "employee" ? "min-w-45 flex-1" : "w-56"
-                    }`}
+                    onChange={setSearch}
+                    placeholder="Search product…"
+                    className={"w-1/3"}
                 />
                 <CategoryDropdown categories={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
                 {view === "employee" && (
                     <FilterGroup
-                        options={QUANTITY_STATUS_FILTERS.map((f) => f.label)}
-                        value={QUANTITY_STATUS_LABEL[statusFilter as InventoryStatus] ?? "All"}
-                        onChange={(label) => {
-                            const match = QUANTITY_STATUS_FILTERS.find((f) => f.label === label);
-                            if (match) setStatusFilter(match.value);
-                        }}
+                        options={QUANTITY_STATUS_OPTIONS}
+                        value={statusFilter}
+                        onChange={(v) => setStatusFilter(v as InventoryStatus | "all")}
                     />
                 )}
-            </div>
+            </FilterBar>
 
-            {/* Table */}
-            <div className="bg-surface rounded-xl shadow">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead>
-                            <tr className="border-border text-text-muted border-b text-xs font-semibold tracking-[0.14em] uppercase">
-                                <th className="px-5 py-4">Product</th>
-                                <th className="px-5 py-4">Category</th>
-                                {view === "employee" ? (
-                                    <>
-                                        <th className="px-5 py-4">Stock</th>
-                                        <th className="px-5 py-4">Quantity Status</th>
-                                        <th className="px-5 py-4">Shelf Status</th>
-                                        <th className="px-5 py-4">Last Checked</th>
-                                        <th className="px-5 py-4">Actions</th>
-                                    </>
-                                ) : (
-                                    <>
-                                        <th className="px-5 py-4">Stock</th>
-                                        <th className="px-5 py-4">Availability</th>
-                                        <th className="px-5 py-4">Last Checked</th>
-                                        <th className="px-5 py-4"></th>
-                                    </>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={view === "employee" ? 7 : 6}
-                                        className="text-text-muted py-16 text-center text-sm"
-                                    >
-                                        No products match your filters.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filtered.map((item) =>
-                                    view === "employee" ? (
-                                        <EmployeeRow
-                                            key={item.id}
-                                            item={item}
-                                            status={deriveStatus(item.stockCount)}
-                                            onEdit={() => openEdit(item)}
-                                            onReorder={() => openReorder(item)}
-                                        />
-                                    ) : (
-                                        <CustomerRow
-                                            key={item.id}
-                                            item={item}
-                                            availability={deriveCustomerAvailability(item)}
-                                        />
-                                    ),
-                                )
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <DataTable
+                columns={columns}
+                loading={inventoryLoading}
+                renderRows={renderRows}
+            />
 
-            {/* Edit dialog — employee only */}
             <Dialog
                 open={!!(editTarget && editForm)}
                 title="Edit Product"
@@ -293,8 +283,6 @@ const Inventory = () => {
                                 onChange={(e) => setField("size", e.target.value)}
                             />
                         </div>
-
-                        {/* Category — select not supported by Field, kept manual */}
                         <div>
                             <label className="text-text-secondary mb-1 block text-sm font-semibold">Category</label>
                             <select
@@ -306,7 +294,6 @@ const Inventory = () => {
                                 <option>Sports Drinks</option>
                             </select>
                         </div>
-
                         <Field
                             label="Stock Count"
                             type="number"
@@ -314,7 +301,6 @@ const Inventory = () => {
                             value={editForm.stockCount}
                             onChange={(e) => setField("stockCount", e.target.value)}
                         />
-
                         <div className="bg-surface-muted rounded-xl px-4 py-3">
                             <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
                                 Shelf Status
@@ -350,7 +336,6 @@ const Inventory = () => {
                 )}
             </Dialog>
 
-            {/* Reorder dialog — employee only */}
             <Dialog
                 open={!!reorderTarget}
                 title="Create Reorder"
@@ -410,41 +395,6 @@ const Inventory = () => {
     );
 };
 
-const SummaryCard = ({ label, value, valueClass }: { label: string; value: number; valueClass?: string }) => (
-    <div className="bg-surface rounded-xl p-5 shadow">
-        <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">{label}</p>
-        <p className={`mt-2 text-3xl font-bold ${valueClass ?? ""}`}>{value}</p>
-    </div>
-);
-
-const FilterGroup = ({
-    options,
-    value,
-    onChange,
-}: {
-    options: string[];
-    value: string;
-    onChange: (v: string) => void;
-}) => (
-    <div className="bg-surface-muted flex flex-wrap gap-1 rounded-xl p-1">
-        {options.map((opt) => (
-            <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-                style={
-                    value === opt
-                        ? { backgroundColor: "var(--color-text)", color: "var(--color-background)" }
-                        : { color: "var(--color-text-secondary)" }
-                }
-            >
-                {opt}
-            </button>
-        ))}
-    </div>
-);
-
 const CategoryDropdown = ({
     categories,
     value,
@@ -459,7 +409,6 @@ const CategoryDropdown = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Focus the search input when the dropdown opens
     useEffect(() => {
         if (open) {
             searchInputRef.current?.focus();
@@ -468,7 +417,6 @@ const CategoryDropdown = ({
         }
     }, [open]);
 
-    // Close on outside click
     useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
@@ -527,10 +475,7 @@ const CategoryDropdown = ({
                     <div className="max-h-52 overflow-y-auto p-1.5">
                         <button
                             type="button"
-                            onClick={() => {
-                                onChange("All");
-                                setOpen(false);
-                            }}
+                            onClick={() => { onChange("All"); setOpen(false); }}
                             className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                             style={{ color: value === "All" ? "var(--color-text)" : "var(--color-text-secondary)" }}
                         >
@@ -543,14 +488,9 @@ const CategoryDropdown = ({
                                 <button
                                     key={cat}
                                     type="button"
-                                    onClick={() => {
-                                        onChange(cat);
-                                        setOpen(false);
-                                    }}
+                                    onClick={() => { onChange(cat); setOpen(false); }}
                                     className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
-                                    style={{
-                                        color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)",
-                                    }}
+                                    style={{ color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)" }}
                                 >
                                     {cat}
                                 </button>

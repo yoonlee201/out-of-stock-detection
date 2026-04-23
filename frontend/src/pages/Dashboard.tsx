@@ -168,8 +168,9 @@ const Dashboard = () => {
                 <button
                     type="button"
                     onClick={() => setUploadDialogOpen(true)}
-                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
+                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                 >
+
                     <PlusIcon /> New Analysis
                 </button>
             </div>

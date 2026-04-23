@@ -12,7 +12,8 @@ import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
 import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
-import { ChevronIcon, PlusIcon, SearchIcon, TrashIcon } from "../_components/Icons";
+import { PlusIcon, TrashIcon } from "../_components/Icons";
+import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
@@ -24,6 +25,19 @@ interface Reorder {
     product_id: number | string;
     quantity: number;
 }
+
+const COLUMNS = [
+    { field: "firstName" as SortField, label: "Name" },
+    { field: "role" as SortField, label: "Job Title" },
+    { field: "status" as SortField, label: "Status" },
+    { field: "phone" as SortField, label: "Phone" },
+    { field: "joinedAt" as SortField, label: "Date" },
+];
+
+const STATUS_FILTER_OPTIONS = [
+    { value: "all", label: "All" },
+    ...STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })),
+];
 
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -77,10 +91,8 @@ const Manager = () => {
             );
         })
         .sort((a, b) => {
-            const av =
-                filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
-            const bv =
-                filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
+            const av = filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
+            const bv = filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
             return filters.sortDir === "asc"
                 ? String(av).localeCompare(String(bv))
                 : String(bv).localeCompare(String(av));
@@ -90,25 +102,11 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
-                    (acc, r) => {
-                        acc[r] = filtered.filter((e) => e.role === r);
-                        return acc;
-                    },
-                    {} as Record<string, Employee[]>,
-                )
-              : STATUSES.reduce(
-                    (acc, s) => {
-                        acc[s] = filtered.filter((e) => e.status === s);
-                        return acc;
-                    },
-                    {} as Record<string, Employee[]>,
-                );
+                ? EMPLOYEE_ROLES.reduce((acc, r) => { acc[r] = filtered.filter((e) => e.role === r); return acc; }, {} as Record<string, Employee[]>)
+                : STATUSES.reduce((acc, s) => { acc[s] = filtered.filter((e) => e.status === s); return acc; }, {} as Record<string, Employee[]>);
 
-    const groupKeys = filters.groupBy === "none" ? ["all"] : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
+    const groupKeys = filters.groupBy === "none" ? undefined : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
-    // Deactivate = mark as inactive (off shift). Role is preserved.
-    // Delete = permanently removes the employee record entirely.
     const handleDeactivate = async (id: string) => {
         try {
             await apiDeactivateEmployee(Number(id));
@@ -120,9 +118,7 @@ const Manager = () => {
     };
 
     const handleDeleteEmployee = async (id: string) => {
-        const confirmed = window.confirm(
-            "Delete this employee? This will permanently remove both user and employee data.",
-        );
+        const confirmed = window.confirm("Delete this employee? This will permanently remove both user and employee data.");
         if (!confirmed) return;
         try {
             await apiDeleteEmployee(Number(id));
@@ -135,10 +131,7 @@ const Manager = () => {
     };
 
     const openEdit = (e: Employee) =>
-        setEdit({
-            target: e,
-            form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role },
-        });
+        setEdit({ target: e, form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role } });
 
     const handleEditSave = async () => {
         if (!edit.target) return;
@@ -190,28 +183,38 @@ const Manager = () => {
         }
     };
 
-    const renderRows = (rows: Employee[]) =>
-        rows.map((e) => (
-            <tr key={e.id} className="border-border hover-surface border-b transition-colors">
-                <td className="px-4 py-3">
+    const renderRows = (groupKey: string) => {
+        const rows = grouped[groupKey] ?? [];
+        if (rows.length === 0) {
+            return (
+                <tr key={`${groupKey}-empty`}>
+                    <td colSpan={6} className="text-text-muted py-16 text-center text-sm">
+                        No employees found.
+                    </td>
+                </tr>
+            );
+        }
+        return rows.map((e) => (
+            <tr key={e.id} className="border-border hover:bg-surface-muted border-b transition-colors">
+                <td className="px-5 py-4">
                     <p className="text-sm font-medium">
                         {e.firstName} {e.lastName}
                     </p>
                     <p className="text-text-muted mt-0.5 text-xs">{e.email}</p>
                 </td>
-                <td className="text-text-muted px-4 py-3 text-sm capitalize">{e.role}</td>
-                <td className="px-4 py-3">
+                <td className="text-text-secondary px-5 py-4 text-sm capitalize">{e.role}</td>
+                <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
-                        <span className="text-text-muted text-sm">{STATUS_TEXT[e.status]}</span>
+                        <span className="text-text-secondary text-sm">{STATUS_TEXT[e.status]}</span>
                     </div>
                 </td>
-                <td className="text-text-muted px-4 py-3 text-sm">{e.phone}</td>
-                <td className="text-text-muted px-4 py-3 text-sm">{formatDate(e.joinedAt)}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="text-text-secondary px-5 py-4 text-sm">{e.phone}</td>
+                <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
+                <td className="px-5 py-4 text-right">
                     <button
                         onClick={() => openEdit(e)}
-                        className="hover-surface-btn text-text-muted rounded p-1.5 transition-colors"
+                        className="text-text-muted hover:bg-surface-muted rounded-lg p-1.5 transition-colors"
                         aria-label="Edit employee"
                     >
                         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -223,48 +226,58 @@ const Manager = () => {
                 </td>
             </tr>
         ));
+    };
 
-    const hasActiveFilters =
-        filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
-    const resetFilters = () =>
-        setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
+    const total = employees.length;
+    const active = employees.filter((e) => e.status === "active").length;
+    const inactive = employees.filter((e) => e.status === "inactive").length;
+
+    const hasActiveFilters = filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
 
     return (
         <>
-            <div>
-                <div className="flex items-start justify-between px-8 py-6">
+            <div className="px-8 py-6">
+                <div className="mb-6 flex items-start justify-between">
                     <div>
-                        <h1 className="text-xl font-semibold">People</h1>
+                        <h1 className="text-3xl font-semibold">People</h1>
                         <p className="text-text-muted mt-0.5 text-sm">
                             Manage and collaborate within your organization's teams
                         </p>
                     </div>
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                     >
                         <PlusIcon />
                         Add member
                     </button>
                 </div>
-                <div className="border-border bg-surface mx-8 mb-6 rounded-md border p-4">
+
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                    <SummaryCard label="Total Employees" value={total} />
+                    <SummaryCard label="Active" value={active} valueClass="text-green" />
+                    <SummaryCard label="Inactive" value={inactive} valueClass="text-text-muted" />
+                </div>
+
+                <div className="bg-surface mb-6 rounded-2xl p-5 shadow">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-md font-semibold">Reorder System</h2>
-                            <p className="text-text-muted text-xs">Create mock reorders for low-stock products</p>
+                            <h2 className="text-sm font-semibold">Reorder System</h2>
+                            <p className="text-text-muted mt-0.5 text-xs">Create mock reorders for low-stock products</p>
                         </div>
                         <button
                             onClick={handleCreateReorders}
                             disabled={creatingReorders}
-                            className="hover:bg-primary-hover bg-primary rounded-md px-4 py-2 text-sm text-white disabled:opacity-50"
+                            className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors"
                         >
-                            {creatingReorders ? "Creating..." : "Create Reorders"}
+                            {creatingReorders ? "Creating…" : "Create Reorders"}
                         </button>
                     </div>
-
                     {reorders.length > 0 && (
                         <div className="mt-4">
-                            <p className="text-text-secondary mb-2 text-sm font-medium">Recent Reorders:</p>
+                            <p className="text-text-secondary mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                                Recent Reorders
+                            </p>
                             <div className="text-text-muted space-y-1 text-sm">
                                 {reorders.map((r) => (
                                     <div key={r.reorder_id} className="flex justify-between">
@@ -278,38 +291,20 @@ const Manager = () => {
                     )}
                 </div>
 
-                {/* Filter bar */}
-                <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
-                    <div className="border-border bg-surface flex items-center gap-1 rounded-md border p-1">
-                        {(["all", ...STATUSES] as const).map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => setFilters((f) => ({ ...f, status: s }))}
-                                className="rounded-sm px-3 py-1.5 text-sm font-medium capitalize transition-colors"
-                                style={
-                                    filters.status === s
-                                        ? { backgroundColor: "var(--color-text)", color: "var(--color-background)" }
-                                        : { color: "var(--color-text-muted)" }
-                                }
-                            >
-                                {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="border-border bg-surface flex items-center gap-2 rounded-sm border px-3 py-2">
-                        <SearchIcon />
-                        <input
-                            type="text"
-                            placeholder="Search"
-                            value={filters.search}
-                            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                            className="placeholder:text-text-muted w-48 bg-transparent text-sm outline-none"
-                        />
-                    </div>
-
+                <FilterBar>
+                    <SearchInput
+                        value={filters.search}
+                        onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
+                        placeholder="Search people…"
+                        className="w-1/3"
+                    />
+                    <FilterGroup
+                        options={STATUS_FILTER_OPTIONS}
+                        value={filters.status}
+                        onChange={(v) => setFilters((f) => ({ ...f, status: v as "all" | EmployeeStatus }))}
+                    />
                     <Dropdown
-                        label="Filters"
+                        label="Role"
                         sectionLabel="Filter by role"
                         value={filters.role}
                         onChange={(v) => setFilters((f) => ({ ...f, role: v as "all" | UserRole }))}
@@ -332,87 +327,30 @@ const Manager = () => {
                             { value: "status", label: "Status" },
                         ]}
                     />
-
                     {hasActiveFilters && (
                         <button
-                            onClick={resetFilters}
-                            className="hover-surface-btn text-text-muted rounded px-1 py-0.5 text-xs transition-colors"
+                            onClick={() =>
+                                setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" })
+                            }
+                            className="text-text-muted hover:bg-surface-muted rounded-lg px-2 py-1 text-xs font-medium transition-colors"
                         >
-                            Clear
-                        </button>
-                    )}
+                        Clear
+                        </button>)
+                    }
+                </FilterBar>
 
-                    <span className="text-text-muted ml-auto text-sm">
-                        {filtered.length} employee{filtered.length !== 1 ? "s" : ""}
-                    </span>
-                </div>
-
-                {/* Table */}
-                <div className="border-border bg-surface mx-8 overflow-hidden rounded-md border">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-surface-muted">
-                            <tr className="border-border border-b">
-                                {[
-                                    { field: "firstName", label: "Name" },
-                                    { field: "role", label: "Job title" },
-                                    { field: "status", label: "Employment Type" },
-                                    { field: "phone", label: "Phone" },
-                                    { field: "joinedAt", label: "Date" },
-                                ].map(({ field, label }) => (
-                                    <th
-                                        key={field}
-                                        onClick={() => handleSort(field as SortField)}
-                                        className="text-text-muted cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider uppercase transition-colors select-none"
-                                    >
-                                        {label}
-                                        {filters.sortField === field && (
-                                            <ChevronIcon
-                                                className={`ml-1 inline h-3 w-3 ${filters.sortDir === "desc" ? "rotate-180" : ""}`}
-                                            />
-                                        )}
-                                    </th>
-                                ))}
-                                <th className="w-10 px-4 py-3" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {fetching ? (
-                                <tr>
-                                    <td colSpan={6} className="text-text-muted py-20 text-center">
-                                        Loading…
-                                    </td>
-                                </tr>
-                            ) : filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="text-text-muted py-20 text-center">
-                                        No employees found.
-                                    </td>
-                                </tr>
-                            ) : filters.groupBy === "none" ? (
-                                renderRows(grouped["all"])
-                            ) : (
-                                groupKeys.map((key) =>
-                                    grouped[key]?.length > 0 ? (
-                                        <React.Fragment key={key}>
-                                            <tr className="border-border bg-surface-muted border-b">
-                                                <td
-                                                    colSpan={6}
-                                                    className="text-text-muted px-4 py-2 text-xs font-semibold tracking-wider uppercase"
-                                                >
-                                                    {key} ({grouped[key].length})
-                                                </td>
-                                            </tr>
-                                            {renderRows(grouped[key])}
-                                        </React.Fragment>
-                                    ) : null,
-                                )
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    columns={COLUMNS}
+                    sortField={filters.sortField}
+                    sortDir={filters.sortDir}
+                    onSort={handleSort}
+                    loading={fetching}
+                    groupKeys={groupKeys}
+                    renderRows={renderRows}
+                    actionColumn
+                />
             </div>
 
-            {/* Invite Dialog */}
             <Dialog
                 open={invite.open}
                 title="Invite New Employee"
@@ -427,13 +365,13 @@ const Manager = () => {
                     value={invite.email}
                     onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))}
                     onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                    className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+                    className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
                 />
                 <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
                 <select
                     value={invite.role}
                     onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-                    className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
                     {EMPLOYEE_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -444,14 +382,14 @@ const Manager = () => {
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         onClick={() => setInvite((s) => ({ ...s, open: false }))}
-                        className="hover-surface-btn text-text-muted rounded px-4 py-2 text-sm font-medium transition-colors"
+                        className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleInvite}
                         disabled={!invite.email || invite.loading}
-                        className="hover:bg-primary-hover bg-primary rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {invite.loading ? "Sending…" : "Send Invitation"}
                     </button>
@@ -466,46 +404,44 @@ const Manager = () => {
             >
                 <div className="flex gap-3">
                     <div className="flex-1">
-                        <label className="text-text-muted mb-1 block text-xs font-medium">First Name</label>
+                        <label className="text-text-muted mb-1 block text-xs font-semibold">First Name</label>
                         <input
                             value={edit.form.firstName ?? ""}
                             onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, firstName: e.target.value } }))}
-                            className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                            className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                         />
                     </div>
                     <div className="flex-1">
-                        <label className="text-text-muted mb-1 block text-xs font-medium">Last Name</label>
+                        <label className="text-text-muted mb-1 block text-xs font-semibold">Last Name</label>
                         <input
                             value={edit.form.lastName ?? ""}
                             onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, lastName: e.target.value } }))}
-                            className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                            className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                         />
                     </div>
                 </div>
                 <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-medium">Email</label>
+                    <label className="text-text-muted mb-1 block text-xs font-semibold">Email</label>
                     <input
                         value={edit.form.email ?? ""}
                         onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, email: e.target.value } }))}
-                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     />
                 </div>
                 <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-medium">Phone</label>
+                    <label className="text-text-muted mb-1 block text-xs font-semibold">Phone</label>
                     <input
                         value={edit.form.phone ?? ""}
                         onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, phone: e.target.value } }))}
-                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     />
                 </div>
                 <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-medium">Role</label>
+                    <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
                     <select
                         value={edit.form.role ?? "associate"}
-                        onChange={(e) =>
-                            setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))
-                        }
-                        className="focus:ring-primary border-border bg-surface w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                        onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))}
+                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     >
                         {EMPLOYEE_ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -515,7 +451,7 @@ const Manager = () => {
                     </select>
                 </div>
                 {edit.target?.status === "active" && (
-                    <div className="border-border mt-4 flex items-center justify-between rounded-lg border px-4 py-3">
+                    <div className="border-border mt-4 flex items-center justify-between rounded-xl border px-4 py-3">
                         <div>
                             <p className="text-text-secondary text-sm font-medium">Set as Inactive</p>
                             <p className="text-text-muted mt-0.5 text-xs">
@@ -527,7 +463,7 @@ const Manager = () => {
                                 handleDeactivate(edit.target!.id!);
                                 setEdit({ target: null, form: {} });
                             }}
-                            className="ml-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                            className="ml-4 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                         >
                             Inactivate
                         </button>
@@ -537,20 +473,20 @@ const Manager = () => {
                     {edit.target && (
                         <button
                             onClick={() => handleDeleteEmployee(edit.target!.id!)}
-                            className="mr-auto rounded-lg px-2 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                            className="mr-auto rounded-xl px-2 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                         >
                             <TrashIcon />
                         </button>
                     )}
                     <button
                         onClick={() => setEdit({ target: null, form: {} })}
-                        className="hover-surface-btn text-text-muted rounded px-4 py-2 text-sm font-medium transition-colors"
+                        className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleEditSave}
-                        className="hover:bg-primary-hover bg-primary rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors"
                     >
                         Save
                     </button>
