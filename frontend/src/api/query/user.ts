@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { axiosAuth, axiosDefault } from "..";
-import { getUserRole, UserRole, type User } from "../../types/db";
+import { getUserRole, UserRole, type EmployeeStatus, type User } from "../../types/db";
 import logger from "../../utils/log";
 
 export const apiRegisterUser = async ({
@@ -253,16 +253,16 @@ export const apiUpdateEmployee = async (
     }
 };
 
-export const apiDeactivateEmployee = async (employeeId: number) => {
+export const apiUpdateEmployeeStatus = async (employeeId: number, status: EmployeeStatus) => {
     try {
-        const { data } = await axiosAuth.patch(`/users/${employeeId}/deactivate`);
+        const { data } = await axiosAuth.patch(`/users/${employeeId}/status`, { status });
         return data as { message: string };
     } catch (error: unknown) {
         if (isAxiosError(error)) {
-            const message = error.response?.data?.message || "Failed to deactivate employee.";
+            const message = error.response?.data?.message || "Failed to update employee status.";
             throw new Error(message);
         }
-        throw new Error("Failed to deactivate employee.");
+        throw new Error("Failed to update employee status.");
     }
 };
 

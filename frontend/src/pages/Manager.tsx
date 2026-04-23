@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
     apiGetEmployees,
     apiSendInvitation,
     apiUpdateEmployee,
-    apiDeactivateEmployee,
+    apiUpdateEmployeeStatus,
     apiDeleteEmployee,
 } from "../api/query/user";
 import { formatDate } from "../utils/functions";
@@ -15,16 +15,14 @@ import Dropdown from "../_components/Dropdown";
 import { PlusIcon, TrashIcon } from "../_components/Icons";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 
+// ======================Types========================
+
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
 type GroupBy = "none" | "role" | "status";
 type EmployeeRole = Exclude<UserRole, "customer">;
 
-interface Reorder {
-    reorder_id: number | string;
-    product_id: number | string;
-    quantity: number;
-}
+// ======================Constants for Table========================
 
 const COLUMNS = [
     { field: "firstName" as SortField, label: "Name" },
@@ -39,9 +37,67 @@ const STATUS_FILTER_OPTIONS = [
     ...STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })),
 ];
 
+// ======================Main Manager Component========================
+
 const Manager = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [fetching, setFetching] = useState(true);
+    const [openInvite, setOpenInvite] = useState(false);
+
+    useEffect(() => {
+        // phone defaults to "" so inputs stay controlled
+        apiGetEmployees()
+            .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id), phone: e.phone ?? "" }))))
+            .catch(() => toast.error("Failed to load employees."))
+            .finally(() => setFetching(false));
+    }, []);
+
+    const total = employees.length;
+    const active = employees.filter((e) => e.status === "active").length;
+    const inactive = employees.filter((e) => e.status === "inactive").length;
+
+    return (
+        <>
+            <div className="px-8 py-6">
+                <div className="mb-6 flex items-start justify-between">
+                    <div>
+                        <h1 className="text-3xl font-semibold">People</h1>
+                        <p className="text-text-muted mt-0.5 text-sm">
+                            Manage and collaborate within your organization's teams
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setOpenInvite(true)}
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                    >
+                        <PlusIcon />
+                        Add member
+                    </button>
+                </div>
+
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                    <SummaryCard label="Total Employees" value={total} />
+                    <SummaryCard label="Active" value={active} valueClass="text-green" />
+                    <SummaryCard label="Inactive" value={inactive} valueClass="text-text-muted" />
+                </div>
+
+                <EmployeeTables employees={employees} setEmployees={setEmployees} fetching={fetching} />
+            </div>
+
+            <InviteDialog open={openInvite} setOpen={setOpenInvite} />
+        </>
+    );
+};
+
+// ======================Empolyee Table========================
+
+type EmployeeTablesProps = {
+    employees: Employee[];
+    setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+    fetching: boolean;
+};
+
+const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesProps) => {
     const [filters, setFilters] = useState({
         search: "",
         role: "all" as "all" | UserRole,
@@ -50,27 +106,10 @@ const Manager = () => {
         sortDir: "asc" as SortDir,
         groupBy: "none" as GroupBy,
     });
-    const [invite, setInvite] = useState<{ open: boolean; email: string; role: EmployeeRole; loading: boolean }>({
-        open: false,
-        email: "",
-        role: "associate" as EmployeeRole,
-        loading: false,
-    });
-    const [edit, setEdit] = useState<{ target: Employee | null; form: Partial<Employee> }>({
-        target: null,
-        form: {},
-    });
-    const [reorders, setReorders] = useState<Reorder[]>([]);
-    const [creatingReorders, setCreatingReorders] = useState(false);
-
-    useEffect(() => {
-        apiGetEmployees()
-            .then((rows) => setEmployees(rows.map((e) => ({ ...e, id: String(e.id), phone: e.phone ?? "" }))))
-            .catch(() => toast.error("Failed to load employees."))
-            .finally(() => setFetching(false));
-    }, []);
+    const [editTarget, setEditTarget] = useState<Employee | null>(null);
 
     const handleSort = (field: SortField) => {
+        // same field = toggle direction, new field = reset to asc
         setFilters((f) => ({
             ...f,
             sortField: field,
@@ -121,89 +160,14 @@ const Manager = () => {
 
     const groupKeys = filters.groupBy === "none" ? undefined : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
-    const handleDeactivate = async (id: string) => {
-        try {
-            await apiDeactivateEmployee(Number(id));
-            setEmployees((prev) => prev.map((e) => (e.id !== id ? e : { ...e, status: "inactive" })));
-            toast.success("Employee set to inactive.");
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to deactivate employee.");
-        }
-    };
+    const hasActiveFilters =
+        filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
 
-    const handleDeleteEmployee = async (id: string) => {
-        const confirmed = window.confirm(
-            "Delete this employee? This will permanently remove both user and employee data.",
-        );
-        if (!confirmed) return;
-        try {
-            await apiDeleteEmployee(Number(id));
-            setEmployees((prev) => prev.filter((e) => e.id !== id));
-            toast.success("Employee deleted successfully.");
-            setEdit({ target: null, form: {} });
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
-        }
-    };
-
-    const openEdit = (e: Employee) =>
-        setEdit({
-            target: e,
-            form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role },
-        });
-
-    const handleEditSave = async () => {
-        if (!edit.target) return;
-        try {
-            await apiUpdateEmployee(Number(edit.target.id), {
-                firstName: edit.form.firstName,
-                lastName: edit.form.lastName,
-                email: edit.form.email,
-                phone: edit.form.phone,
-                role: edit.form.role,
-            });
-            setEmployees((prev) => prev.map((e) => (e.id === edit.target!.id ? { ...e, ...edit.form } : e)));
-            toast.success("Employee updated.");
-            setEdit({ target: null, form: {} });
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to update employee.");
-        }
-    };
-
-    const handleInvite = async () => {
-        if (!invite.email) return;
-        setInvite((s) => ({ ...s, loading: true }));
-        try {
-            await apiSendInvitation(invite.email, invite.role);
-            toast.success("Invitation sent successfully.");
-            setInvite({ open: false, email: "", role: "associate" as EmployeeRole, loading: false });
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to send invitation.");
-        } finally {
-            setInvite((s) => ({ ...s, loading: false }));
-        }
-    };
-
-    const handleCreateReorders = async () => {
-        setCreatingReorders(true);
-        try {
-            const res = await fetch("http://localhost:8000/alerts/create_reorders", { method: "POST" });
-            const data = await res.json();
-            if (data.success) {
-                setReorders(data.reorders as Reorder[]);
-                toast.success("Reorders created successfully.");
-            } else {
-                toast.error(data.message || "Failed to create reorders.");
-            }
-        } catch {
-            toast.error("Error creating reorders.");
-        } finally {
-            setCreatingReorders(false);
-        }
-    };
+    const resetFilters = () =>
+        setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
     const renderRows = (groupKey: string) => {
-        const rows = grouped[groupKey] ?? [];
+        const rows = grouped[groupKey] || [];
         if (rows.length === 0) {
             return (
                 <tr key={`${groupKey}-empty`}>
@@ -232,7 +196,7 @@ const Manager = () => {
                 <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
                 <td className="px-5 py-4 text-right">
                     <button
-                        onClick={() => openEdit(e)}
+                        onClick={() => setEditTarget(e)}
                         className="text-text-muted hover:bg-surface-muted rounded-lg p-1.5 transition-colors"
                         aria-label="Edit employee"
                     >
@@ -247,160 +211,252 @@ const Manager = () => {
         ));
     };
 
-    const total = employees.length;
-    const active = employees.filter((e) => e.status === "active").length;
-    const inactive = employees.filter((e) => e.status === "inactive").length;
-
-    const hasActiveFilters =
-        filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
-
     return (
         <>
-            <div className="px-8 py-6">
-                <div className="mb-6 flex items-start justify-between">
-                    <div>
-                        <h1 className="text-3xl font-semibold">People</h1>
-                        <p className="text-text-muted mt-0.5 text-sm">
-                            Manage and collaborate within your organization's teams
-                        </p>
-                    </div>
+            <FilterBar>
+                <SearchInput
+                    value={filters.search}
+                    onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
+                    placeholder="Search people…"
+                    className="w-1/3"
+                />
+                <FilterGroup
+                    options={STATUS_FILTER_OPTIONS}
+                    value={filters.status}
+                    onChange={(v) => setFilters((f) => ({ ...f, status: v as "all" | EmployeeStatus }))}
+                />
+                <Dropdown
+                    label="Role"
+                    sectionLabel="Filter by role"
+                    value={filters.role}
+                    onChange={(v) => setFilters((f) => ({ ...f, role: v as "all" | UserRole }))}
+                    options={[
+                        { value: "all", label: "All roles" },
+                        ...EMPLOYEE_ROLES.map((role) => ({
+                            value: role,
+                            label: role.charAt(0).toUpperCase() + role.slice(1),
+                        })),
+                    ]}
+                />
+                <Dropdown
+                    label="Group by"
+                    sectionLabel="Group by"
+                    value={filters.groupBy}
+                    onChange={(v) => setFilters((f) => ({ ...f, groupBy: v as GroupBy }))}
+                    options={[
+                        { value: "none", label: "No grouping" },
+                        { value: "role", label: "Role" },
+                        { value: "status", label: "Status" },
+                    ]}
+                />
+                {hasActiveFilters && (
                     <button
-                        onClick={() => setInvite((s) => ({ ...s, open: true }))}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        onClick={resetFilters}
+                        className="text-text-muted hover:bg-surface-muted rounded-lg px-2 py-1 text-xs font-medium transition-colors"
                     >
-                        <PlusIcon />
-                        Add member
+                        Clear
                     </button>
+                )}
+            </FilterBar>
+
+            <DataTable
+                columns={COLUMNS}
+                sortField={filters.sortField}
+                sortDir={filters.sortDir}
+                onSort={handleSort}
+                loading={fetching}
+                groupKeys={groupKeys}
+                renderRows={(groupKey) => renderRows(groupKey)}
+                actionColumn
+            />
+
+            <EditDialog target={editTarget} setEmployees={setEmployees} onClose={() => setEditTarget(null)} />
+        </>
+    );
+};
+// ======================Dialogs========================
+
+type InviteState = { email: string; role: EmployeeRole; loading: boolean };
+
+const InviteDialog = ({ open, setOpen }: { open: boolean; setOpen: React.Dispatch<React.SetStateAction<boolean>> }) => {
+    const [invite, setInvite] = useState<InviteState>({
+        email: "",
+        role: "associate" as EmployeeRole,
+        loading: false,
+    });
+
+    const handleInvite = async () => {
+        if (!invite.email) return;
+        setInvite((s) => ({ ...s, loading: true }));
+        try {
+            await apiSendInvitation(invite.email, invite.role);
+            toast.success("Invitation sent successfully.");
+            setOpen(false);
+            setInvite({ email: "", role: "associate" as EmployeeRole, loading: false });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to send invitation.");
+        } finally {
+            setInvite((s) => ({ ...s, loading: false }));
+        }
+    };
+
+    return (
+        <Dialog
+            open={open}
+            title="Invite New Employee"
+            description="They'll receive an email with instructions to join."
+            onClose={() => setOpen(false)}
+        >
+            <label className="text-text-secondary mb-1.5 block text-sm font-medium">Email Address</label>
+            <input
+                autoFocus
+                type="email"
+                placeholder="name@company.com"
+                value={invite.email}
+                onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+                className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+            />
+            <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
+            <select
+                value={invite.role}
+                onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
+                className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+            >
+                {EMPLOYEE_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                ))}
+            </select>
+            <div className="mt-5 flex justify-end gap-2">
+                <button
+                    onClick={() => setOpen(false)}
+                    className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleInvite}
+                    disabled={!invite.email || invite.loading}
+                    className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                    {invite.loading ? "Sending…" : "Send Invitation"}
+                </button>
+            </div>
+        </Dialog>
+    );
+};
+
+type EditDialogProps = {
+    target: Employee | null;
+    setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+    onClose: () => void;
+};
+
+const EditDialog = ({ target, setEmployees, onClose }: EditDialogProps) => {
+    const [form, setForm] = useState<Partial<Employee>>({});
+
+    // sync form when a new employee is opened
+    useEffect(() => {
+        if (target) {
+            setForm({
+                firstName: target.firstName,
+                lastName: target.lastName,
+                email: target.email,
+                phone: target.phone,
+                role: target.role,
+            });
+        }
+    }, [target]);
+
+    const setField = (field: keyof Employee, value: string) => setForm((f) => ({ ...f, [field]: value }));
+
+    const handleSave = async () => {
+        if (!target) return;
+        try {
+            await apiUpdateEmployee(Number(target.id), {
+                firstName: form.firstName,
+                lastName: form.lastName,
+                email: form.email,
+                phone: form.phone,
+                role: form.role,
+            });
+            setEmployees((prev) => prev.map((e) => (e.id === target.id ? { ...e, ...form } : e)));
+            toast.success("Employee updated.");
+            onClose();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update employee.");
+        }
+    };
+
+    const handleStatusChange = async (status: EmployeeStatus) => {
+        if (!target) return;
+        try {
+            await apiUpdateEmployeeStatus(Number(target.id), status);
+            setEmployees((prev) => prev.map((e) => (e.id !== target.id ? e : { ...e, status })));
+            toast.success(`Employee set to ${status}.`);
+            onClose();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update employee status.");
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!target) return;
+        if (!window.confirm("Delete this employee? This will permanently remove both user and employee data.")) return;
+        try {
+            await apiDeleteEmployee(Number(target.id));
+            setEmployees((prev) => prev.filter((e) => e.id !== target.id));
+            toast.success("Employee deleted successfully.");
+            onClose();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
+        }
+    };
+
+    return (
+        <Dialog open={!!target} title="Edit Employee" description="Update employee details." onClose={onClose}>
+            <div className="flex gap-3">
+                <div className="flex-1">
+                    <label className="text-text-muted mb-1 block text-xs font-semibold">First Name</label>
+                    <input
+                        value={form.firstName ?? ""}
+                        onChange={(e) => setField("firstName", e.target.value)}
+                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                    />
                 </div>
-
-                <div className="mb-6 grid grid-cols-3 gap-4">
-                    <SummaryCard label="Total Employees" value={total} />
-                    <SummaryCard label="Active" value={active} valueClass="text-green" />
-                    <SummaryCard label="Inactive" value={inactive} valueClass="text-text-muted" />
+                <div className="flex-1">
+                    <label className="text-text-muted mb-1 block text-xs font-semibold">Last Name</label>
+                    <input
+                        value={form.lastName ?? ""}
+                        onChange={(e) => setField("lastName", e.target.value)}
+                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
+                    />
                 </div>
-
-                <div className="bg-surface mb-6 rounded-2xl p-5 shadow">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-sm font-semibold">Reorder System</h2>
-                            <p className="text-text-muted mt-0.5 text-xs">
-                                Create mock reorders for low-stock products
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleCreateReorders}
-                            disabled={creatingReorders}
-                            className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                        >
-                            {creatingReorders ? "Creating…" : "Create Reorders"}
-                        </button>
-                    </div>
-                    {reorders.length > 0 && (
-                        <div className="mt-4">
-                            <p className="text-text-secondary mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                                Recent Reorders
-                            </p>
-                            <div className="text-text-muted space-y-1 text-sm">
-                                {reorders.map((r) => (
-                                    <div key={r.reorder_id} className="flex justify-between">
-                                        <span>Product {r.product_id}</span>
-                                        <span>Qty: {r.quantity}</span>
-                                        <span>#{r.reorder_id}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <FilterBar>
-                    <SearchInput
-                        value={filters.search}
-                        onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
-                        placeholder="Search people…"
-                        className="w-1/3"
-                    />
-                    <FilterGroup
-                        options={STATUS_FILTER_OPTIONS}
-                        value={filters.status}
-                        onChange={(v) => setFilters((f) => ({ ...f, status: v as "all" | EmployeeStatus }))}
-                    />
-                    <Dropdown
-                        label="Role"
-                        sectionLabel="Filter by role"
-                        value={filters.role}
-                        onChange={(v) => setFilters((f) => ({ ...f, role: v as "all" | UserRole }))}
-                        options={[
-                            { value: "all", label: "All roles" },
-                            ...EMPLOYEE_ROLES.map((role) => ({
-                                value: role,
-                                label: role.charAt(0).toUpperCase() + role.slice(1),
-                            })),
-                        ]}
-                    />
-                    <Dropdown
-                        label="Group by"
-                        sectionLabel="Group by"
-                        value={filters.groupBy}
-                        onChange={(v) => setFilters((f) => ({ ...f, groupBy: v as GroupBy }))}
-                        options={[
-                            { value: "none", label: "No grouping" },
-                            { value: "role", label: "Role" },
-                            { value: "status", label: "Status" },
-                        ]}
-                    />
-                    {hasActiveFilters && (
-                        <button
-                            onClick={() =>
-                                setFilters({
-                                    search: "",
-                                    role: "all",
-                                    status: "active",
-                                    sortField: "status",
-                                    sortDir: "asc",
-                                    groupBy: "none",
-                                })
-                            }
-                            className="text-text-muted hover:bg-surface-muted rounded-lg px-2 py-1 text-xs font-medium transition-colors"
-                        >
-                            Clear
-                        </button>
-                    )}
-                </FilterBar>
-
-                <DataTable
-                    columns={COLUMNS}
-                    sortField={filters.sortField}
-                    sortDir={filters.sortDir}
-                    onSort={handleSort}
-                    loading={fetching}
-                    groupKeys={groupKeys}
-                    renderRows={renderRows}
-                    actionColumn
+            </div>
+            <div className="mt-3">
+                <label className="text-text-muted mb-1 block text-xs font-semibold">Email</label>
+                <input
+                    value={form.email ?? ""}
+                    onChange={(e) => setField("email", e.target.value)}
+                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                 />
             </div>
-
-            <Dialog
-                open={invite.open}
-                title="Invite New Employee"
-                description="They'll receive an email with instructions to join."
-                onClose={() => setInvite((s) => ({ ...s, open: false }))}
-            >
-                <label className="text-text-secondary mb-1.5 block text-sm font-medium">Email Address</label>
+            <div className="mt-3">
+                <label className="text-text-muted mb-1 block text-xs font-semibold">Phone</label>
                 <input
-                    autoFocus
-                    type="email"
-                    placeholder="name@company.com"
-                    value={invite.email}
-                    onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))}
-                    onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                    className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+                    value={form.phone ?? ""}
+                    onChange={(e) => setField("phone", e.target.value)}
+                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                 />
-                <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
+            </div>
+            <div className="mt-3">
+                <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
                 <select
-                    value={invite.role}
-                    onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
+                    value={form.role ?? "associate"}
+                    onChange={(e) => setField("role", e.target.value)}
+                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
                     {EMPLOYEE_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -408,123 +464,81 @@ const Manager = () => {
                         </option>
                     ))}
                 </select>
-                <div className="mt-5 flex justify-end gap-2">
-                    <button
-                        onClick={() => setInvite((s) => ({ ...s, open: false }))}
-                        className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleInvite}
-                        disabled={!invite.email || invite.loading}
-                        className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        {invite.loading ? "Sending…" : "Send Invitation"}
-                    </button>
-                </div>
-            </Dialog>
+            </div>
 
-            <Dialog
-                open={!!edit.target}
-                title="Edit Employee"
-                description="Update employee details."
-                onClose={() => setEdit({ target: null, form: {} })}
-            >
-                <div className="flex gap-3">
-                    <div className="flex-1">
-                        <label className="text-text-muted mb-1 block text-xs font-semibold">First Name</label>
-                        <input
-                            value={edit.form.firstName ?? ""}
-                            onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, firstName: e.target.value } }))}
-                            className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="text-text-muted mb-1 block text-xs font-semibold">Last Name</label>
-                        <input
-                            value={edit.form.lastName ?? ""}
-                            onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, lastName: e.target.value } }))}
-                            className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
-                        />
-                    </div>
-                </div>
-                <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-semibold">Email</label>
-                    <input
-                        value={edit.form.email ?? ""}
-                        onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, email: e.target.value } }))}
-                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
-                    />
-                </div>
-                <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-semibold">Phone</label>
-                    <input
-                        value={edit.form.phone ?? ""}
-                        onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, phone: e.target.value } }))}
-                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
-                    />
-                </div>
-                <div className="mt-3">
-                    <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
-                    <select
-                        value={edit.form.role ?? "associate"}
-                        onChange={(e) =>
-                            setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))
-                        }
-                        className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
-                    >
-                        {EMPLOYEE_ROLES.map((role) => (
-                            <option key={role} value={role}>
-                                {role.charAt(0).toUpperCase() + role.slice(1)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {edit.target?.status === "active" && (
-                    <div className="border-border mt-4 flex items-center justify-between rounded-xl border px-4 py-3">
-                        <div>
-                            <p className="text-text-secondary text-sm font-medium">Set as Inactive</p>
-                            <p className="text-text-muted mt-0.5 text-xs">
-                                Employee is off shift and will not appear as active.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                handleDeactivate(edit.target!.id!);
-                                setEdit({ target: null, form: {} });
-                            }}
-                            className="ml-4 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                        >
-                            Inactivate
-                        </button>
-                    </div>
-                )}
-                <div className="mt-5 flex justify-end gap-2">
-                    {edit.target && (
-                        <button
-                            onClick={() => handleDeleteEmployee(edit.target!.id!)}
-                            className="mr-auto rounded-xl px-2 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                        >
-                            <TrashIcon />
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setEdit({ target: null, form: {} })}
-                        className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleEditSave}
-                        className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors"
-                    >
-                        Save
-                    </button>
-                </div>
-            </Dialog>
-        </>
+            {/* status toggle — only shown for active/inactive, not other statuses */}
+            {target?.status === "active" && (
+                <EmployeeStatusChange
+                    label="Set as Inactive"
+                    description="Employee is off shift and will not appear as active."
+                    actionLabel="Inactivate"
+                    colorClass="text-red-600"
+                    bgClass="bg-red-50 hover:bg-red-100"
+                    onClick={() => handleStatusChange("inactive")}
+                />
+            )}
+            {target?.status === "inactive" && (
+                <EmployeeStatusChange
+                    label="Set as Active"
+                    description="Employee is on shift and will appear as active."
+                    actionLabel="Activate"
+                    colorClass="text-green-600"
+                    bgClass="bg-green-50 hover:bg-green-100"
+                    onClick={() => handleStatusChange("active")}
+                />
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+                <button
+                    onClick={handleDelete}
+                    className="mr-auto rounded-xl px-2 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                >
+                    <TrashIcon />
+                </button>
+                <button
+                    onClick={onClose}
+                    className="text-text-muted hover:bg-surface-muted rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleSave}
+                    className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors"
+                >
+                    Save
+                </button>
+            </div>
+        </Dialog>
     );
 };
+
+const EmployeeStatusChange = ({
+    label,
+    description,
+    actionLabel,
+    colorClass,
+    bgClass,
+    onClick,
+}: {
+    label: string;
+    description: string;
+    actionLabel: string;
+    colorClass: string;
+    bgClass: string;
+    onClick: () => void;
+}) => (
+    <div className="border-border mt-4 flex items-center justify-between rounded-xl border px-4 py-3">
+        <div>
+            <p className="text-text-secondary text-sm font-medium">{label}</p>
+            <p className="text-text-muted mt-0.5 text-xs">{description}</p>
+        </div>
+        <button
+            onClick={onClick}
+            className={`ml-4 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${colorClass} ${bgClass}`}
+        >
+            {actionLabel}
+        </button>
+    </div>
+);
 
 export default Manager;
