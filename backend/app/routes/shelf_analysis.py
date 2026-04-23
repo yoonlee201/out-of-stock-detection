@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import sys
 import tempfile
@@ -8,6 +9,10 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 from PIL import Image
+
+from app.core.db import db
+from app.models import ShelfAnalysisLog
+from app.util.auth import _get_current_user
 
 
 def _find_project_root() -> Path:
@@ -146,19 +151,53 @@ def analyze_shelf():
         annotated_image.save(buffer, format="PNG")
         encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-        return jsonify(
-            {
-                "message": "Shelf analysis completed.",
-                "summary": _build_summary(detections),
-                "compliance_report": compliance_report,
-                "detections": detections,
-                "compliance_notes": compliance_notes,
-                "annotated_image": f"data:image/png;base64,{encoded_image}",
-            }
-        ), 200
+        payload = {
+            "message": "Shelf analysis completed.",
+            "summary": _build_summary(detections),
+            "compliance_report": compliance_report,
+            "detections": detections,
+            "compliance_notes": compliance_notes,
+            "annotated_image": f"data:image/png;base64,{encoded_image}",
+        }
+
+        # Persist result — best-effort, never blocks the response
+        try:
+            current_user = _get_current_user()
+            log = ShelfAnalysisLog(
+                user_id=current_user.user_id if current_user else None,
+                file_name=uploaded_file.filename or "unknown",
+                result_json=json.dumps(payload),
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        return jsonify(payload), 200
     except Exception as error:
         traceback.print_exc()
         return jsonify({"message": f"Shelf analysis failed: {error}"}), 500
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@shelf_analysis_blueprint.route("/history", methods=["GET"])
+def get_analysis_history():
+    """Return the most recent 50 analysis logs (newest first)."""
+    limit = min(int(request.args.get("limit", 50)), 200)
+    logs = (
+        ShelfAnalysisLog.query
+        .order_by(ShelfAnalysisLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return jsonify([
+        {
+            "id": log.id,
+            "file_name": log.file_name,
+            "created_at": log.created_at.isoformat(),
+            "result": json.loads(log.result_json),
+        }
+        for log in logs
+    ]), 200

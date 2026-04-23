@@ -6,9 +6,9 @@ import useRouter from "./hooks/useRouter";
 import Sidebar from "./_components/Sidebar";
 
 const DashboardLayout = () => (
-    <div className="flex">
+    <div className="bg-background text-text flex min-h-screen">
         <Sidebar />
-        <main className="ml-64 min-h-screen flex-1">
+        <main className="text-text ml-64 flex-1 overflow-y-auto p-8">
             <Outlet />
         </main>
     </div>
@@ -17,18 +17,10 @@ const DashboardLayout = () => (
 const ProtectedRoute = ({ loading, user }: { loading: boolean; user: User | null }) => {
     if (loading) {
         return (
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100vh",
-                    backgroundColor: "#f5f5f5",
-                }}
-            >
-                <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "24px", marginBottom: "16px" }}>Loading...</div>
-                    <div style={{ fontSize: "14px", color: "#666" }}>Please wait</div>
+            <div className="bg-background flex h-screen items-center justify-center">
+                <div className="text-center">
+                    <div className="text-text mb-4 text-2xl">Loading...</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Please wait</div>
                 </div>
             </div>
         );
@@ -53,7 +45,7 @@ function Routers() {
             <Route element={<ProtectedRoute loading={loading} user={user} />}>
                 <Route element={<DashboardLayout />}>
                     {dashboardRoutes.map(({ path, element }, i) => (
-                        <Route key={i} path={path} element={element ?? <></>} />
+                        <Route key={i} path={path} element={element} />
                     ))}
                 </Route>
             </Route>

@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 from flask_talisman import Talisman
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -11,6 +12,7 @@ from .routes.users import users_blueprint
 from .routes.products import products_blueprint
 from .routes.shelf_analysis import shelf_analysis_blueprint
 from .routes.alert import alert_blueprint
+from .routes.reorders import reorders_blueprint
 
 
 # CSP for a pure JSON API: no scripts, styles, or frames should ever be loaded
@@ -61,6 +63,7 @@ def create_app() -> Flask:
     app.config["SQLALCHEMY_DATABASE_URI"] = config.SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
+    Migrate(app, db)
 
     with app.app_context():
         db.create_all()
@@ -73,5 +76,6 @@ def create_app() -> Flask:
     app.register_blueprint(products_blueprint,       url_prefix=f"{prefix}/products")
     app.register_blueprint(shelf_analysis_blueprint, url_prefix=f"{prefix}/shelf-analysis")
     app.register_blueprint(alert_blueprint,          url_prefix=f"{prefix}/alerts")
+    app.register_blueprint(reorders_blueprint,       url_prefix=f"{prefix}/reorders")
 
     return app

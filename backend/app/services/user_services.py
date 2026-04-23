@@ -243,13 +243,12 @@ def deactivate_employee(user_id):
     if not employee:
         raise LookupError("Employee record not found")
 
-    user.role = 'customer'
     employee.status = 'inactive'
     db.session.commit()
 
 
 def delete_employee(user_id):
-    """Delete both employee and user records."""
+    """Remove the employee record without deleting the user account."""
     user = Users.query.get(user_id)
     if not user:
         raise LookupError("User not found")
@@ -259,7 +258,7 @@ def delete_employee(user_id):
         raise LookupError("Employee record not found")
 
     db.session.delete(employee)
-    db.session.delete(user)
+    user.role = 'customer'
     db.session.commit()
 
 

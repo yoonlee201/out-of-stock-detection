@@ -3,8 +3,8 @@ services:
   backend:
     container_name: oos_detection-backend
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: ./backend/.env
     restart: unless-stopped
     ports:

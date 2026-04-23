@@ -92,7 +92,7 @@ const ChevronIcon = ({ className = "" }: { className?: string }) => (
 );
 
 const SearchIcon = () => (
-    <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="text-text-muted h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -62,6 +62,8 @@ def validate_request(schema: Schema):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+            if request.method == "OPTIONS":
+                return fn(None, *args, **kwargs)
             raw = request.get_json(silent=True)
             if raw is None:
                 return jsonify({"message": "Request body must be valid JSON"}), 400

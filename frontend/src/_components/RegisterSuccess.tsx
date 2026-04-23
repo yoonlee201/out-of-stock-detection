@@ -36,7 +36,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
 
     return (
         <div
-            className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-white px-4"
+            className="bg-background relative flex h-screen w-screen items-center justify-center overflow-hidden px-4"
             style={{ transition: "opacity 0.7s ease", opacity: fading ? 0 : 1 }}
         >
             <style>{`
@@ -117,7 +117,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
 
             {/* Card */}
             <div
-                className={`rs-card-glow relative w-full max-w-md overflow-hidden rounded-3xl border border-gray-100 bg-white ${step >= 1 ? "rs-card-animate" : "opacity-0"}`}
+                className={`rs-card-glow border-border bg-surface relative w-full max-w-md overflow-hidden rounded-3xl border ${step >= 1 ? "rs-card-animate" : "opacity-0"}`}
             >
                 {/* Confetti */}
                 {step >= 3 && (
@@ -144,7 +144,7 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
                             </>
                         )}
                         <div
-                            className={`bg-primary/10 border-primary/20 relative flex h-20 w-20 items-center justify-center rounded-full border ${step >= 2 ? "rs-check-animate" : "opacity-0"}`}
+                            className={`border-primary/20 bg-primary/10 relative flex h-20 w-20 items-center justify-center rounded-full border ${step >= 2 ? "rs-check-animate" : "opacity-0"}`}
                             style={{ boxShadow: "0 0 40px rgba(var(--color-primary), 0.15)" }}
                         >
                             <CheckIcon />
@@ -156,13 +156,13 @@ const RegisterSuccess = ({ firstName, onContinue }: { firstName: string; onConti
                             <p className="rs-t1 rs-font-syne text-primary/60 mb-3 text-[11px] font-semibold tracking-[0.22em] uppercase opacity-0">
                                 Registration Successful
                             </p>
-                            <h1 className="rs-t2 rs-font-instrument mb-1 text-[2.6rem] leading-tight text-gray-800 opacity-0">
+                            <h1 className="rs-t2 rs-font-instrument text-text-secondary mb-1 text-[2.6rem] leading-tight opacity-0">
                                 Welcome,
                             </h1>
                             <h2 className="rs-t2 rs-font-instrument text-primary mb-5 text-[2.6rem] leading-tight italic opacity-0">
                                 {firstName}.
                             </h2>
-                            <p className="rs-t3 rs-font-syne mb-8 max-w-xs text-sm leading-relaxed text-gray-400 opacity-0">
+                            <p className="rs-t3 rs-font-syne text-text-muted mb-8 max-w-xs text-sm leading-relaxed opacity-0">
                                 Your account is all set up.
                             </p>
 
