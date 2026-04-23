@@ -10,6 +10,11 @@
 #                 Disables Qwen VL SKU labeling — no multi-GB model download.
 #                 Recommended for machines with < 8 GB RAM or slow networks.
 #
+#   --gpu         Enable NVIDIA GPU acceleration (Docker mode only).
+#                 Builds CUDA-enabled PyTorch and passes the GPU device to the
+#                 backend container via compose.dev.gpu.yml.
+#                 Requires the NVIDIA Container Toolkit on the host.
+#
 #   --no-docker   Raw local mode: no Docker required.
 #                 Uses Python venv + SQLite + npm dev server.
 #                 Skips Qwen VL automatically (same as --lite).
@@ -33,10 +38,12 @@ set -euo pipefail
 LITE=false
 NO_DOCKER=false
 AUTO_SEED=false
+GPU=false
 
 for arg in "$@"; do
     case "$arg" in
         --lite)      LITE=true ;;
+        --gpu)       GPU=true ;;
         --no-docker) NO_DOCKER=true; LITE=true ;;
         --seed)      AUTO_SEED=true ;;
         --help|-h)
@@ -46,6 +53,11 @@ for arg in "$@"; do
         *) echo "Unknown argument: $arg  (try --help)"; exit 1 ;;
     esac
 done
+
+if [ "$GPU" = "true" ] && [ "$NO_DOCKER" = "true" ]; then
+    echo "Error: --gpu requires Docker mode. Remove --no-docker or --gpu."
+    exit 1
+fi
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -148,9 +160,17 @@ fi
 # =============================================================================
 if [ "$NO_DOCKER" = "false" ]; then
 
+    COMPOSE_FILES="-f compose.dev.yml"
+    if [ "$GPU" = "true" ]; then
+        COMPOSE_FILES="-f compose.dev.yml -f compose.dev.gpu.yml"
+        info "GPU mode enabled — using CUDA PyTorch build and NVIDIA device reservation."
+    fi
+
     section "Starting Docker services…"
-    docker compose -f compose.dev.yml down 2>/dev/null || true
-    if ! docker compose -f compose.dev.yml up --build -d; then
+    # shellcheck disable=SC2086
+    docker compose $COMPOSE_FILES down 2>/dev/null || true
+    # shellcheck disable=SC2086
+    if ! docker compose $COMPOSE_FILES up --build -d; then
         echo "Error: docker compose failed. Review the output above."
         exit 1
     fi
@@ -169,7 +189,8 @@ if [ "$NO_DOCKER" = "false" ]; then
 
     if [ "$READY" = "false" ]; then
         echo "Error: backend did not pass health check within 60 s."
-        echo "  Logs: docker compose -f compose.dev.yml logs backend"
+        # shellcheck disable=SC2086
+        echo "  Logs: docker compose $COMPOSE_FILES logs backend"
         exit 1
     fi
     info "Backend is ready."
@@ -199,10 +220,16 @@ if [ "$NO_DOCKER" = "false" ]; then
     else
     echo "║  Mode      →  Full  (YOLO + gaps + Qwen VL)          ║"
     fi
+    if [ "$GPU" = "true" ]; then
+    echo "║  Compute   →  GPU   (CUDA)                           ║"
+    else
+    echo "║  Compute   →  CPU                                    ║"
+    fi
     echo "╚══════════════════════════════════════════════════════╝"
     echo ""
     info "Starting watch mode for hot-reload (Ctrl+C to stop)…"
-    docker compose -f compose.dev.yml watch --no-up
+    # shellcheck disable=SC2086
+    docker compose $COMPOSE_FILES watch --no-up
 
 # =============================================================================
 # BRANCH B — No Docker (Python venv + SQLite + npm)

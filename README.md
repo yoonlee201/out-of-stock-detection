@@ -26,7 +26,8 @@ out-of-stock-detection/
 │   └── train/                # YOLO training run artifacts (curves, confusion matrix)
 ├── weights/
 │   └── best.pt               # Trained YOLO detector weights (required)
-├── compose.dev.yml           # Local dev: backend + postgres + frontend
+├── compose.dev.yml           # Local dev: backend + postgres + frontend (CPU)
+├── compose.dev.gpu.yml       # Dev override: CUDA PyTorch + NVIDIA GPU device
 └── docker-compose.yml        # Production: backend only (external RDS)
 ```
 
@@ -41,7 +42,7 @@ out-of-stock-detection/
 | Flask backend | Yes | REST API, auth, alerts |
 | PostgreSQL (Docker) | Yes (Docker mode) | `postgres:16-alpine` in compose.dev.yml |
 | React + Vite dev server | Yes | Hot-reload via Docker watch or npm |
-| YOLO detector | Yes | Uses `weights/best.pt`; CPU inference |
+| YOLO detector | Yes | Uses `weights/best.pt`; CPU or GPU |
 | Gap detection | Yes | Pure Python, no extra models |
 | **Qwen2-VL SKU labeling** | **Optional** | Disabled in `--lite` mode (see below) |
 
@@ -57,18 +58,35 @@ out-of-stock-detection/
 - **Qwen2-VL SKU labeling**: downloads 4–14 GB on first use; needs 4–16 GB RAM.
   Without it, detected products are listed as unlabeled boxes; gap locations still report correctly.
 
+---
+
 ### Prerequisites
 
 **Docker mode (recommended)**
 - Docker Desktop (Mac/Windows) or Docker Engine + Compose v2 (Linux)
 - `weights/best.pt` in the repo root
+- *(GPU mode only)* NVIDIA GPU + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-**No-Docker mode** (`--lite --no-docker`)
+**No-Docker mode** (`--no-docker`)
 - Python 3.11
 - Node.js 18+ and npm
 - `weights/best.pt` in the repo root
 
-### Step-by-step: full setup (Docker, standard hardware)
+---
+
+### Setup options
+
+| Command | Docker | Database | Compute | Qwen VL |
+|---|---|---|---|---|
+| `bash scripts/setup.sh` | Yes | PostgreSQL | CPU | Enabled |
+| `bash scripts/setup.sh --lite` | Yes | PostgreSQL | CPU | Disabled |
+| `bash scripts/setup.sh --gpu` | Yes | PostgreSQL | CUDA GPU | Enabled |
+| `bash scripts/setup.sh --gpu --lite` | Yes | PostgreSQL | CUDA GPU | Disabled |
+| `bash scripts/setup.sh --no-docker` | No | SQLite | CPU | Disabled |
+
+---
+
+### Step-by-step: full setup (Docker, CPU)
 
 ```bash
 # 1. Clone and enter the repo
@@ -94,6 +112,33 @@ Frontend: **http://localhost:5173** · Backend: **http://localhost:8000**
 
 ---
 
+### Step-by-step: GPU setup (NVIDIA CUDA)
+
+Use `--gpu` on any machine with an NVIDIA GPU and the NVIDIA Container Toolkit installed.
+The backend image is rebuilt with CUDA-enabled PyTorch (`cu124`) and the container gets
+exclusive access to the GPU.
+
+```bash
+bash scripts/setup.sh --gpu
+```
+
+At runtime the shelf analyzer automatically detects the GPU and switches to higher-throughput settings:
+
+| Setting | CPU | GPU |
+|---|---|---|
+| Max SKU identifications per image | 6 | 16 |
+| SKU identification batch size | 4 | 8 |
+| Qwen2-VL model dtype | float32 | float16 |
+| Typical analysis time (Qwen enabled) | 1–5 min | 10–30 s |
+
+To rebuild the GPU image after code changes:
+
+```bash
+docker compose -f compose.dev.yml -f compose.dev.gpu.yml up --build -d
+```
+
+---
+
 ### Step-by-step: lite setup (low-power hardware / slow network)
 
 Use `--lite` to skip the Qwen2-VL download. Shelf analysis runs YOLO + gap detection only.
@@ -102,8 +147,8 @@ Use `--lite` to skip the Qwen2-VL download. Shelf analysis runs YOLO + gap detec
 bash scripts/setup.sh --lite
 ```
 
-Docker is still required for `--lite`. The only difference is `MAX_SKU_IDENTIFICATIONS=0`
-is written to `backend/.env`, so Qwen never loads.
+Docker is still required. The only difference is `MAX_SKU_IDENTIFICATIONS=0` is written to
+`backend/.env`, so Qwen never loads.
 
 ---
 
@@ -147,6 +192,16 @@ docker exec oos_detection-backend python -m db.init_db --seed
 
 # Open a psql session
 docker exec -it pg-oos_detection psql -U oos_detection -d oos_detection
+
+# Run database migrations
+docker exec oos_detection-backend flask db upgrade
+```
+
+For GPU mode, append `-f compose.dev.gpu.yml` to every `docker compose` call, e.g.:
+
+```bash
+docker compose -f compose.dev.yml -f compose.dev.gpu.yml logs -f backend
+docker compose -f compose.dev.yml -f compose.dev.gpu.yml down
 ```
 
 ---
@@ -161,6 +216,7 @@ Key toggles:
 |---|---|
 | `MAX_SKU_IDENTIFICATIONS=0` | Disable Qwen VL (lite mode) |
 | `MAX_SKU_IDENTIFICATIONS=all` | Label every detected crop |
+| `SKU_IDENTIFICATION_CHUNK_SIZE=4` | Override batch size (auto-set by GPU detection) |
 | `SQLALCHEMY_DATABASE_URI` | Swap between SQLite and PostgreSQL |
 | `FLASK_ENV=production` | Enables production hardening |
 
@@ -176,6 +232,30 @@ Key toggles:
 
 ---
 
+## User Roles & Employee Status
+
+### Roles
+
+| Role | Access |
+|---|---|
+| `customer` | Read-only public access |
+| `associate` | Employee actions (inventory, reorders, shelf analysis) |
+| `supervisor` | Associate actions + manage associates |
+| `manager` | Full access including employee management |
+
+### Employee status
+
+| Status | Meaning |
+|---|---|
+| `pending` | Invitation sent but not yet accepted — no employee access |
+| `active` | Currently on shift |
+| `inactive` | Off shift — retains full employee access and role |
+
+Deleting an employee from the manager page removes the employee record and resets their
+account to `customer`. It does **not** delete their user account.
+
+---
+
 ## Shelf Analyzer Notes
 
 The backend route is at [`backend/app/routes/shelf_analysis.py`](backend/app/routes/shelf_analysis.py); the pipeline lives in [`shelf_analyzer/`](shelf_analyzer/).
@@ -183,7 +263,8 @@ The backend route is at [`backend/app/routes/shelf_analysis.py`](backend/app/rou
 Runtime notes:
 
 - First request with Qwen enabled downloads the model weights (4–14 GB, once only).
-- CPU inference is 10–50× slower than GPU — expect 1–5 min per image with Qwen.
+- CPU inference is 10–50× slower than GPU — expect 1–5 min per image with Qwen on CPU.
+- With GPU the same analysis typically takes 10–30 s.
 - The frontend timeout is controlled by `VITE_SHELF_ANALYSIS_TIMEOUT_MS` in `frontend/.env`.
 
 Useful env tuning:

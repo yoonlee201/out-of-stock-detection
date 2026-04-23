@@ -7,6 +7,7 @@ Create Date: 2026-04-22
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 revision = "0002"
 down_revision = "0001"
@@ -24,14 +25,15 @@ def upgrade():
         batch_op.add_column(sa.Column("last_checked", sa.DateTime(timezone=True), nullable=True))
 
     # ── New shelf_analysis_logs table ────────────────────────────────────────
-    op.create_table(
-        "shelf_analysis_logs",
-        sa.Column("id",          sa.Integer(),                         primary_key=True, autoincrement=True),
-        sa.Column("user_id",     sa.Integer(),                         sa.ForeignKey("users.user_id"), nullable=True),
-        sa.Column("file_name",   sa.String(255),                       nullable=False),
-        sa.Column("result_json", sa.Text(),                            nullable=False),
-        sa.Column("created_at",  sa.DateTime(timezone=True),          server_default=sa.func.now(), nullable=False),
-    )
+    if "shelf_analysis_logs" not in inspect(op.get_bind()).get_table_names():
+        op.create_table(
+            "shelf_analysis_logs",
+            sa.Column("id",          sa.Integer(),                         primary_key=True, autoincrement=True),
+            sa.Column("user_id",     sa.Integer(),                         sa.ForeignKey("users.user_id"), nullable=True),
+            sa.Column("file_name",   sa.String(255),                       nullable=False),
+            sa.Column("result_json", sa.Text(),                            nullable=False),
+            sa.Column("created_at",  sa.DateTime(timezone=True),          server_default=sa.func.now(), nullable=False),
+        )
 
 
 def downgrade():

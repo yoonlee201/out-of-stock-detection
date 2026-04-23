@@ -14,7 +14,6 @@ import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
 import { apiGetProducts, apiUpdateProduct } from "../api/query/products";
 import { apiCreateReorder } from "../api/query/reorders";
-import { mockInventory } from "../mockData";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 
 // ======================Constants========================
@@ -68,16 +67,18 @@ const Inventory = () => {
     const { user, loading } = useAuth();
     const view = user?.role === "customer" ? "customer" : "employee";
 
-    const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [inventoryLoading, setInventoryLoading] = useState(true);
     const [inventoryError, setInventoryError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
+
         setInventoryLoading(true);
         setInventoryError(null);
+        
         apiGetProducts()
-            .then(setInventory)
+            .then((inventory) => setInventory(inventory ?? []))
             .catch((e: Error) => setInventoryError(e.message))
             .finally(() => setInventoryLoading(false));
     }, [user]);
