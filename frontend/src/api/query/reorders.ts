@@ -8,10 +8,7 @@ export interface ReorderResult {
     created_at: string;
 }
 
-export const apiCreateReorder = async (
-    productId: string,
-    quantity: number,
-): Promise<ReorderResult> => {
+export const apiCreateReorder = async (productId: string, quantity: number): Promise<ReorderResult> => {
     try {
         const { data } = await axiosAuth.post<{ reorder: ReorderResult }>("/reorders/", {
             product_id: Number(productId),

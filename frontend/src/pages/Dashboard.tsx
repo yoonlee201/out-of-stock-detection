@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { apiAnalyzeShelf, apiGetAnalysisHistory, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
+import {
+    apiAnalyzeShelf,
+    apiGetAnalysisHistory,
+    type ShelfAnalysisResponse,
+    type ShelfDetection,
+} from "../api/query/shelfAnalysis";
 import { mockAnalysisResults } from "../mockData";
 import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
@@ -42,11 +47,13 @@ const Dashboard = () => {
             .then((entries) => {
                 if (cancelled) return;
                 if (entries.length > 0) {
-                    setHistory(entries.map((e) => ({
-                        fileName: e.file_name,
-                        result: e.result,
-                        analyzedAt: new Date(e.created_at),
-                    })));
+                    setHistory(
+                        entries.map((e) => ({
+                            fileName: e.file_name,
+                            result: e.result,
+                            analyzedAt: new Date(e.created_at),
+                        })),
+                    );
                 } else {
                     setHistory(toHistoryEntries(mockAnalysisResults));
                 }
@@ -54,8 +61,12 @@ const Dashboard = () => {
             .catch(() => {
                 if (!cancelled) setHistory(toHistoryEntries(mockAnalysisResults));
             })
-            .finally(() => { if (!cancelled) setHistoryLoading(false); });
-        return () => { cancelled = true; };
+            .finally(() => {
+                if (!cancelled) setHistoryLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -170,7 +181,6 @@ const Dashboard = () => {
                     onClick={() => setUploadDialogOpen(true)}
                     className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                 >
-
                     <PlusIcon /> New Analysis
                 </button>
             </div>

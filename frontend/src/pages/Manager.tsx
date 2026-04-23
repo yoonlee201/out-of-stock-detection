@@ -91,8 +91,10 @@ const Manager = () => {
             );
         })
         .sort((a, b) => {
-            const av = filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
-            const bv = filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
+            const av =
+                filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
+            const bv =
+                filters.sortField === "firstName" ? `${b.firstName} ${b.lastName}` : (b[filters.sortField] ?? "");
             return filters.sortDir === "asc"
                 ? String(av).localeCompare(String(bv))
                 : String(bv).localeCompare(String(av));
@@ -102,8 +104,20 @@ const Manager = () => {
         filters.groupBy === "none"
             ? { all: filtered }
             : filters.groupBy === "role"
-                ? EMPLOYEE_ROLES.reduce((acc, r) => { acc[r] = filtered.filter((e) => e.role === r); return acc; }, {} as Record<string, Employee[]>)
-                : STATUSES.reduce((acc, s) => { acc[s] = filtered.filter((e) => e.status === s); return acc; }, {} as Record<string, Employee[]>);
+              ? EMPLOYEE_ROLES.reduce(
+                    (acc, r) => {
+                        acc[r] = filtered.filter((e) => e.role === r);
+                        return acc;
+                    },
+                    {} as Record<string, Employee[]>,
+                )
+              : STATUSES.reduce(
+                    (acc, s) => {
+                        acc[s] = filtered.filter((e) => e.status === s);
+                        return acc;
+                    },
+                    {} as Record<string, Employee[]>,
+                );
 
     const groupKeys = filters.groupBy === "none" ? undefined : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
 
@@ -118,7 +132,9 @@ const Manager = () => {
     };
 
     const handleDeleteEmployee = async (id: string) => {
-        const confirmed = window.confirm("Delete this employee? This will permanently remove both user and employee data.");
+        const confirmed = window.confirm(
+            "Delete this employee? This will permanently remove both user and employee data.",
+        );
         if (!confirmed) return;
         try {
             await apiDeleteEmployee(Number(id));
@@ -131,7 +147,10 @@ const Manager = () => {
     };
 
     const openEdit = (e: Employee) =>
-        setEdit({ target: e, form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role } });
+        setEdit({
+            target: e,
+            form: { firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, role: e.role },
+        });
 
     const handleEditSave = async () => {
         if (!edit.target) return;
@@ -232,7 +251,8 @@ const Manager = () => {
     const active = employees.filter((e) => e.status === "active").length;
     const inactive = employees.filter((e) => e.status === "inactive").length;
 
-    const hasActiveFilters = filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
+    const hasActiveFilters =
+        filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
 
     return (
         <>
@@ -263,12 +283,14 @@ const Manager = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-sm font-semibold">Reorder System</h2>
-                            <p className="text-text-muted mt-0.5 text-xs">Create mock reorders for low-stock products</p>
+                            <p className="text-text-muted mt-0.5 text-xs">
+                                Create mock reorders for low-stock products
+                            </p>
                         </div>
                         <button
                             onClick={handleCreateReorders}
                             disabled={creatingReorders}
-                            className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors"
+                            className="hover:bg-primary-hover bg-primary rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
                         >
                             {creatingReorders ? "Creating…" : "Create Reorders"}
                         </button>
@@ -330,13 +352,20 @@ const Manager = () => {
                     {hasActiveFilters && (
                         <button
                             onClick={() =>
-                                setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" })
+                                setFilters({
+                                    search: "",
+                                    role: "all",
+                                    status: "active",
+                                    sortField: "status",
+                                    sortDir: "asc",
+                                    groupBy: "none",
+                                })
                             }
                             className="text-text-muted hover:bg-surface-muted rounded-lg px-2 py-1 text-xs font-medium transition-colors"
                         >
-                        Clear
-                        </button>)
-                    }
+                            Clear
+                        </button>
+                    )}
                 </FilterBar>
 
                 <DataTable
@@ -440,7 +469,9 @@ const Manager = () => {
                     <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
                     <select
                         value={edit.form.role ?? "associate"}
-                        onChange={(e) => setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))}
+                        onChange={(e) =>
+                            setEdit((s) => ({ ...s, form: { ...s.form, role: e.target.value as UserRole } }))
+                        }
                         className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                     >
                         {EMPLOYEE_ROLES.map((role) => (

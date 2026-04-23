@@ -20,9 +20,7 @@ export interface DataTableProps<SortField extends string = string> {
 }
 
 export const FilterBar = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-surface mb-4 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow">
-        {children}
-    </div>
+    <div className="bg-surface mb-4 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow">{children}</div>
 );
 
 export const FilterGroup = ({
@@ -118,8 +116,9 @@ function DataTable<SortField extends string = string>({
                                         {label}
                                         {canSort && sortField === field && (
                                             <ChevronIcon
-                                                className={`ml-1 inline h-3 w-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""
-                                                    }`}
+                                                className={`ml-1 inline h-3 w-3 transition-transform ${
+                                                    sortDir === "desc" ? "rotate-180" : ""
+                                                }`}
                                             />
                                         )}
                                     </th>

@@ -184,10 +184,7 @@ const Inventory = () => {
         if (filtered.length === 0) {
             return (
                 <tr key="empty">
-                    <td
-                        colSpan={view === "employee" ? 7 : 6}
-                        className="text-text-muted py-16 text-center text-sm"
-                    >
+                    <td colSpan={view === "employee" ? 7 : 6} className="text-text-muted py-16 text-center text-sm">
                         No products match your filters.
                     </td>
                 </tr>
@@ -203,11 +200,7 @@ const Inventory = () => {
                     onReorder={() => openReorder(item)}
                 />
             ) : (
-                <CustomerRow
-                    key={item.id}
-                    item={item}
-                    availability={deriveCustomerAvailability(item)}
-                />
+                <CustomerRow key={item.id} item={item} availability={deriveCustomerAvailability(item)} />
             ),
         );
     };
@@ -231,12 +224,7 @@ const Inventory = () => {
             </div>
 
             <FilterBar>
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Search product…"
-                    className={"w-1/3"}
-                />
+                <SearchInput value={search} onChange={setSearch} placeholder="Search product…" className={"w-1/3"} />
                 <CategoryDropdown categories={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
                 {view === "employee" && (
                     <FilterGroup
@@ -247,11 +235,7 @@ const Inventory = () => {
                 )}
             </FilterBar>
 
-            <DataTable
-                columns={columns}
-                loading={inventoryLoading}
-                renderRows={renderRows}
-            />
+            <DataTable columns={columns} loading={inventoryLoading} renderRows={renderRows} />
 
             <Dialog
                 open={!!(editTarget && editForm)}
@@ -475,7 +459,10 @@ const CategoryDropdown = ({
                     <div className="max-h-52 overflow-y-auto p-1.5">
                         <button
                             type="button"
-                            onClick={() => { onChange("All"); setOpen(false); }}
+                            onClick={() => {
+                                onChange("All");
+                                setOpen(false);
+                            }}
                             className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                             style={{ color: value === "All" ? "var(--color-text)" : "var(--color-text-secondary)" }}
                         >
@@ -488,9 +475,14 @@ const CategoryDropdown = ({
                                 <button
                                     key={cat}
                                     type="button"
-                                    onClick={() => { onChange(cat); setOpen(false); }}
+                                    onClick={() => {
+                                        onChange(cat);
+                                        setOpen(false);
+                                    }}
                                     className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
-                                    style={{ color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)" }}
+                                    style={{
+                                        color: value === cat ? "var(--color-text)" : "var(--color-text-secondary)",
+                                    }}
                                 >
                                     {cat}
                                 </button>
