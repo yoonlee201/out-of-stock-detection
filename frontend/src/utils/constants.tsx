@@ -15,7 +15,7 @@ export const ROLE_STYLES: Record<UserRole, string> = {
 };
 
 export const EMPLOYEE_ROLES: UserRole[] = ["associate", "supervisor", "manager"];
-export const STATUSES: EmployeeStatus[] = ["active", "pending", "inactive"];
+export const STATUSES: EmployeeStatus[] = ["active", "inactive", "pending"];
 
 export const STATUS_TEXT: Record<EmployeeStatus, string> = {
     active: "Active",

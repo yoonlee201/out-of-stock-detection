@@ -3,43 +3,83 @@ import Dialog from "../_components/Dialog";
 import Field from "../_components/Field";
 import type { InventoryItem, InventoryStatus } from "../types/inventory";
 import {
+    CUSTOMER_AVAILABILITY_LABEL,
     deriveCustomerAvailability,
     deriveStatus,
     QUANTITY_STATUS_FILTERS,
+    QUANTITY_STATUS_LABEL,
     SHELF_STATUS_LABEL,
     shelfStatusClass,
 } from "../utils/constants";
 import { CustomerRow, EmployeeRow } from "../_components/InventoryRows";
 import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
-import { apiGetProducts, apiUpdateProduct } from "../api/query/products";
+import { apiCreateProduct, apiDeleteProduct, apiGetProducts, apiUpdateProduct } from "../api/query/products";
 import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
+import { PlusIcon } from "../_components/Icons";
+
+type SortField =
+    | "product" | "category" | "aisle" | "shelf"
+    | "stock" | "quantityStatus" | "shelfStatus" | "lastChecked" | "availability";
+type GroupField = "none" | "category" | "quantityStatus" | "shelfStatus" | "availability";
+
+const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
+    { value: "none", label: "No grouping" },
+    { value: "category", label: "Category" },
+    { value: "quantityStatus", label: "Quantity Status" },
+    { value: "shelfStatus", label: "Shelf Status" },
+    { value: "availability", label: "Availability" },
+];
+
+const sortValue = (item: InventoryItem, field: SortField): string | number => {
+    switch (field) {
+        case "product": return `${item.brand} ${item.productName}`.toLowerCase();
+        case "category": return item.category.toLowerCase();
+        case "aisle": return item.aisle;
+        case "shelf": return item.shelf;
+        case "stock": return item.stockCount;
+        case "quantityStatus": return deriveStatus(item.stockCount);
+        case "shelfStatus": return item.shelfStatus;
+        case "lastChecked": return item.lastChecked.getTime();
+        case "availability": return deriveCustomerAvailability(item);
+    }
+};
+
+const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
+    switch (field) {
+        case "category": return item.category || "Uncategorized";
+        case "quantityStatus": return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount)];
+        case "shelfStatus": return SHELF_STATUS_LABEL[item.shelfStatus];
+        case "availability": return CUSTOMER_AVAILABILITY_LABEL[deriveCustomerAvailability(item)];
+        case "none": return "";
+    }
+};
 
 // ======================Constants========================
 // TODO: fetch categories from backend instead of hardcoding
 const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
-    { field: "product", label: "Product", sortable: false },
-    { field: "category", label: "Category", sortable: false },
-    { field: "aisle", label: "Aisle", sortable: false },
-    { field: "shelf", label: "Shelf", sortable: false },
-    { field: "stock", label: "Stock", sortable: false },
-    { field: "quantityStatus", label: "Quantity Status", sortable: false },
-    { field: "shelfStatus", label: "Shelf Status", sortable: false },
-    { field: "lastChecked", label: "Last Checked", sortable: false },
+    { field: "product", label: "Product", sortable: true },
+    { field: "category", label: "Category", sortable: true },
+    { field: "aisle", label: "Aisle", sortable: true },
+    { field: "shelf", label: "Shelf", sortable: true },
+    { field: "stock", label: "Stock", sortable: true },
+    { field: "quantityStatus", label: "Quantity Status", sortable: true },
+    { field: "shelfStatus", label: "Shelf Status", sortable: true },
+    { field: "lastChecked", label: "Last Checked", sortable: true },
     { field: "actions", label: "Actions", sortable: false },
 ];
 
 const INVENTORY_COLUMNS_CUSTOMER = [
-    { field: "product", label: "Product", sortable: false },
-    { field: "category", label: "Category", sortable: false },
-    { field: "aisle", label: "Aisle", sortable: false },
-    { field: "shelf", label: "Shelf", sortable: false },
-    { field: "stock", label: "Stock", sortable: false },
-    { field: "availability", label: "Availability", sortable: false },
-    { field: "lastChecked", label: "Last Checked", sortable: false },
+    { field: "product", label: "Product", sortable: true },
+    { field: "category", label: "Category", sortable: true },
+    { field: "aisle", label: "Aisle", sortable: true },
+    { field: "shelf", label: "Shelf", sortable: true },
+    { field: "stock", label: "Stock", sortable: true },
+    { field: "availability", label: "Availability", sortable: true },
+    { field: "lastChecked", label: "Last Checked", sortable: true },
     { field: "actions", label: "", sortable: false },
 ];
 
@@ -74,6 +114,7 @@ const Inventory = () => {
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [inventoryLoading, setInventoryLoading] = useState(true);
     const [inventoryError, setInventoryError] = useState<string | null>(null);
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -102,13 +143,26 @@ const Inventory = () => {
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
 
     return (
-        <>
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold">Inventory</h1>
-            </div>
+        <div className="px-8 py-6">
+            <header className="mb-6 flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold">Inventory</h1>
+                    <p className="text-text-muted mt-0.5 text-sm"> Manage your product inventory and track stock levels</p> 
+                </div>
+                {view === "employee" && (
+                    <button
+                        type="button"
+                        onClick={() => setAddDialogOpen(true)}
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                    >
+                        <PlusIcon />
+                        <span className='hidden lg:block'>Add Item</span>
+                    </button>
+                )}
+            </header>
 
             {view === "employee" && (
-                <div className="mb-8 grid grid-cols-4 gap-4">
+                <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <SummaryCard label="Total Products" value={summary.total} />
                     <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
                     <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
@@ -117,7 +171,13 @@ const Inventory = () => {
             )}
 
             <InventoryTable view={view} inventory={inventory} setInventory={setInventory} />
-        </>
+
+            <AddProductDialog
+                open={addDialogOpen}
+                onClose={() => setAddDialogOpen(false)}
+                onCreated={(item) => setInventory((prev) => [...prev, item])}
+            />
+        </div>
     );
 };
 
@@ -133,6 +193,9 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
+    const [sortField, setSortField] = useState<SortField>("product");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+    const [groupBy, setGroupBy] = useState<GroupField>("none");
     const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
     const [reorderTarget, setReorderTarget] = useState<InventoryItem | null>(null);
 
@@ -152,8 +215,35 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
         });
     }, [inventory, search, categoryFilter, statusFilter, view]);
 
-    const renderRows = () => {
-        if (filtered.length === 0) {
+    const sorted = useMemo(() => {
+        return [...filtered].sort((a, b) => {
+            const av = sortValue(a, sortField);
+            const bv = sortValue(b, sortField);
+            if (av < bv) return sortDir === "asc" ? -1 : 1;
+            if (av > bv) return sortDir === "asc" ? 1 : -1;
+            return 0;
+        });
+    }, [filtered, sortField, sortDir]);
+
+    const { groupKeys, groupedItems } = useMemo(() => {
+        if (groupBy === "none") return { groupKeys: undefined, groupedItems: null };
+        const groups = new Map<string, InventoryItem[]>();
+        sorted.forEach((item) => {
+            const key = groupKeyOf(item, groupBy);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key)!.push(item);
+        });
+        return { groupKeys: Array.from(groups.keys()).sort(), groupedItems: groups };
+    }, [sorted, groupBy]);
+
+    const handleSort = (field: SortField) => {
+        if (field === sortField) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        else { setSortField(field); setSortDir("asc"); }
+    };
+
+    const renderRows = (groupKey: string) => {
+        const items = groupedItems && groupKey !== "all" ? groupedItems.get(groupKey) ?? [] : sorted;
+        if (items.length === 0) {
             return (
                 <tr key="empty">
                     <td colSpan={view === "employee" ? 9 : 8} className="text-text-muted py-16 text-center text-sm">
@@ -162,7 +252,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                 </tr>
             );
         }
-        return filtered.map((item) =>
+        return items.map((item) =>
             view === "employee" ? (
                 <EmployeeRow
                     key={item.id}
@@ -178,6 +268,9 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
     };
 
     const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
+    const groupOptions = view === "customer"
+        ? GROUP_OPTIONS.filter((o) => o.value !== "quantityStatus" && o.value !== "shelfStatus")
+        : GROUP_OPTIONS.filter((o) => o.value !== "availability");
 
     return (
         <>
@@ -196,9 +289,30 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                         onChange={(v) => setStatusFilter(v as InventoryStatus | "all")}
                     />
                 )}
+                <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
+                    <span className="text-text-muted tracking-[0.14em] uppercase">Group by</span>
+                    <select
+                        value={groupBy}
+                        onChange={(e) => setGroupBy(e.target.value as GroupField)}
+                        className="bg-surface-muted border-border text-text rounded-xl border px-3 py-1.5 text-xs font-semibold"
+                    >
+                        {groupOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </FilterBar>
 
-            <DataTable columns={columns} renderRows={renderRows} />
+            <DataTable<SortField>
+                columns={columns as { field: SortField; label: string; sortable: boolean }[]}
+                sortField={sortField}
+                sortDir={sortDir}
+                onSort={handleSort}
+                groupKeys={groupKeys}
+                renderRows={renderRows}
+            />
 
             <EditProductDialog target={editTarget} setInventory={setInventory} onClose={() => setEditTarget(null)} />
             <ReorderDialog target={reorderTarget} onClose={() => setReorderTarget(null)} />
@@ -326,9 +440,15 @@ const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogP
     const [form, setForm] = useState<EditForm | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     useEffect(() => {
-        if (target) setForm(itemToForm(target));
+        if (target) {
+            setForm(itemToForm(target));
+            setConfirmingDelete(false);
+            setSaveError(null);
+        }
     }, [target]);
 
     const setField = (field: keyof EditForm, value: string) =>
@@ -354,6 +474,21 @@ const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogP
             setSaveError(e instanceof Error ? e.message : "Failed to save.");
         } finally {
             setSaveLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!target) return;
+        setDeleteLoading(true);
+        setSaveError(null);
+        try {
+            await apiDeleteProduct(target.id);
+            setInventory((prev) => prev.filter((i) => i.id !== target.id));
+            onClose();
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : "Failed to delete.");
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -412,23 +547,57 @@ const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogP
                         </div>
                     </div>
                     {saveError && <p className="text-red text-xs">{saveError}</p>}
-                    <div className="mt-2 flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="bg-surface-muted text-text-secondary flex-1 rounded-xl px-4 py-3 font-semibold transition"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={saveLoading}
-                            className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                        >
-                            {saveLoading ? "Saving…" : "Save Changes"}
-                        </button>
-                    </div>
+                    {confirmingDelete ? (
+                        <div className="border-red/40 bg-red/5 mt-2 space-y-2 rounded-xl border p-3">
+                            <p className="text-text text-xs font-semibold">
+                                Delete {target.brand} {target.productName}? This cannot be undone.
+                            </p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmingDelete(false)}
+                                    disabled={deleteLoading}
+                                    className="bg-surface-muted text-text-secondary flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition"
+                                >
+                                    Keep
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={deleteLoading}
+                                    className="bg-red flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                                >
+                                    {deleteLoading ? "Deleting…" : "Delete permanently"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-2 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmingDelete(true)}
+                                disabled={saveLoading}
+                                className="border-red/40 text-red hover:bg-red/10 rounded-xl border px-4 py-3 font-semibold transition"
+                            >
+                                Delete
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="bg-surface-muted text-text-secondary flex-1 rounded-xl px-4 py-3 font-semibold transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saveLoading}
+                                className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                            >
+                                {saveLoading ? "Saving…" : "Save Changes"}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </Dialog>
@@ -523,6 +692,135 @@ const ReorderDialog = ({ target, onClose }: ReorderDialogProps) => {
                     )}
                 </div>
             )}
+        </Dialog>
+    );
+};
+type AddProductDialogProps = {
+    open: boolean;
+    onClose: () => void;
+    onCreated: (item: InventoryItem) => void;
+};
+
+interface AddForm {
+    brand: string;
+    productName: string;
+    variant: string;
+    size: string;
+    category: string;
+    stockCount: string;
+    aisle: string;
+    shelf: string;
+}
+
+const emptyAddForm: AddForm = {
+    brand: "",
+    productName: "",
+    variant: "",
+    size: "",
+    category: CATEGORIES[0] ?? "",
+    stockCount: "0",
+    aisle: "Aisle 1",
+    shelf: "Shelf 1",
+};
+
+const AddProductDialog = ({ open, onClose, onCreated }: AddProductDialogProps) => {
+    const [form, setForm] = useState<AddForm>(emptyAddForm);
+    const [saveLoading, setSaveLoading] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setForm(emptyAddForm);
+            setSaveError(null);
+        }
+    }, [open]);
+
+    const setField = (field: keyof AddForm, value: string) =>
+        setForm((prev) => ({ ...prev, [field]: value }));
+
+    const handleSave = async () => {
+        if (!form.productName.trim()) {
+            setSaveError("Product name is required.");
+            return;
+        }
+        const qty = Math.max(0, parseInt(form.stockCount, 10) || 0);
+        setSaveLoading(true);
+        setSaveError(null);
+        try {
+            const created = await apiCreateProduct({
+                name: form.productName.trim(),
+                brand: form.brand.trim(),
+                variant: form.variant.trim(),
+                size: form.size.trim(),
+                type: form.category.trim(),
+                quantity_in_store: qty,
+                aisle: form.aisle.trim(),
+                shelf: form.shelf.trim(),
+            });
+            onCreated(created);
+            onClose();
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : "Failed to create product.");
+        } finally {
+            setSaveLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} title="Add Product" description="Create a new inventory item." onClose={onClose}>
+            <div className="space-y-3">
+                <Field label="Brand" value={form.brand} onChange={(e) => setField("brand", e.target.value)} />
+                <Field
+                    label="Product Name"
+                    value={form.productName}
+                    onChange={(e) => setField("productName", e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                    <Field label="Variant" value={form.variant} onChange={(e) => setField("variant", e.target.value)} />
+                    <Field label="Size" value={form.size} onChange={(e) => setField("size", e.target.value)} />
+                </div>
+                <div>
+                    <label className="text-text-secondary mb-1 block text-sm font-semibold">Category</label>
+                    <select
+                        value={form.category}
+                        onChange={(e) => setField("category", e.target.value)}
+                        className="input-base"
+                    >
+                        {CATEGORIES.map((c) => (
+                            <option key={c}>{c}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Field label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} />
+                    <Field label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)} />
+                </div>
+                <Field
+                    label="Stock Count"
+                    type="number"
+                    min={0}
+                    value={form.stockCount}
+                    onChange={(e) => setField("stockCount", e.target.value)}
+                />
+                {saveError && <p className="text-red text-xs">{saveError}</p>}
+                <div className="mt-2 flex gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="bg-surface-muted text-text-secondary flex-1 rounded-xl px-4 py-3 font-semibold transition"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saveLoading}
+                        className="bg-primary flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    >
+                        {saveLoading ? "Creating…" : "Create Product"}
+                    </button>
+                </div>
+            </div>
         </Dialog>
     );
 };

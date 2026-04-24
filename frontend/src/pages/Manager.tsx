@@ -55,11 +55,12 @@ const Manager = () => {
     const total = employees.length;
     const active = employees.filter((e) => e.status === "active").length;
     const inactive = employees.filter((e) => e.status === "inactive").length;
+    const pending = employees.filter((e) => e.status === "pending").length;
 
     return (
         <>
             <div className="px-8 py-6">
-                <div className="mb-6 flex items-start justify-between">
+                <header className="mb-6 flex items-start justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold">People</h1>
                         <p className="text-text-muted mt-0.5 text-sm">
@@ -68,17 +69,18 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setOpenInvite(true)}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                     >
                         <PlusIcon />
-                        Add member
+                        <span className='hidden lg:block'>Add member</span>
                     </button>
-                </div>
+                </header>
 
-                <div className="mb-6 grid grid-cols-3 gap-4">
+                <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <SummaryCard label="Total Employees" value={total} />
                     <SummaryCard label="Active" value={active} valueClass="text-green" />
                     <SummaryCard label="Inactive" value={inactive} valueClass="text-text-muted" />
+                    <SummaryCard label="Pending" value={pending} valueClass="text-yellow" />
                 </div>
 
                 <EmployeeTables employees={employees} setEmployees={setEmployees} fetching={fetching} />

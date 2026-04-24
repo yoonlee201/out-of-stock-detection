@@ -24,6 +24,58 @@ def _serialize(product: Products) -> dict:
     }
 
 
+@products_blueprint.route("/", methods=["POST", "OPTIONS"])
+@require_active_employee
+def create_product(session):
+    if request.method == "OPTIONS":
+        return "", 204
+
+    body = request.get_json(silent=True) or {}
+
+    name = str(body.get("name", "")).strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+
+    try:
+        quantity = int(body.get("quantity_in_store", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "quantity_in_store must be a number"}), 400
+    if quantity < 0:
+        return jsonify({"error": "quantity_in_store cannot be negative"}), 400
+
+    supplier_id = body.get("supplier_id")
+    if supplier_id is None:
+        first_supplier = Suppliers.query.order_by(Suppliers.id.asc()).first()
+        if not first_supplier:
+            return jsonify({"error": "No supplier exists — create one first"}), 400
+        supplier_id = first_supplier.id
+
+    qrcode = str(body.get("qrcode", "")).strip()
+    base = qrcode or f"QR-{name.upper().replace(' ', '-')[:16]}"
+    if not qrcode or Products.query.filter_by(qrcode=qrcode).first():
+        i = 1
+        while Products.query.filter_by(qrcode=f"{base}-{i}").first():
+            i += 1
+        qrcode = f"{base}-{i}"
+
+    product = Products(
+        name=name,
+        brand=str(body.get("brand", "")).strip(),
+        variant=str(body.get("variant", "")).strip(),
+        size=str(body.get("size", "")).strip(),
+        type=str(body.get("type", "")).strip() or "general",
+        qrcode=qrcode,
+        quantity_in_store=quantity,
+        shelf=str(body.get("shelf", "")).strip() or "S11",
+        aisle=str(body.get("aisle", "")).strip() or "A1",
+        supplier_id=supplier_id,
+    )
+
+    db.session.add(product)
+    db.session.commit()
+    return jsonify({"message": "Product created", "product": _serialize(product)}), 201
+
+
 @products_blueprint.route("/", methods=["GET"])
 def get_products():
     search = request.args.get("search", "").strip()
@@ -77,6 +129,21 @@ def update_product(product_id, session):
 
     db.session.commit()
     return jsonify({"message": "Product updated", "product": _serialize(product)}), 200
+
+
+@products_blueprint.route("/<int:product_id>", methods=["DELETE", "OPTIONS"])
+@require_active_employee
+def delete_product(product_id, session):
+    if request.method == "OPTIONS":
+        return "", 204
+
+    product = Products.query.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    db.session.delete(product)
+    db.session.commit()
+    return jsonify({"message": "Product deleted", "product_id": product_id}), 200
 
 
 @products_blueprint.route("/<int:product_id>/supplier", methods=["GET"])

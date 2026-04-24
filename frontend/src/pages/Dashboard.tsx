@@ -5,7 +5,7 @@ import {
     type ShelfAnalysisResponse,
     type ShelfDetection,
 } from "../api/query/shelfAnalysis";
-import { mockAnalysisResults } from "../mockData";
+import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
 
@@ -173,17 +173,21 @@ const Dashboard = () => {
     };
 
     return (
-        <>
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold">Dashboard</h1>
+        <div className="px-8 py-6">
+            <header className="mb-6 flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold">Shelf Detection</h1>
+                    <p className="text-text-muted mt-0.5 text-sm"> Upload shelf images to identify out-of-stock and misplaced items</p> 
+                </div>
                 <button
                     type="button"
                     onClick={() => setUploadDialogOpen(true)}
-                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                 >
-                    <PlusIcon /> New Analysis
+                    <PlusIcon /> 
+                    <span className='hidden lg:block'>New Analysis</span>
                 </button>
-            </div>
+            </header>
 
             {/* History list */}
             <div className="bg-surface mb-6 rounded-xl p-6 shadow">
@@ -407,7 +411,7 @@ const Dashboard = () => {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 };
 

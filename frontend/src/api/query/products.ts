@@ -43,6 +43,40 @@ export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> 
     }
 };
 
+export const apiCreateProduct = async (
+    product: {
+        name: string;
+        brand?: string;
+        variant?: string;
+        size?: string;
+        type: string;
+        quantity_in_store: number;
+        aisle?: string;
+        shelf?: string;
+    },
+): Promise<InventoryItem> => {
+    try {
+        const { data } = await axiosAuth.post<{ product: RawProduct }>("/products/", product);
+        return toInventoryItem(data.product);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.error || "Failed to create product.");
+        }
+        throw new Error("Failed to create product.");
+    }
+};
+
+export const apiDeleteProduct = async (id: string): Promise<void> => {
+    try {
+        await axiosAuth.delete(`/products/${id}`);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.error || "Failed to delete product.");
+        }
+        throw new Error("Failed to delete product.");
+    }
+};
+
 export const apiUpdateProduct = async (
     id: string,
     updates: Partial<{
