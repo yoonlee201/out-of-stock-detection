@@ -582,6 +582,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 45,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -593,6 +595,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 23,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -604,6 +608,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 8,
         shelfStatus: "misplaced",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -615,6 +621,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 30,
         shelfStatus: "misplaced",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -626,6 +634,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 0,
         shelfStatus: "missing",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -637,6 +647,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 6,
         shelfStatus: "misplaced",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -648,6 +660,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Soft Drinks",
         stockCount: 18,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 5 * 60_000),
     },
     {
@@ -659,6 +673,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 14,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
     {
@@ -670,6 +686,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 7,
         shelfStatus: "missing",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
     {
@@ -681,6 +699,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 12,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
     {
@@ -692,6 +712,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 15,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
     {
@@ -703,6 +725,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 11,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
     {
@@ -714,6 +738,8 @@ export const mockInventory: InventoryItem[] = [
         category: "Sports Drinks",
         stockCount: 4,
         shelfStatus: "on_shelf",
+        aisle: "Aisle 1",
+        shelf: "Shelf 1",
         lastChecked: new Date(Date.now() - 10 * 60_000),
     },
 ];

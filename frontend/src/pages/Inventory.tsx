@@ -80,7 +80,7 @@ const Inventory = () => {
 
         setInventoryLoading(true);
         setInventoryError(null);
-        
+
         apiGetProducts()
             .then((inventory) => setInventory(inventory ?? []))
             .catch((e: Error) => setInventoryError(e.message))
@@ -526,6 +526,5 @@ const ReorderDialog = ({ target, onClose }: ReorderDialogProps) => {
         </Dialog>
     );
 };
-
 
 export default Inventory;
