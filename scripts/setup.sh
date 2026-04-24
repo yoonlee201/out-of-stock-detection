@@ -128,17 +128,17 @@ if [ ! -f backend/.env ]; then
         DB_URI="postgresql://oos_detection:oos_detection_dev_password@db:5432/oos_detection"
     fi
 
-    # Build backend/.env from template, substituting key values
+    # Build backend/.env from template, substituting key values.
+    # MAX_SKU_IDENTIFICATIONS keeps its original template position (inline sed
+    # replace) so it stays grouped with SKU_IDENTIFICATION_CHUNK_SIZE at the bottom.
     {
         echo "BACKEND_PORT=${PORT}"
         echo "SQLALCHEMY_DATABASE_URI=${DB_URI}"
-        echo "MAX_SKU_IDENTIFICATIONS=${MAX_SKU}"
-        # Preserve every other line from the template (skip lines we already set)
         grep -v "^BACKEND_PORT=" config/backend.env.example \
           | grep -v "^SQLALCHEMY_DATABASE_URI=" \
-          | grep -v "^MAX_SKU_IDENTIFICATIONS=" \
           | grep -v "^# Option [ABC]" \
-          | grep -v "^# SQLALCHEMY_DATABASE_URI="
+          | grep -v "^# SQLALCHEMY_DATABASE_URI=" \
+          | sed "s|^MAX_SKU_IDENTIFICATIONS=.*|MAX_SKU_IDENTIFICATIONS=${MAX_SKU}|"
         if [ "$GPU" = "true" ]; then
             gpu_env_block
         fi
