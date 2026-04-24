@@ -20,8 +20,15 @@ import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../
 import { PlusIcon } from "../_components/Icons";
 
 type SortField =
-    | "product" | "category" | "aisle" | "shelf"
-    | "stock" | "quantityStatus" | "shelfStatus" | "lastChecked" | "availability";
+    | "product"
+    | "category"
+    | "aisle"
+    | "shelf"
+    | "stock"
+    | "quantityStatus"
+    | "shelfStatus"
+    | "lastChecked"
+    | "availability";
 type GroupField = "none" | "category" | "quantityStatus" | "shelfStatus" | "availability";
 
 const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
@@ -34,25 +41,39 @@ const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
 
 const sortValue = (item: InventoryItem, field: SortField): string | number => {
     switch (field) {
-        case "product": return `${item.brand} ${item.productName}`.toLowerCase();
-        case "category": return item.category.toLowerCase();
-        case "aisle": return item.aisle;
-        case "shelf": return item.shelf;
-        case "stock": return item.stockCount;
-        case "quantityStatus": return deriveStatus(item.stockCount);
-        case "shelfStatus": return item.shelfStatus;
-        case "lastChecked": return item.lastChecked.getTime();
-        case "availability": return deriveCustomerAvailability(item);
+        case "product":
+            return `${item.brand} ${item.productName}`.toLowerCase();
+        case "category":
+            return item.category.toLowerCase();
+        case "aisle":
+            return item.aisle;
+        case "shelf":
+            return item.shelf;
+        case "stock":
+            return item.stockCount;
+        case "quantityStatus":
+            return deriveStatus(item.stockCount);
+        case "shelfStatus":
+            return item.shelfStatus;
+        case "lastChecked":
+            return item.lastChecked.getTime();
+        case "availability":
+            return deriveCustomerAvailability(item);
     }
 };
 
 const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
     switch (field) {
-        case "category": return item.category || "Uncategorized";
-        case "quantityStatus": return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount)];
-        case "shelfStatus": return SHELF_STATUS_LABEL[item.shelfStatus];
-        case "availability": return CUSTOMER_AVAILABILITY_LABEL[deriveCustomerAvailability(item)];
-        case "none": return "";
+        case "category":
+            return item.category || "Uncategorized";
+        case "quantityStatus":
+            return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount)];
+        case "shelfStatus":
+            return SHELF_STATUS_LABEL[item.shelfStatus];
+        case "availability":
+            return CUSTOMER_AVAILABILITY_LABEL[deriveCustomerAvailability(item)];
+        case "none":
+            return "";
     }
 };
 
@@ -147,16 +168,19 @@ const Inventory = () => {
             <header className="mb-6 flex items-start justify-between">
                 <div>
                     <h1 className="text-3xl font-semibold">Inventory</h1>
-                    <p className="text-text-muted mt-0.5 text-sm"> Manage your product inventory and track stock levels</p> 
+                    <p className="text-text-muted mt-0.5 text-sm">
+                        {" "}
+                        Manage your product inventory and track stock levels
+                    </p>
                 </div>
                 {view === "employee" && (
                     <button
                         type="button"
                         onClick={() => setAddDialogOpen(true)}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
                     >
                         <PlusIcon />
-                        <span className='hidden lg:block'>Add Item</span>
+                        <span className="hidden lg:block">Add Item</span>
                     </button>
                 )}
             </header>
@@ -238,11 +262,14 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
 
     const handleSort = (field: SortField) => {
         if (field === sortField) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-        else { setSortField(field); setSortDir("asc"); }
+        else {
+            setSortField(field);
+            setSortDir("asc");
+        }
     };
 
     const renderRows = (groupKey: string) => {
-        const items = groupedItems && groupKey !== "all" ? groupedItems.get(groupKey) ?? [] : sorted;
+        const items = groupedItems && groupKey !== "all" ? (groupedItems.get(groupKey) ?? []) : sorted;
         if (items.length === 0) {
             return (
                 <tr key="empty">
@@ -268,9 +295,10 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
     };
 
     const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
-    const groupOptions = view === "customer"
-        ? GROUP_OPTIONS.filter((o) => o.value !== "quantityStatus" && o.value !== "shelfStatus")
-        : GROUP_OPTIONS.filter((o) => o.value !== "availability");
+    const groupOptions =
+        view === "customer"
+            ? GROUP_OPTIONS.filter((o) => o.value !== "quantityStatus" && o.value !== "shelfStatus")
+            : GROUP_OPTIONS.filter((o) => o.value !== "availability");
 
     return (
         <>
@@ -735,8 +763,7 @@ const AddProductDialog = ({ open, onClose, onCreated }: AddProductDialogProps) =
         }
     }, [open]);
 
-    const setField = (field: keyof AddForm, value: string) =>
-        setForm((prev) => ({ ...prev, [field]: value }));
+    const setField = (field: keyof AddForm, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
     const handleSave = async () => {
         if (!form.productName.trim()) {

@@ -177,15 +177,18 @@ const Dashboard = () => {
             <header className="mb-6 flex items-start justify-between">
                 <div>
                     <h1 className="text-3xl font-semibold">Shelf Detection</h1>
-                    <p className="text-text-muted mt-0.5 text-sm"> Upload shelf images to identify out-of-stock and misplaced items</p> 
+                    <p className="text-text-muted mt-0.5 text-sm">
+                        {" "}
+                        Upload shelf images to identify out-of-stock and misplaced items
+                    </p>
                 </div>
                 <button
                     type="button"
                     onClick={() => setUploadDialogOpen(true)}
-                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
                 >
-                    <PlusIcon /> 
-                    <span className='hidden lg:block'>New Analysis</span>
+                    <PlusIcon />
+                    <span className="hidden lg:block">New Analysis</span>
                 </button>
             </header>
 

@@ -69,10 +69,10 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setOpenInvite(true)}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full lg:rounded-xl px-2.5 lg:px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
                     >
                         <PlusIcon />
-                        <span className='hidden lg:block'>Add member</span>
+                        <span className="hidden lg:block">Add member</span>
                     </button>
                 </header>
 
