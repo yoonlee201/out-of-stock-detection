@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { LogoutIcon } from "./Icons";
 import useRouter from "../hooks/useRouter";
+import logo from '../assets/svg/marine-corp.svg';
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
@@ -34,9 +35,16 @@ const Sidebar = () => {
             <div className="border-border flex flex-col items-center gap-4 border-b px-6 py-8">
                 <div
                     className="border-primary flex h-20 w-20 items-center justify-center rounded-full border-4 text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)]"
-                    // style={{ backgroundColor: "var(--color-background)" }}
                 >
-                    📦
+                    <div
+                        role="img"
+                        aria-label="Logo"
+                        className="bg-secondary h-13 w-13"
+                        style={{
+                            mask: `url(${logo}) center/contain no-repeat`,
+                            WebkitMask: `url(${logo}) center/contain no-repeat`,
+                        }}
+                    />
                 </div>
                 <div className="text-center">
                     <p className="text-primary text-base leading-tight font-black tracking-[0.25em] uppercase">
