@@ -23,6 +23,8 @@ const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: false },
     { field: "category", label: "Category", sortable: false },
+    { field: "aisle", label: "Aisle", sortable: false },
+    { field: "shelf", label: "Shelf", sortable: false },
     { field: "stock", label: "Stock", sortable: false },
     { field: "quantityStatus", label: "Quantity Status", sortable: false },
     { field: "shelfStatus", label: "Shelf Status", sortable: false },
@@ -33,6 +35,8 @@ const INVENTORY_COLUMNS_EMPLOYEE = [
 const INVENTORY_COLUMNS_CUSTOMER = [
     { field: "product", label: "Product", sortable: false },
     { field: "category", label: "Category", sortable: false },
+    { field: "aisle", label: "Aisle", sortable: false },
+    { field: "shelf", label: "Shelf", sortable: false },
     { field: "stock", label: "Stock", sortable: false },
     { field: "availability", label: "Availability", sortable: false },
     { field: "lastChecked", label: "Last Checked", sortable: false },
@@ -152,7 +156,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
         if (filtered.length === 0) {
             return (
                 <tr key="empty">
-                    <td colSpan={view === "employee" ? 7 : 6} className="text-text-muted py-16 text-center text-sm">
+                    <td colSpan={view === "employee" ? 9 : 8} className="text-text-muted py-16 text-center text-sm">
                         No products match your filters.
                     </td>
                 </tr>

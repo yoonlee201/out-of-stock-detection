@@ -29,6 +29,8 @@ export const EmployeeRow = ({
             </p>
         </td>
         <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
+        <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
+        <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
@@ -73,6 +75,8 @@ export const CustomerRow = ({ item, availability }: { item: InventoryItem; avail
             </p>
         </td>
         <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
+        <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
+        <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${customerAvailabilityClass(availability)}`}>

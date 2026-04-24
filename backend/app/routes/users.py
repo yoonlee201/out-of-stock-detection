@@ -25,9 +25,9 @@ from app.services.user_services import (
     get_all_employees,
 
     create_user,
+    update_employee_status,
     update_user_role,
     update_employee,
-    deactivate_employee,
     delete_employee,
 
     prepare_invitation,
@@ -267,12 +267,20 @@ def update_employee_route(user_id, session):
     }, 200
 
 
-@users_blueprint.route('/<int:user_id>/deactivate', methods=['PATCH'])
-@users_blueprint.route('/<int:user_id>/deactivate/', methods=['PATCH'])
+@users_blueprint.route('/<int:user_id>/status', methods=['PATCH'])
+@users_blueprint.route('/<int:user_id>/status/', methods=['PATCH'])
 @require_active_supervisor_or_manager
-def deactivate_user(user_id, session):
+def update_user_status(user_id, session):
+    data = request.get_json(silent=True)
+    if not data:
+        return {"message": "Invalid JSON payload"}, 400
+
+    new_status = data.get("status")
+    if not new_status:
+        return {"message": "Status is required"}, 400
+
     try:
-        deactivate_employee(user_id)
+        update_employee_status(user_id, new_status)
     except LookupError as e:
         return {"message": str(e)}, 404
     except Exception:

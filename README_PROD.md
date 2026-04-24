@@ -62,7 +62,6 @@ and fill in every value marked **required**.
 | `SECRET_KEY` | **Yes** | `dev-secret-key-…` | 64-byte hex random string (see below) |
 | `BACKEND_PORT` | No | `5000` | Flask listen port inside the container |
 | `FRONTEND_URL` | **Yes** | `http://localhost:5173` | Deployed frontend origin (used for CORS) |
-| `SERVER_API_URL` | No | derived | Backend public URL; used in email links |
 | `GMAIL_ADDRESS` | No | — | Gmail address for alert emails |
 | `GMAIL_PASSWORD` | No | — | Gmail App Password (16 chars) |
 | `IPQS_API_KEY` | No | — | NumVerify key for phone carrier lookup |
@@ -83,7 +82,6 @@ python -c "import secrets; print(secrets.token_hex(64))"
 FLASK_ENV=production
 BACKEND_PORT=5000
 FRONTEND_URL=https://your-app.vercel.app
-SERVER_API_URL=https://api.yourdomain.com
 
 SQLALCHEMY_DATABASE_URI=postgresql://oos_user:StrongPassword@your-rds-host.rds.amazonaws.com:5432/oos_detection
 

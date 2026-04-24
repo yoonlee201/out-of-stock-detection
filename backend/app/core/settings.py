@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     # ── Network ───────────────────────────────────────────────────────────────
     FRONTEND_URL: str = Field(default="http://localhost:5173")
     BACKEND_PORT: int = Field(default=8000)
-    SERVER_API_URL: str = Field(default="")
 
     # ── Database ──────────────────────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI: str = Field(default="")

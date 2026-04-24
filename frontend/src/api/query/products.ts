@@ -10,6 +10,8 @@ interface RawProduct {
     size: string;
     type: string;
     quantity_in_store: number;
+    aisle: string;
+    shelf: string;
     shelf_status: string;
     last_checked: string | null;
 }
@@ -22,6 +24,8 @@ const toInventoryItem = (p: RawProduct): InventoryItem => ({
     size: p.size || "",
     category: p.type,
     stockCount: p.quantity_in_store,
+    aisle: p.aisle || "-",
+    shelf: p.shelf || "-",
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
 });

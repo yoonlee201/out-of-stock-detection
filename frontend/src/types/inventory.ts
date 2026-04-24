@@ -12,6 +12,9 @@ export interface InventoryItem {
     category: string;
     /** Total units in the store. */
     stockCount: number;
+    /** Physical location on the shop floor. */
+    aisle: string;
+    shelf: string;
     /** Set by shelf detection — read-only in Inventory. */
     shelfStatus: ShelfStatus;
     lastChecked: Date;

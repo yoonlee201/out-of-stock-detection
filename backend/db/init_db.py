@@ -26,7 +26,7 @@ from app import create_app
 from app.core.db import db
 from app.models import Alerts, Employee, InventoryLogs, Products, Reorders, Suppliers, Users
 
-
+# Note: We intentionally use the same sample data for both Employees and Customers to simplify testing with different roles. In a real application, these would likely be separate sets of users with distinct attributes and permissions.
 def _seed(app):
     with app.app_context():
         if Users.query.count() > 0:

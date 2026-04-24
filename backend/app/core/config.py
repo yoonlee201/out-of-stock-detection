@@ -8,7 +8,6 @@ class Config:
 
     FRONTEND_URL = settings.FRONTEND_URL
     BACKEND_PORT = settings.BACKEND_PORT
-    SERVER_API_URL = settings.SERVER_API_URL or f"http://localhost:{settings.BACKEND_PORT}"
 
     OPENAI_API_KEY = settings.OPENAI_API_KEY
     OPENAI_API_BASE = settings.OPENAI_API_BASE

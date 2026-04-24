@@ -231,20 +231,6 @@ def update_employee(user_id, first_name=None, last_name=None, email=None, phone=
     return user
 
 
-def deactivate_employee(user_id):
-    """Deactivate an employee. Raises LookupError if user or employee record not found."""
-    user = Users.query.get(user_id)
-    if not user:
-        raise LookupError("User not found")
-
-    employee = Employee.query.filter_by(user_id=user_id).first()
-    if not employee:
-        raise LookupError("Employee record not found")
-
-    employee.status = 'inactive'
-    db.session.commit()
-
-
 def delete_employee(user_id):
     """Remove the employee record without deleting the user account."""
     user = Users.query.get(user_id)
