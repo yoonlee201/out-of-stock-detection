@@ -19,6 +19,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import bcrypt
+
 # Allow running directly from the repo root as well as inside the container
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -89,7 +91,7 @@ def _seed(app):
         # ------------------------------------------------------------------
         # Users  (password hash = bcrypt("12345678"))
         # ------------------------------------------------------------------
-        PW = "$2b$12$qxFtD4XimVariBfiA15hY.3JjTy3uGITru14f54XUIB7V2xmoUX1u"
+        PW = bcrypt.hashpw("12345678".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         user_rows = [
             ("Maria",   "Gonzalez", "703-555-0123", "supervisor", "one@example.com",          True),
             ("James",   "Carter",   "757-555-0198", "manager",    "james.carter@mccs.mil",    True),
