@@ -16,6 +16,14 @@ export default defineConfig(({ mode }) => {
             watch: {
                 usePolling: true,
             },
+            allowedHosts: [".ngrok-free.app", ".ngrok-free.dev", ".ngrok.app", ".ngrok.dev", ".ngrok.io"],
+            proxy: {
+                "/users":          { target: "http://backend:8000", changeOrigin: true },
+                "/products":       { target: "http://backend:8000", changeOrigin: true },
+                "/shelf-analysis": { target: "http://backend:8000", changeOrigin: true },
+                "/alerts":         { target: "http://backend:8000", changeOrigin: true },
+                "/reorders":       { target: "http://backend:8000", changeOrigin: true },
+            },
         },
     };
 });
