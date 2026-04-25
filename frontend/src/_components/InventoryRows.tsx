@@ -1,7 +1,5 @@
-import type { CustomerAvailability, InventoryItem, InventoryStatus } from "../types/inventory";
+import type { InventoryItem, InventoryStatus } from "../types/inventory";
 import {
-    CUSTOMER_AVAILABILITY_LABEL,
-    customerAvailabilityClass,
     QUANTITY_STATUS_LABEL,
     quantityStatusClass,
     SHELF_STATUS_LABEL,
@@ -33,12 +31,12 @@ export const EmployeeRow = ({
         <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
+            <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
                 {QUANTITY_STATUS_LABEL[status]}
             </span>
         </td>
         <td className="px-5 py-4">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${shelfStatusClass(item.shelfStatus)}`}>
+            <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${shelfStatusClass(item.shelfStatus)}`}>
                 {SHELF_STATUS_LABEL[item.shelfStatus]}
             </span>
         </td>
@@ -64,7 +62,7 @@ export const EmployeeRow = ({
     </tr>
 );
 
-export const CustomerRow = ({ item, availability }: { item: InventoryItem; availability: CustomerAvailability }) => (
+export const CustomerRow = ({ item, status }: { item: InventoryItem; status: InventoryStatus }) => (
     <tr className="border-border hover:bg-surface-muted border-b transition-colors">
         <td className="px-5 py-4">
             <p className="text-text font-semibold">
@@ -79,17 +77,13 @@ export const CustomerRow = ({ item, availability }: { item: InventoryItem; avail
         <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${customerAvailabilityClass(availability)}`}>
-                {CUSTOMER_AVAILABILITY_LABEL[availability]}
+            <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
+                {QUANTITY_STATUS_LABEL[status]}
             </span>
         </td>
         <td className="text-text-muted px-5 py-4 text-xs">
             {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
         </td>
-        <td className="px-5 py-4">
-            {(item.shelfStatus === "missing" || item.shelfStatus === "misplaced") && item.stockCount > 0 && (
-                <p className="text-text-muted text-xs">In store — not on shelf yet</p>
-            )}
-        </td>
+        <td className="px-5 py-4" />
     </tr>
 );

@@ -168,8 +168,11 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
     const resetFilters = () =>
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
-    const renderRows = (groupKey: string) => {
-        const rows = grouped[groupKey] || [];
+    const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
+        const source = filters.groupBy === "none" ? filtered : (grouped[groupKey] || []);
+        const rows = page && pageSize && filters.groupBy === "none"
+            ? source.slice((page - 1) * pageSize, page * pageSize)
+            : source;
         if (rows.length === 0) {
             return (
                 <tr key={`${groupKey}-empty`}>
@@ -194,7 +197,7 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                         <span className="text-text-secondary text-sm">{STATUS_TEXT[e.status]}</span>
                     </div>
                 </td>
-                <td className="text-text-secondary px-5 py-4 text-sm">{e.phone}</td>
+                <td>{e.phone ? `(${e.phone.slice(0, 3)}) ${e.phone.slice(3, 6)}-${e.phone.slice(6)}` : "—"}</td>
                 <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
                 <td className="px-5 py-4 text-right">
                     <button
@@ -268,8 +271,10 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                 onSort={handleSort}
                 loading={fetching}
                 groupKeys={groupKeys}
-                renderRows={(groupKey) => renderRows(groupKey)}
+                renderRows={renderRows}
                 actionColumn
+                totalItems={filtered.length}
+                resetKey={`${filters.search}-${filters.role}-${filters.status}-${filters.groupBy}`}
             />
 
             <EditDialog target={editTarget} setEmployees={setEmployees} onClose={() => setEditTarget(null)} />

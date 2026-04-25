@@ -35,7 +35,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                 onClick={() => go(path)}
                 className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${
                     isActive
-                        ? "border-primary text-primary bg-primary/10"
+                        ? "border-primary text-text bg-primary/10"
                         : "text-primary hover:border-primary hover:text-primary border-transparent"
                 }`}
             >
@@ -66,11 +66,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                     />
                 </div>
                 <div className="text-center">
-                    <p className="text-primary text-base leading-tight font-black tracking-[0.25em] uppercase">
+                    <p className="text-text text-base leading-tight font-black tracking-[0.25em] uppercase">
                         Stock Detection
                     </p>
                     <div className="via-primary mt-2 h-px w-full bg-linear-to-r from-transparent to-transparent" />
-                    <p className="text-primary mt-2 text-[10px] font-bold tracking-[0.3em] uppercase">
+                    <p className="text-text-muted/50 mt-2 text-[10px] font-bold tracking-[0.3em] uppercase">
                         Inventory Command
                     </p>
                 </div>

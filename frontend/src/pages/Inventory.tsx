@@ -99,7 +99,7 @@ const INVENTORY_COLUMNS_CUSTOMER = [
     { field: "aisle", label: "Aisle", sortable: true },
     { field: "shelf", label: "Shelf", sortable: true },
     { field: "stock", label: "Stock", sortable: true },
-    { field: "availability", label: "Availability", sortable: true },
+    { field: "quantityStatus", label: "Quantity Status", sortable: true },
     { field: "lastChecked", label: "Last Checked", sortable: true },
     { field: "actions", label: "", sortable: false },
 ];
@@ -185,14 +185,13 @@ const Inventory = () => {
                 )}
             </header>
 
-            {view === "employee" && (
-                <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <SummaryCard label="Total Products" value={summary.total} />
-                    <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
-                    <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
-                    <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
-                </div>
-            )}
+            <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <SummaryCard label="Total Products" value={summary.total} />
+                <SummaryCard label="In Stock" value={summary.inStock} valueClass="text-green" />
+                <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
+                <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
+            </div>
+
 
             <InventoryTable view={view} inventory={inventory} setInventory={setInventory} />
 
@@ -268,8 +267,10 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
         }
     };
 
-    const renderRows = (groupKey: string) => {
-        const items = groupedItems && groupKey !== "all" ? (groupedItems.get(groupKey) ?? []) : sorted;
+    // DataTable passes (page, pageSize) in flat mode so we slice here.
+    const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
+        const source = groupedItems && groupKey !== "all" ? (groupedItems.get(groupKey) ?? []) : sorted;
+        const items = page && pageSize ? source.slice((page - 1) * pageSize, page * pageSize) : source;
         if (items.length === 0) {
             return (
                 <tr key="empty">
@@ -289,7 +290,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                     onReorder={() => setReorderTarget(item)}
                 />
             ) : (
-                <CustomerRow key={item.id} item={item} availability={deriveCustomerAvailability(item)} />
+                <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
             ),
         );
     };
@@ -297,7 +298,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
     const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
     const groupOptions =
         view === "customer"
-            ? GROUP_OPTIONS.filter((o) => o.value !== "quantityStatus" && o.value !== "shelfStatus")
+            ? GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability")
             : GROUP_OPTIONS.filter((o) => o.value !== "availability");
 
     return (
@@ -340,6 +341,8 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                 onSort={handleSort}
                 groupKeys={groupKeys}
                 renderRows={renderRows}
+                totalItems={sorted.length}
+                resetKey={`${search}-${categoryFilter}-${statusFilter}-${groupBy}`}
             />
 
             <EditProductDialog target={editTarget} setInventory={setInventory} onClose={() => setEditTarget(null)} />
