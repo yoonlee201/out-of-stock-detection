@@ -8,6 +8,8 @@ import {
 import { mockAnalysisResults } from "../mockData";
 import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
+import { apiGetAlertHistory, type AlertHistoryItem } from "../api/query/alert";
+import { apiGetReorders, type ReorderResult } from "../api/query/reorders";
 
 interface HistoryEntry {
     fileName: string;
@@ -31,6 +33,9 @@ const Dashboard = () => {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
+    const [alertHistory, setAlertHistory] = useState<AlertHistoryItem[]>([]);
+    const [reorders, setReorders] = useState<ReorderResult[]>([]);
+
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
     const analysisResult = selectedEntry?.result ?? null;
 
@@ -38,6 +43,16 @@ const Dashboard = () => {
         if (!analysisResult) return [];
         return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
     }, [analysisResult]);
+
+    useEffect(() => {
+        apiGetAlertHistory()
+            .then(setAlertHistory)
+            .catch(() => setAlertHistory([]));
+
+        apiGetReorders()
+            .then(setReorders)
+            .catch(() => setReorders([]));
+    }, []);
 
     // Load history from backend; fall back to mock data in dev if unavailable
     useEffect(() => {
@@ -213,6 +228,55 @@ const Dashboard = () => {
                 )}
             </div>
 
+            {/* Alert and Reorder History */}
+            <div className="mb-6 grid gap-6 md:grid-cols-2">
+                <div className="bg-surface rounded-xl p-6 shadow">
+                    <h2 className="mb-4 text-xl font-semibold">Alert History</h2>
+                    {alertHistory.length === 0 ? (
+                        <p className="text-text-muted text-sm">No alerts yet.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {alertHistory.slice(0, 5).map((alert) => (
+                                <div key={alert.id} className="border-border rounded-2xl border px-4 py-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-semibold capitalize">
+                                            {alert.alert_type.replace("_", " ")}
+                                        </span>
+                                        <span className="text-text-muted text-xs">
+                                            {alert.sent_time ? new Date(alert.sent_time).toLocaleString() : "No time"}
+                                        </span>
+                                    </div>
+                                    <p className="text-text-muted mt-1 text-xs">
+                                        Product ID: {alert.product_id} · User ID: {alert.user_id}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-surface rounded-xl p-6 shadow">
+                    <h2 className="mb-4 text-xl font-semibold">Reorder History</h2>
+                    {reorders.length === 0 ? (
+                        <p className="text-text-muted text-sm">No reorders yet.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {reorders.slice(0, 5).map((reorder) => (
+                                <div key={reorder.id} className="border-border rounded-2xl border px-4 py-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-semibold">Product ID: {reorder.product_id}</span>
+                                        <span className="text-text-muted text-xs">
+                                            {new Date(reorder.created_at).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <p className="text-text-muted mt-1 text-xs">Quantity: {reorder.quantity}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Detail panel */}
             {selectedEntry && (
                 <div className="bg-surface mb-8 rounded-xl p-6 shadow">
@@ -237,7 +301,6 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {/* Annotated image */}
                         <div className="bg-surface border-border rounded-2xl border p-4">
                             <div className="space-y-4">
                                 <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
@@ -257,7 +320,6 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        {/* Compliance summary */}
                         {analysisResult!.compliance_report && (
                             <div className="bg-surface border-border rounded-2xl border px-4 py-4">
                                 <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
@@ -271,7 +333,6 @@ const Dashboard = () => {
                             </div>
                         )}
 
-                        {/* Issue cards + table */}
                         <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
                             <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
                             {issueDetections.length > 0 ? (
@@ -317,7 +378,6 @@ const Dashboard = () => {
                 </div>
             )}
 
-            {/* Upload dialog */}
             {uploadDialogOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
@@ -385,7 +445,6 @@ const Dashboard = () => {
                 </div>
             )}
 
-            {/* Full-size image dialog */}
             {imageDialogOpen && analysisResult && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -520,7 +579,6 @@ const IssueCard = ({ detection, reviewOnly = false }: { detection: ShelfDetectio
     const marker = detection.issue_marker || (reviewOnly ? "CHECK" : "ISSUE");
     const assignmentMethod = formatAssignmentMethod(detection.assignment_method);
 
-    // Reuse shelfStatusClass from constants for the badge — status values align (missing/misplaced)
     const badgeClass =
         status === "missing" || status === "misplaced"
             ? shelfStatusClass(status)

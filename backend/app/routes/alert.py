@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.services.user_services import get_all_active_employees
 from app.services.alert_services import send_out_of_stock_sms
 from app.services.reorder_services import create_mock_reorders
+from app.models import Alerts
 
 
 alert_blueprint = Blueprint('alert', __name__)
@@ -55,4 +56,31 @@ def create_reorders():
         return jsonify({
             'success': False,
             'message': str(e)
+        }), 500
+    
+@alert_blueprint.route('/history', methods=['GET'])
+def alert_history():
+    try:
+        alerts = (
+            Alerts.query
+            .order_by(Alerts.sent_time.desc())
+            .limit(100)
+            .all()
+        )
+
+        return jsonify([
+            {
+                "id": alert.id,
+                "user_id": alert.user_id,
+                "product_id": alert.product_id,
+                "alert_type": alert.alert_type,
+                "sent_time": alert.sent_time.isoformat() if alert.sent_time else None,
+            }
+            for alert in alerts
+        ]), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
         }), 500

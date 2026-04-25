@@ -6,12 +6,14 @@ from app.util.auth import require_active_employee
 reorders_blueprint = Blueprint("reorders", __name__)
 
 
-@reorders_blueprint.route("/", methods=["POST", "OPTIONS"])
+@reorders_blueprint.route("/", methods=["OPTIONS"])
+def create_reorder_options():
+    return "", 204
+
+
+@reorders_blueprint.route("/", methods=["POST"])
 @require_active_employee
 def create_reorder(session):
-    if request.method == "OPTIONS":
-        return "", 204
-
     body = request.get_json(silent=True) or {}
     product_id = body.get("product_id")
     quantity = body.get("quantity")
