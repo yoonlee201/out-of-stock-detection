@@ -198,7 +198,8 @@ def analyze_shelf():
             os.remove(temp_path)
 
 
-@shelf_analysis_blueprint.route("/history", methods=["GET"])
+@shelf_analysis_blueprint.route("/", methods=["GET"])
+@shelf_analysis_blueprint.route("", methods=["GET"])
 def get_analysis_history():
     """Return the most recent 50 analysis logs (newest first)."""
     limit = min(int(request.args.get("limit", 50)), 200)

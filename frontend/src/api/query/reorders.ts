@@ -23,7 +23,7 @@ export interface ReorderResult {
 export const apiCreateReorder = async (productId: string, quantity: number): Promise<ReorderResult> => {
     try {
         const { data } = await axiosAuth.post<{ reorder: ReorderResult }>(
-            "/reorders/",
+            "/reorders",
             {
                 product_id: Number(productId),
                 quantity,
@@ -46,7 +46,7 @@ export const apiCreateReorder = async (productId: string, quantity: number): Pro
 
 export const apiGetReorders = async (): Promise<ReorderResult[]> => {
     try {
-        const { data } = await axiosAuth.get<ReorderResult[]>("/reorders/");
+        const { data } = await axiosAuth.get<ReorderResult[]>("/reorders");
         return data;
     } catch (error) {
         if (isAxiosError(error)) {

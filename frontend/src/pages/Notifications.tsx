@@ -74,7 +74,7 @@ const Notifications = () => {
                                 <NavLink
                                     key={alert.id}
                                     to={`/shelf-detection?log_id=${alert.shelf_analysis_log_id}`}
-                                    className="border-border rounded-2xl border px-4 py-3"
+                                    className="border-border block w-full rounded-2xl border px-4 py-3 text-inherit no-underline transition-colors hover:bg-surface-muted/40"
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span
