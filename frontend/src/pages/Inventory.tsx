@@ -249,26 +249,25 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
         });
     }, [inventory, search, categoryFilter, statusFilter, view]);
 
+    // When grouping is on, sort by group key first so items in the same group
+    // stay contiguous across the paginated slice. Without this, the slice would
+    // interleave groups and the inline headers would re-emit the same group
+    // multiple times per page.
     const sorted = useMemo(() => {
         return [...filtered].sort((a, b) => {
+            if (groupBy !== "none") {
+                const gA = groupKeyOf(a, groupBy);
+                const gB = groupKeyOf(b, groupBy);
+                if (gA < gB) return -1;
+                if (gA > gB) return 1;
+            }
             const av = sortValue(a, sortField);
             const bv = sortValue(b, sortField);
             if (av < bv) return sortDir === "asc" ? -1 : 1;
             if (av > bv) return sortDir === "asc" ? 1 : -1;
             return 0;
         });
-    }, [filtered, sortField, sortDir]);
-
-    const { groupKeys, groupedItems } = useMemo(() => {
-        if (groupBy === "none") return { groupKeys: undefined, groupedItems: null };
-        const groups = new Map<string, InventoryItem[]>();
-        sorted.forEach((item) => {
-            const key = groupKeyOf(item, groupBy);
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key)!.push(item);
-        });
-        return { groupKeys: Array.from(groups.keys()).sort(), groupedItems: groups };
-    }, [sorted, groupBy]);
+    }, [filtered, sortField, sortDir, groupBy]);
 
     const handleSort = (field: SortField) => {
         if (field === sortField) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -278,33 +277,55 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
         }
     };
 
-    // DataTable passes (page, pageSize) in flat mode so we slice here.
-    const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
-        const source = groupedItems && groupKey !== "all" ? (groupedItems.get(groupKey) ?? []) : sorted;
-        const items = page && pageSize ? source.slice((page - 1) * pageSize, page * pageSize) : source;
+    const colSpan = view === "employee" ? 9 : 8;
+
+    const renderRows = (page: number, pageSize: number) => {
+        const items = sorted.slice((page - 1) * pageSize, page * pageSize);
         if (items.length === 0) {
             return (
                 <tr key="empty">
-                    <td colSpan={view === "employee" ? 9 : 8} className="text-text-muted py-16 text-center text-sm">
+                    <td colSpan={colSpan} className="text-text-muted py-16 text-center text-sm">
                         No products found.
                     </td>
                 </tr>
             );
         }
-        return items.map((item) =>
-            view === "employee" ? (
-                <EmployeeRow
-                    key={item.id}
-                    item={item}
-                    status={deriveStatus(item.stockCount)}
-                    onEdit={() => setEditTarget(item)}
-                    onReorder={() => setReorderTarget(item)}
-                    onDelete={() => setDeleteTarget(item)}
-                />
-            ) : (
-                <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
-            ),
-        );
+
+        const out: React.ReactNode[] = [];
+        let prevGroup: string | null = null;
+        items.forEach((item) => {
+            if (groupBy !== "none") {
+                const k = groupKeyOf(item, groupBy);
+                if (k !== prevGroup) {
+                    out.push(
+                        <tr key={`hdr-${k}`} className="border-border bg-surface-muted border-b">
+                            <td
+                                colSpan={colSpan}
+                                className="text-text-muted px-5 py-2 text-xs font-semibold tracking-[0.14em] uppercase"
+                            >
+                                {k}
+                            </td>
+                        </tr>,
+                    );
+                    prevGroup = k;
+                }
+            }
+            out.push(
+                view === "employee" ? (
+                    <EmployeeRow
+                        key={item.id}
+                        item={item}
+                        status={deriveStatus(item.stockCount)}
+                        onEdit={() => setEditTarget(item)}
+                        onReorder={() => setReorderTarget(item)}
+                        onDelete={() => setDeleteTarget(item)}
+                    />
+                ) : (
+                    <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
+                ),
+            );
+        });
+        return out;
     };
 
     const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
@@ -346,7 +367,6 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 sortField={sortField}
                 sortDir={sortDir}
                 onSort={handleSort}
-                groupKeys={groupKeys}
                 renderRows={renderRows}
                 totalItems={sorted.length}
                 resetKey={`${search}-${categoryFilter}-${statusFilter}-${groupBy}`}
@@ -427,7 +447,7 @@ const CategoryDropdown = ({
             </button>
 
             {open && (
-                <div className="bg-surface border-border absolute top-full left-0 z-20 mt-1.5 w-56 rounded-2xl border shadow-xl">
+                <div className="bg-surface border-border absolute top-full left-0 z-99 mt-1.5 w-56 rounded-2xl border shadow-xl">
                     <div className="border-border border-b px-3 py-2">
                         <input
                             ref={searchInputRef}
@@ -755,6 +775,7 @@ const ReorderDialog = ({ target, onClose }: ReorderDialogProps) => {
         </Dialog>
     );
 };
+
 const DeleteProductDialog = ({
     target,
     setInventory,

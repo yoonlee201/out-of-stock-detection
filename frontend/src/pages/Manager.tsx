@@ -12,7 +12,7 @@ import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
 import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
-import { PlusIcon, TrashIcon } from "../_components/Icons";
+import { PlusIcon, ThreeVerticalDotsIcon, TrashIcon } from "../_components/Icons";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import Select from "../_components/Select";
 
@@ -207,11 +207,7 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                         className="text-text-muted hover:bg-surface-muted rounded-lg p-1.5 transition-colors"
                         aria-label="Edit employee"
                     >
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" />
-                            <circle cx="10" cy="10" r="1.5" />
-                            <circle cx="10" cy="16" r="1.5" />
-                        </svg>
+                        <ThreeVerticalDotsIcon />
                     </button>
                 </td>
             </tr>

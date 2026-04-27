@@ -60,7 +60,6 @@ const Demo = () => {
                 </p>
             </header>
 
-            {/* Step 1: Image picker */}
             <div className="bg-surface mb-6 rounded-xl p-6 shadow">
                 <h2 className="mb-4 text-lg font-semibold">Select a shelf image</h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

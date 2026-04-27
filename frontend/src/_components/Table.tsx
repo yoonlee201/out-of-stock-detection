@@ -15,9 +15,9 @@ export interface DataTableProps<SortField extends string = string> {
     sortDir?: "asc" | "desc";
     onSort?: (field: SortField) => void;
     loading?: boolean;
-    groupKeys?: string[];
-    /** Called with (groupKey, page, pageSize) — page/pageSize only in flat (non-grouped) mode. */
-    renderRows: (groupKey: string, page?: number, pageSize?: number) => React.ReactNode;
+    /** Called with (page, pageSize) when paginated. Caller is responsible for
+     *  any group headers it wants to interleave with the rows it returns. */
+    renderRows: (page: number, pageSize: number) => React.ReactNode;
     actionColumn?: boolean;
     /** Initial rows-per-page value. DataTable manages pageSize state internally. Defaults to 10. */
     defaultPageSize?: number;
@@ -192,7 +192,6 @@ function DataTable<SortField extends string = string>({
     sortDir,
     onSort,
     loading = false,
-    groupKeys,
     renderRows,
     actionColumn = false,
     defaultPageSize = 10,
@@ -207,7 +206,7 @@ function DataTable<SortField extends string = string>({
         setPage(1);
     }, [resetKey, pageSize]);
 
-    const isPaginated = !groupKeys && totalItems !== undefined;
+    const isPaginated = totalItems !== undefined;
     const totalPages = isPaginated ? Math.max(1, Math.ceil(totalItems! / pageSize)) : 1;
     // Clamp so the page never points past the last page after filtering.
     const clampedPage = isPaginated ? Math.min(page, totalPages) : 1;
@@ -250,24 +249,8 @@ function DataTable<SortField extends string = string>({
                                     Loading…
                                 </td>
                             </tr>
-                        ) : groupKeys ? (
-                            // Grouped mode — no pagination, no page/pageSize passed.
-                            groupKeys.map((key) => (
-                                <React.Fragment key={key}>
-                                    <tr className="border-border bg-surface-muted border-b">
-                                        <td
-                                            colSpan={colSpan}
-                                            className="text-text-muted px-5 py-2 text-xs font-semibold tracking-[0.14em] uppercase"
-                                        >
-                                            {key}
-                                        </td>
-                                    </tr>
-                                    {renderRows(key)}
-                                </React.Fragment>
-                            ))
                         ) : (
-                            // Flat mode — pass current page + pageSize so the caller can slice.
-                            renderRows("all", clampedPage, pageSize)
+                            renderRows(clampedPage, pageSize)
                         )}
                     </tbody>
                 </table>
