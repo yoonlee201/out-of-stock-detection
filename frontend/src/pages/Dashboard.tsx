@@ -192,137 +192,150 @@ const Dashboard = () => {
                 </button>
             </header>
 
-            {/* History list */}
-            <div className="bg-surface mb-6 rounded-xl p-6 shadow">
-                <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
-                {historyLoading ? (
-                    <div className="border-border flex min-h-50 items-center justify-center rounded-2xl border border-dashed">
-                        <p className="text-text-muted text-sm">Loading history...</p>
-                    </div>
-                ) : history.length === 0 ? (
-                    <div className="border-border flex min-h-50 items-center justify-center rounded-2xl border border-dashed text-center">
-                        <div>
-                            <p className="font-semibold">No analyses yet</p>
-                            <p className="text-text-muted mt-1 text-sm">Click "+ New Analysis" to get started.</p>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                {/* ── History sidebar ── */}
+                <div className="bg-surface w-full rounded-xl p-6 shadow lg:w-80 lg:shrink-0 lg:sticky lg:top-6 xl:w-96">
+                    <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
+                    {historyLoading ? (
+                        <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
+                            <p className="text-text-muted text-sm">Loading history...</p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {history.map((entry, index) => (
-                            <HistoryCard
-                                key={`${entry.fileName}-${entry.analyzedAt.getTime()}`}
-                                entry={entry}
-                                selected={selectedIndex === index}
-                                onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Detail panel */}
-            {selectedEntry && (
-                <div className="bg-surface mb-8 rounded-xl p-6 shadow">
-                    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h2 className="text-xl font-semibold">{selectedEntry.fileName}</h2>
-                            <p className="text-text-muted mt-1 text-sm">
-                                Analyzed at{" "}
-                                {selectedEntry.analyzedAt.toLocaleString([], {
-                                    dateStyle: "medium",
-                                    timeStyle: "short",
-                                })}
-                            </p>
+                    ) : history.length === 0 ? (
+                        <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed text-center">
+                            <div>
+                                <p className="font-semibold">No analyses yet</p>
+                                <p className="text-text-muted mt-1 text-sm">Click "+ New Analysis" to get started.</p>
+                            </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedIndex(null)}
-                            className="text-text-muted hover:text-text text-sm font-semibold"
-                        >
-                            Close ✕
-                        </button>
-                    </div>
-
-                    <div className="space-y-4">
-                        {/* Annotated image */}
-                        <div className="bg-surface border-border rounded-2xl border p-4">
-                            <div className="space-y-4">
-                                <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
-                                    <span className="bg-status-missing-bg text-status-missing-text rounded-full px-3 py-1">
-                                        M = Missing item
-                                    </span>
-                                    <span className="bg-status-misplaced-bg text-status-misplaced-text rounded-full px-3 py-1">
-                                        W = Wrong product
-                                    </span>
-                                </div>
-                                <img
-                                    src={analysisResult!.annotated_image}
-                                    alt="Shelf analysis result"
-                                    onClick={() => setImageDialogOpen(true)}
-                                    className="bg-surface border-border w-full cursor-zoom-in rounded-2xl border object-contain"
+                    ) : (
+                        <div className="no-scrollbar max-h-[60vh] space-y-2 overflow-y-auto lg:max-h-[calc(100vh-14rem)]">
+                            {history.map((entry, index) => (
+                                <HistoryCard
+                                    key={`${entry.fileName}-${entry.analyzedAt.getTime()}`}
+                                    entry={entry}
+                                    selected={selectedIndex === index}
+                                    onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
                                 />
-                            </div>
+                            ))}
                         </div>
-
-                        {/* Compliance summary */}
-                        {analysisResult!.compliance_report && (
-                            <div className="bg-surface border-border rounded-2xl border px-4 py-4">
-                                <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
-                                    Planogram Visibility
-                                </div>
-                                <div className="text-secondary mt-2 text-sm font-semibold">
-                                    Rows visible: {analysisResult!.compliance_report.visible_rows.length} of{" "}
-                                    {analysisResult!.compliance_report.total_planogram_rows} | Compliance:{" "}
-                                    {analysisResult!.compliance_report.compliance_score}%
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Issue cards + table */}
-                        <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
-                            <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
-                            {issueDetections.length > 0 ? (
-                                <div className="space-y-3">
-                                    {issueDetections.map((detection, index) => (
-                                        <IssueCard
-                                            key={`${detection.issue_marker ?? "issue"}-${index}-${detection.bbox.join("-")}`}
-                                            detection={detection}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="border-status-success-bg bg-status-success-bg text-status-success-text rounded-2xl border px-4 py-4 text-sm font-medium">
-                                    No missing or misplaced items were flagged in this audit.
-                                </div>
-                            )}
-
-                            <div className="mt-6 overflow-x-auto">
-                                <table className="w-full min-w-225 text-left text-sm">
-                                    <thead>
-                                        <tr className="border-border text-text-muted border-b">
-                                            <th className="p-3 text-center">Marker</th>
-                                            <th className="p-3">Slot</th>
-                                            <th className="p-3">Status</th>
-                                            <th className="p-3">Observed</th>
-                                            <th className="p-3">Expected</th>
-                                            <th className="p-3">Assignment</th>
-                                            <th className="p-3">Match Score</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {issueDetections.map((detection, index) => (
-                                            <DetectionRow
-                                                key={`${detection.issue_marker ?? detection.slot_id ?? "row"}-${index}`}
-                                                detection={detection}
-                                            />
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                {/* ── Detail panel ── */}
+                <div className="min-w-0 flex-1">
+                    {selectedEntry ? (
+                        <div className="bg-surface rounded-xl p-6 shadow">
+                            <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-xl font-semibold">{selectedEntry.fileName}</h2>
+                                    <p className="text-text-muted mt-1 text-sm">
+                                        Analyzed at{" "}
+                                        {selectedEntry.analyzedAt.toLocaleString([], {
+                                            dateStyle: "medium",
+                                            timeStyle: "short",
+                                        })}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedIndex(null)}
+                                    className="text-text-muted hover:text-text text-sm font-semibold"
+                                >
+                                    Close ✕
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Annotated image */}
+                                <div className="bg-surface border-border rounded-2xl border p-4">
+                                    <div className="space-y-4">
+                                        <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
+                                            <span className="bg-status-missing-bg text-status-missing-text rounded-full px-3 py-1">
+                                                M = Missing item
+                                            </span>
+                                            <span className="bg-status-misplaced-bg text-status-misplaced-text rounded-full px-3 py-1">
+                                                W = Wrong product
+                                            </span>
+                                        </div>
+                                        <img
+                                            src={analysisResult!.annotated_image}
+                                            alt="Shelf analysis result"
+                                            onClick={() => setImageDialogOpen(true)}
+                                            className="bg-surface border-border w-full cursor-zoom-in rounded-2xl border object-contain"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Compliance summary */}
+                                {analysisResult!.compliance_report && (
+                                    <div className="bg-surface border-border rounded-2xl border px-4 py-4">
+                                        <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
+                                            Planogram Visibility
+                                        </div>
+                                        <div className="text-secondary mt-2 text-sm font-semibold">
+                                            Rows visible: {analysisResult!.compliance_report.visible_rows.length} of{" "}
+                                            {analysisResult!.compliance_report.total_planogram_rows} | Compliance:{" "}
+                                            {analysisResult!.compliance_report.compliance_score}%
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Issue cards + table */}
+                                <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
+                                    <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
+                                    {issueDetections.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {issueDetections.map((detection, index) => (
+                                                <IssueCard
+                                                    key={`${detection.issue_marker ?? "issue"}-${index}-${detection.bbox.join("-")}`}
+                                                    detection={detection}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="border-status-success-bg bg-status-success-bg text-status-success-text rounded-2xl border px-4 py-4 text-sm font-medium">
+                                            No missing or misplaced items were flagged in this audit.
+                                        </div>
+                                    )}
+
+                                    <div className="mt-6 overflow-x-auto">
+                                        <table className="w-full min-w-225 text-left text-sm">
+                                            <thead>
+                                                <tr className="border-border text-text-muted border-b">
+                                                    <th className="p-3 text-center">Marker</th>
+                                                    <th className="p-3">Slot</th>
+                                                    <th className="p-3">Status</th>
+                                                    <th className="p-3">Observed</th>
+                                                    <th className="p-3">Expected</th>
+                                                    <th className="p-3">Assignment</th>
+                                                    <th className="p-3">Match Score</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {issueDetections.map((detection, index) => (
+                                                    <DetectionRow
+                                                        key={`${detection.issue_marker ?? detection.slot_id ?? "row"}-${index}`}
+                                                        detection={detection}
+                                                    />
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-surface flex min-h-64 items-center justify-center rounded-xl p-6 shadow">
+                            <div className="text-center">
+                                <p className="text-text-secondary font-semibold">No analysis selected</p>
+                                <p className="text-text-muted mt-1 text-sm">
+                                    Choose an entry from the history to view its results.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Upload dialog */}
             {uploadDialogOpen && (

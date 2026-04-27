@@ -14,6 +14,7 @@ import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import { PlusIcon, TrashIcon } from "../_components/Icons";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
+import Select from "../_components/Select";
 
 // ======================Types========================
 
@@ -324,18 +325,18 @@ const InviteDialog = ({ open, setOpen }: { open: boolean; setOpen: React.Dispatc
                 onKeyDown={(e) => e.key === "Enter" && handleInvite()}
                 className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
             />
-            <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
-            <select
+            <Select
+                label="Role"
+                labelClassName="mt-3"
                 value={invite.role}
                 onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-                className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
             >
                 {EMPLOYEE_ROLES.map((role) => (
                     <option key={role} value={role}>
                         {role.charAt(0).toUpperCase() + role.slice(1)}
                     </option>
                 ))}
-            </select>
+            </Select>
             <div className="mt-5 flex justify-end gap-2">
                 <button
                     onClick={() => setOpen(false)}
@@ -459,18 +460,18 @@ const EditDialog = ({ target, setEmployees, onClose }: EditDialogProps) => {
                 />
             </div>
             <div className="mt-3">
-                <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
-                <select
+                <Select
+                    label="Role"
+                    labelClassName="text-text-muted text-xs"
                     value={form.role ?? "associate"}
                     onChange={(e) => setField("role", e.target.value)}
-                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
                     {EMPLOYEE_ROLES.map((role) => (
                         <option key={role} value={role}>
                             {role.charAt(0).toUpperCase() + role.slice(1)}
                         </option>
                     ))}
-                </select>
+                </Select>
             </div>
 
             {/* status toggle — only shown for active/inactive, not other statuses */}

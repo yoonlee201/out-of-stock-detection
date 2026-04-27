@@ -18,6 +18,7 @@ import { apiCreateProduct, apiDeleteProduct, apiGetProducts, apiUpdateProduct } 
 import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
+import Select from "../_components/Select";
 
 type SortField =
     | "product"
@@ -79,7 +80,9 @@ const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
 
 // ======================Constants========================
 // TODO: fetch categories from backend instead of hardcoding
-const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
+// const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
+const AISLES = ["Aisle 1", "Aisle 2", "Aisle 3", "Aisle 4", "Aisle 5", "Aisle 6", "Aisle 7", "Aisle 8", "Aisle 9"];
+const SHELVES = ["Shelf 1", "Shelf 2", "Shelf 3", "Shelf 4", "Shelf 5", "Shelf 6", "Shelf 7", "Freezer 1", "Freezer 2"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: true },
@@ -90,7 +93,7 @@ const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "quantityStatus", label: "Quantity Status", sortable: true },
     { field: "shelfStatus", label: "Shelf Status", sortable: true },
     { field: "lastChecked", label: "Last Checked", sortable: true },
-    { field: "actions", label: "Actions", sortable: false },
+    { field: "actions", label: "", sortable: false },
 ];
 
 const INVENTORY_COLUMNS_CUSTOMER = [
@@ -114,6 +117,8 @@ interface EditForm {
     variant: string;
     size: string;
     category: string;
+    aisle: string;
+    shelf: string;
     stockCount: string;
 }
 
@@ -123,6 +128,8 @@ const itemToForm = (item: InventoryItem): EditForm => ({
     variant: item.variant,
     size: item.size,
     category: item.category,
+    aisle: item.aisle === "—" ? AISLES[0] : item.aisle,
+    shelf: item.shelf === "—" ? SHELVES[0] : item.shelf,
     stockCount: String(item.stockCount),
 });
 
@@ -159,6 +166,11 @@ const Inventory = () => {
         };
     }, [inventory]);
 
+    const categories = useMemo(
+        () => [...new Set(inventory.map((item) => item.category))].sort(),
+        [inventory],
+    );
+
     if (loading || !user) return <Loading message="Checking authentication..." />;
     if (inventoryLoading) return <Loading message="Loading inventory..." />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
@@ -193,9 +205,10 @@ const Inventory = () => {
             </div>
 
 
-            <InventoryTable view={view} inventory={inventory} setInventory={setInventory} />
+            <InventoryTable view={view} inventory={inventory} setInventory={setInventory} categories={categories} />
 
             <AddProductDialog
+                categories={categories}
                 open={addDialogOpen}
                 onClose={() => setAddDialogOpen(false)}
                 onCreated={(item) => setInventory((prev) => [...prev, item])}
@@ -210,9 +223,10 @@ type InventoryTableProps = {
     view: "employee" | "customer";
     inventory: InventoryItem[];
     setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
+    categories: string[];
 };
 
-const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) => {
+const InventoryTable = ({ view, inventory, setInventory, categories }: InventoryTableProps) => {
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
@@ -221,6 +235,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
     const [groupBy, setGroupBy] = useState<GroupField>("none");
     const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
     const [reorderTarget, setReorderTarget] = useState<InventoryItem | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null);
 
     const filtered = useMemo(() => {
         return inventory.filter((item) => {
@@ -275,7 +290,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
             return (
                 <tr key="empty">
                     <td colSpan={view === "employee" ? 9 : 8} className="text-text-muted py-16 text-center text-sm">
-                        No products match your filters.
+                        No products found.
                     </td>
                 </tr>
             );
@@ -288,6 +303,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                     status={deriveStatus(item.stockCount)}
                     onEdit={() => setEditTarget(item)}
                     onReorder={() => setReorderTarget(item)}
+                    onDelete={() => setDeleteTarget(item)}
                 />
             ) : (
                 <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
@@ -310,7 +326,7 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                     placeholder="Search product…"
                     className={view === "employee" ? "w-1/3" : "w-56"}
                 />
-                <CategoryDropdown categories={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
+                <CategoryDropdown categories={categories} value={categoryFilter} onChange={setCategoryFilter} />
                 {view === "employee" && (
                     <FilterGroup
                         options={QUANTITY_STATUS_OPTIONS}
@@ -320,17 +336,17 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                 )}
                 <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
                     <span className="text-text-muted tracking-[0.14em] uppercase">Group by</span>
-                    <select
+                    <Select
+                        variant="sm"
                         value={groupBy}
                         onChange={(e) => setGroupBy(e.target.value as GroupField)}
-                        className="bg-surface-muted border-border text-text rounded-xl border px-3 py-1.5 text-xs font-semibold"
                     >
                         {groupOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                                 {opt.label}
                             </option>
                         ))}
-                    </select>
+                    </Select>
                 </label>
             </FilterBar>
 
@@ -345,8 +361,9 @@ const InventoryTable = ({ view, inventory, setInventory }: InventoryTableProps) 
                 resetKey={`${search}-${categoryFilter}-${statusFilter}-${groupBy}`}
             />
 
-            <EditProductDialog target={editTarget} setInventory={setInventory} onClose={() => setEditTarget(null)} />
+            <EditProductDialog target={editTarget} setInventory={setInventory} onClose={() => setEditTarget(null)} categories={categories} />
             <ReorderDialog target={reorderTarget} onClose={() => setReorderTarget(null)} />
+            <DeleteProductDialog target={deleteTarget} setInventory={setInventory} onClose={() => setDeleteTarget(null)} />
         </>
     );
 };
@@ -465,9 +482,10 @@ type EditProductDialogProps = {
     target: InventoryItem | null;
     setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
     onClose: () => void;
+    categories: string[];
 };
 
-const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogProps) => {
+const EditProductDialog = ({ target, setInventory, onClose, categories }: EditProductDialogProps) => {
     const [form, setForm] = useState<EditForm | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -498,6 +516,8 @@ const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogP
                 size: form.size.trim(),
                 type: form.category.trim(),
                 quantity_in_store: qty,
+                aisle: form.aisle,
+                shelf: form.shelf,
             });
             setInventory((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
             onClose();
@@ -546,16 +566,28 @@ const EditProductDialog = ({ target, setInventory, onClose }: EditProductDialogP
                         />
                         <Field label="Size" value={form.size} onChange={(e) => setField("size", e.target.value)} />
                     </div>
-                    <div>
-                        <label className="text-text-secondary mb-1 block text-sm font-semibold">Category</label>
-                        <select
-                            value={form.category}
-                            onChange={(e) => setField("category", e.target.value)}
-                            className="input-base"
+                    <Select
+                        label="Category"
+                        value={form.category}
+                        onChange={(e) => setField("category", e.target.value)}
+                    >
+                        {categories.map((c) => <option key={c}>{c}</option>)}
+                    </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Select
+                            label="Aisle"
+                            value={form.aisle}
+                            onChange={(e) => setField("aisle", e.target.value)}
                         >
-                            <option>Soft Drinks</option>
-                            <option>Sports Drinks</option>
-                        </select>
+                            {AISLES.map((a) => <option key={a}>{a}</option>)}
+                        </Select>
+                        <Select
+                            label="Shelf"
+                            value={form.shelf}
+                            onChange={(e) => setField("shelf", e.target.value)}
+                        >
+                            {SHELVES.map((s) => <option key={s}>{s}</option>)}
+                        </Select>
                     </div>
                     <Field
                         label="Stock Count"
@@ -726,7 +758,73 @@ const ReorderDialog = ({ target, onClose }: ReorderDialogProps) => {
         </Dialog>
     );
 };
+const DeleteProductDialog = ({
+    target,
+    setInventory,
+    onClose,
+}: {
+    target: InventoryItem | null;
+    setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
+    onClose: () => void;
+}) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (target) setError(null);
+    }, [target]);
+
+    const handleDelete = async () => {
+        if (!target) return;
+        setLoading(true);
+        setError(null);
+        try {
+            await apiDeleteProduct(target.id);
+            setInventory((prev) => prev.filter((i) => i.id !== target.id));
+            onClose();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to delete.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Dialog
+            open={!!target}
+            title="Delete Product"
+            description={
+                target
+                    ? `Delete ${target.brand} ${target.productName} (${target.variant} · ${target.size})? This cannot be undone.`
+                    : ""
+            }
+            onClose={onClose}
+        >
+            {error && <p className="text-red mb-3 text-xs">{error}</p>}
+            <div className="flex gap-3">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={loading}
+                    className="bg-surface-muted text-text-secondary flex-1 rounded-xl px-4 py-3 font-semibold transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="bg-red flex-1 rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                    {loading ? "Deleting…" : "Delete permanently"}
+                </button>
+            </div>
+        </Dialog>
+    );
+};
+
 type AddProductDialogProps = {
+    categories: string[];
     open: boolean;
     onClose: () => void;
     onCreated: (item: InventoryItem) => void;
@@ -748,23 +846,23 @@ const emptyAddForm: AddForm = {
     productName: "",
     variant: "",
     size: "",
-    category: CATEGORIES[0] ?? "",
+    category: "",
     stockCount: "0",
-    aisle: "Aisle 1",
-    shelf: "Shelf 1",
+    aisle: AISLES[0],
+    shelf: SHELVES[0],
 };
 
-const AddProductDialog = ({ open, onClose, onCreated }: AddProductDialogProps) => {
+const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDialogProps) => {
     const [form, setForm] = useState<AddForm>(emptyAddForm);
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
 
     useEffect(() => {
         if (open) {
-            setForm(emptyAddForm);
+            setForm({ ...emptyAddForm, category: categories[0] ?? "" });
             setSaveError(null);
         }
-    }, [open]);
+    }, [open, categories]);
 
     const setField = (field: keyof AddForm, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -799,31 +897,44 @@ const AddProductDialog = ({ open, onClose, onCreated }: AddProductDialogProps) =
     return (
         <Dialog open={open} title="Add Product" description="Create a new inventory item." onClose={onClose}>
             <div className="space-y-3">
-                <Field label="Brand" value={form.brand} onChange={(e) => setField("brand", e.target.value)} />
+                <Field label="Brand" value={form.brand} onChange={(e) => setField("brand", e.target.value)} required/>
                 <Field
                     label="Product Name"
                     value={form.productName}
                     onChange={(e) => setField("productName", e.target.value)}
+                    required
                 />
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Variant" value={form.variant} onChange={(e) => setField("variant", e.target.value)} />
                     <Field label="Size" value={form.size} onChange={(e) => setField("size", e.target.value)} />
                 </div>
-                <div>
-                    <label className="text-text-secondary mb-1 block text-sm font-semibold">Category</label>
-                    <select
-                        value={form.category}
-                        onChange={(e) => setField("category", e.target.value)}
-                        className="input-base"
-                    >
-                        {CATEGORIES.map((c) => (
-                            <option key={c}>{c}</option>
-                        ))}
-                    </select>
-                </div>
+                <Select
+                    label="Category"
+                    value={form.category}
+                    onChange={(e) => setField("category", e.target.value)}
+                    required
+                >
+                    {categories.map((c) => (
+                        <option key={c}>{c}</option>
+                    ))}
+                </Select>
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} />
-                    <Field label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)} />
+                    <Select
+                        label="Aisle"
+                        required
+                        value={form.aisle}
+                        onChange={(e) => setField("aisle", e.target.value)}
+                    >
+                        {AISLES.map((a) => <option key={a}>{a}</option>)}
+                    </Select>
+                    <Select
+                        label="Shelf"
+                        required
+                        value={form.shelf}
+                        onChange={(e) => setField("shelf", e.target.value)}
+                    >
+                        {SHELVES.map((s) => <option key={s}>{s}</option>)}
+                    </Select>
                 </div>
                 <Field
                     label="Stock Count"
@@ -831,6 +942,7 @@ const AddProductDialog = ({ open, onClose, onCreated }: AddProductDialogProps) =
                     min={0}
                     value={form.stockCount}
                     onChange={(e) => setField("stockCount", e.target.value)}
+                    required
                 />
                 {saveError && <p className="text-red text-xs">{saveError}</p>}
                 <div className="mt-2 flex gap-3">

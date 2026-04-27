@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronIcon } from "./Icons";
+import Select from "./Select";
 
 export interface Column<T extends string = string> {
     field: T;
@@ -125,15 +126,17 @@ function PaginationBar({ page, totalPages, total, pageSize, onPage, onPageSize }
             <div className="flex items-center gap-3">
                 <label className="text-text-muted flex items-center gap-1.5 text-xs">
                     Rows per page
-                    <select
+                    <Select
+                        variant="sm"
+                        className="rounded-lg"
+                        selectClassName="py-1 pl-2 pr-6"
                         value={pageSize}
                         onChange={(e) => onPageSize(Number(e.target.value))}
-                        className="bg-surface-muted border-border text-text rounded-lg border px-2 py-1 text-xs font-semibold"
                     >
                         {PAGE_SIZE_OPTIONS.map((n) => (
                             <option key={n} value={n}>{n}</option>
                         ))}
-                    </select>
+                    </Select>
                 </label>
                 <span className="text-text-muted text-xs">
                     {from}–{to} of {total}

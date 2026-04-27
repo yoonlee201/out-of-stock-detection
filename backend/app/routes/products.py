@@ -126,6 +126,10 @@ def update_product(product_id, session):
         if qty < 0:
             return jsonify({"error": "quantity_in_store cannot be negative"}), 400
         product.quantity_in_store = qty
+    if "aisle" in body:
+        product.aisle = str(body["aisle"]).strip()
+    if "shelf" in body:
+        product.shelf = str(body["shelf"]).strip()
 
     db.session.commit()
     return jsonify({"message": "Product updated", "product": _serialize(product)}), 200

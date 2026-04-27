@@ -19,16 +19,17 @@ interface RawProduct {
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
     id: String(p.product_id),
     productName: p.name,
-    brand: p.brand || "",
-    variant: p.variant || "",
-    size: p.size || "",
+    brand: p.brand,
+    variant: p.variant,
+    size: p.size,
     category: p.type,
     stockCount: p.quantity_in_store,
-    aisle: p.aisle || "-",
-    shelf: p.shelf || "-",
+    aisle: p.aisle,
+    shelf: p.shelf,
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
 });
+
 
 export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> => {
     try {
@@ -84,6 +85,8 @@ export const apiUpdateProduct = async (
         size: string;
         type: string;
         quantity_in_store: number;
+        aisle: string;
+        shelf: string;
     }>,
 ): Promise<InventoryItem> => {
     try {
