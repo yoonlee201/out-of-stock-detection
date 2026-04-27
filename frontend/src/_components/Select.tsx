@@ -1,10 +1,4 @@
-import {
-    forwardRef,
-    useEffect,
-    useRef,
-    useState,
-    type SelectHTMLAttributes,
-} from "react";
+import { forwardRef, useEffect, useRef, useState, type SelectHTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 
 type Option = { value: string; label: string };
@@ -13,7 +7,7 @@ type SelectProps = {
     label?: string;
     labelClassName?: string;
     className?: string;
-    selectClassName?: string;   // applied to the visible trigger button
+    selectClassName?: string; // applied to the visible trigger button
     error?: string;
     variant?: "sm" | "md";
     options?: Option[];
@@ -23,10 +17,7 @@ type SelectProps = {
 } & SelectHTMLAttributes<HTMLSelectElement>;
 
 const setNativeSelectValue = (el: HTMLSelectElement, value: string) => {
-    const setter = Object.getOwnPropertyDescriptor(
-        Object.getPrototypeOf(el),
-        "value",
-    )?.set;
+    const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), "value")?.set;
     setter?.call(el, value);
     el.dispatchEvent(new Event("change", { bubbles: true }));
 };
@@ -54,9 +45,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         ref,
     ) => {
         const isControlled = value !== undefined;
-        const [internalValue, setInternalValue] = useState<string>(
-            (value as string) ?? (defaultValue as string) ?? "",
-        );
+        const [internalValue, setInternalValue] = useState<string>((value as string) ?? (defaultValue as string) ?? "");
         useEffect(() => {
             if (isControlled) setInternalValue((value as string) ?? "");
         }, [value, isControlled]);
@@ -89,8 +78,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
             : options;
 
-        const currentLabel =
-            options.find((o) => o.value === internalValue)?.label ?? "";
+        const currentLabel = options.find((o) => o.value === internalValue)?.label ?? "";
 
         // Forward the ref to the hidden <select> so react-hook-form (and any
         // other ref-based consumer) reads the real form value from a real
@@ -115,10 +103,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 ? "bg-surface border-border-input focus-within:border-primary rounded border-2 py-2.5 pr-8 pl-3 text-sm"
                 : "bg-surface-muted border-border rounded-xl border py-1.5 pr-7 pl-3 text-xs font-semibold";
 
-        const popoverStyles =
-            variant === "md"
-                ? "rounded-xl"
-                : "rounded-2xl";
+        const popoverStyles = variant === "md" ? "rounded-xl" : "rounded-2xl";
 
         const trigger = (
             <div ref={containerRef} className={twMerge("relative", className)}>
@@ -137,9 +122,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     )}
                     style={{ color: currentLabel ? undefined : "var(--color-text-muted)" }}
                 >
-                    <span className="truncate text-left">
-                        {currentLabel || placeholder}
-                    </span>
+                    <span className="truncate text-left">{currentLabel || placeholder}</span>
                     <span className="text-text-muted pointer-events-none shrink-0">
                         <svg
                             width="10"
@@ -222,9 +205,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                                             onClick={() => handlePick(o.value)}
                                             className="hover:bg-surface-muted w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                                             style={{
-                                                color: selected
-                                                    ? "var(--color-text)"
-                                                    : "var(--color-text-secondary)",
+                                                color: selected ? "var(--color-text)" : "var(--color-text-secondary)",
                                             }}
                                         >
                                             {o.label}
@@ -242,12 +223,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
         return (
             <div>
-                <label
-                    className={twMerge(
-                        "text-text-secondary mb-1 block text-sm font-semibold",
-                        labelClassName,
-                    )}
-                >
+                <label className={twMerge("text-text-secondary mb-1 block text-sm font-semibold", labelClassName)}>
                     {label}
                     {required && <span className="text-red"> *</span>}
                 </label>

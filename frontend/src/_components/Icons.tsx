@@ -120,13 +120,12 @@ const TrashIcon = () => (
 );
 
 const ThreeVerticalDotsIcon = () => (
-    
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" />
-                            <circle cx="10" cy="10" r="1.5" />
-                            <circle cx="10" cy="16" r="1.5" />
-                        </svg>
-)
+    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+        <circle cx="10" cy="4" r="1.5" />
+        <circle cx="10" cy="10" r="1.5" />
+        <circle cx="10" cy="16" r="1.5" />
+    </svg>
+);
 export {
     UserIcon,
     LockIcon,
