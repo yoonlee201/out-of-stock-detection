@@ -41,8 +41,9 @@ const makeSvgImage = (label: string) => {
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
 
-export const mockAnalysisResults: Array<{ fileName: string; result: ShelfAnalysisResponse }> = [
+export const mockAnalysisResults: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }> = [
     {
+        id: 1,
         fileName: "shelf-aisle-3.jpg",
         result: {
             message: "Shelf analysis complete.",
@@ -361,6 +362,7 @@ export const mockAnalysisResults: Array<{ fileName: string; result: ShelfAnalysi
         },
     },
     {
+        id: 2,
         fileName: "shelf-aisle-7.jpg",
         result: {
             message: "Shelf analysis complete.",

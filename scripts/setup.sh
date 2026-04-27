@@ -217,6 +217,10 @@ if [ "$NO_DOCKER" = "false" ]; then
     fi
     info "Backend is ready."
 
+    section "Applying database migrations…"
+    # Idempotent: safe to run on fresh, partially-migrated, or up-to-date DBs.
+    docker exec -e FLASK_APP=app.main:app oos_detection-backend flask db upgrade
+
     section "Initialising database…"
     if [ "$AUTO_SEED" = "true" ]; then
         SEED_CHOICE="y"
@@ -281,6 +285,9 @@ else
     (
         cd backend
         export PYTHONPATH="$(pwd)"
+        export FLASK_APP=app.main:app
+        # Idempotent: safe to run on fresh, partially-migrated, or up-to-date DBs.
+        flask db upgrade
         if [ "$AUTO_SEED" = "true" ]; then
             python -m db.init_db --seed
         else

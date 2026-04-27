@@ -162,6 +162,7 @@ def analyze_shelf():
         }
 
         # Persist result — best-effort, never blocks the response
+        log_id = None
         try:
             current_user = _get_current_user()
             log = ShelfAnalysisLog(
@@ -171,8 +172,10 @@ def analyze_shelf():
             )
             db.session.add(log)
             db.session.commit()
+            log_id = log.id
         except Exception:
             db.session.rollback()
+            traceback.print_exc()
 
         # Trigger alerts when the analysis found missing or misplaced items
         issue_detections = [
@@ -181,9 +184,10 @@ def analyze_shelf():
         ]
         if issue_detections:
             try:
-                send_out_of_stock_alerts(issue_detections)
+                send_out_of_stock_alerts(issue_detections, shelf_analysis_log_id=log_id)
             except Exception:
-                pass  # alert failure must never break the analysis response
+                db.session.rollback()
+                traceback.print_exc()  # surface alert failures in logs
 
         return jsonify(payload), 200
     except Exception as error:

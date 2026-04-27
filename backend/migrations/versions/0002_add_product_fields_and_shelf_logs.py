@@ -3,6 +3,10 @@
 Revision ID: 0002
 Revises: 0001
 Create Date: 2026-04-22
+
+Idempotent: each ADD COLUMN / CREATE TABLE is guarded by an inspector check.
+This lets the migration run cleanly against a DB whose schema was already
+created by `db.create_all()` (which the app does on startup).
 """
 
 import sqlalchemy as sa
@@ -15,17 +19,28 @@ branch_labels = None
 depends_on = None
 
 
+_PRODUCT_COLUMNS = [
+    ("brand",        sa.Column("brand",        sa.String(80), server_default="",        nullable=False)),
+    ("variant",      sa.Column("variant",      sa.String(80), server_default="",        nullable=False)),
+    ("size",         sa.Column("size",         sa.String(50), server_default="",        nullable=False)),
+    ("shelf_status", sa.Column("shelf_status", sa.String(50), server_default="unknown", nullable=False)),
+    ("last_checked", sa.Column("last_checked", sa.DateTime(timezone=True),              nullable=True)),
+]
+
+
 def upgrade():
-    # ── New columns on products ──────────────────────────────────────────────
-    with op.batch_alter_table("products") as batch_op:
-        batch_op.add_column(sa.Column("brand",        sa.String(80),  server_default="", nullable=False))
-        batch_op.add_column(sa.Column("variant",      sa.String(80),  server_default="", nullable=False))
-        batch_op.add_column(sa.Column("size",         sa.String(50),  server_default="", nullable=False))
-        batch_op.add_column(sa.Column("shelf_status", sa.String(50),  server_default="unknown", nullable=False))
-        batch_op.add_column(sa.Column("last_checked", sa.DateTime(timezone=True), nullable=True))
+    inspector = inspect(op.get_bind())
+
+    # ── New columns on products (skip any that already exist) ────────────────
+    existing_cols = {c["name"] for c in inspector.get_columns("products")}
+    missing = [col for name, col in _PRODUCT_COLUMNS if name not in existing_cols]
+    if missing:
+        with op.batch_alter_table("products") as batch_op:
+            for col in missing:
+                batch_op.add_column(col)
 
     # ── New shelf_analysis_logs table ────────────────────────────────────────
-    if "shelf_analysis_logs" not in inspect(op.get_bind()).get_table_names():
+    if "shelf_analysis_logs" not in inspector.get_table_names():
         op.create_table(
             "shelf_analysis_logs",
             sa.Column("id",          sa.Integer(),                         primary_key=True, autoincrement=True),
@@ -37,11 +52,14 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table("shelf_analysis_logs")
+    inspector = inspect(op.get_bind())
 
-    with op.batch_alter_table("products") as batch_op:
-        batch_op.drop_column("last_checked")
-        batch_op.drop_column("shelf_status")
-        batch_op.drop_column("size")
-        batch_op.drop_column("variant")
-        batch_op.drop_column("brand")
+    if "shelf_analysis_logs" in inspector.get_table_names():
+        op.drop_table("shelf_analysis_logs")
+
+    existing_cols = {c["name"] for c in inspector.get_columns("products")}
+    drops = [name for name, _ in reversed(_PRODUCT_COLUMNS) if name in existing_cols]
+    if drops:
+        with op.batch_alter_table("products") as batch_op:
+            for name in drops:
+                batch_op.drop_column(name)

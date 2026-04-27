@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiAnalyzeShelf } from "../api/query/shelfAnalysis";
-import imgA from "../assets/images/franki-chamaki-wkvKZR4e2OI-unsplash.png";
-import imgB from "../assets/images/Screenshot 2026-04-13 at 12.36.04 AM.png";
-import imgC from "../assets/images/Screenshot 2026-04-13 at 10.42.26 PM.png";
 
 interface DemoImage {
     url: string;
@@ -12,9 +9,9 @@ interface DemoImage {
 }
 
 const DEMO_IMAGES: DemoImage[] = [
-    { url: imgA, label: "Shelf Sample 1", filename: "shelf-sample-1.png" },
-    { url: imgB, label: "Shelf Sample 2", filename: "shelf-sample-2.png" },
-    { url: imgC, label: "Grocery Shelf", filename: "grocery-shelf.png" },
+    { url: "/images/shelf-sample-1.png", label: "Shelf Sample 1", filename: "shelf-sample-1.png" },
+    { url: "/images/shelf-sample-2.png", label: "Shelf Sample 2", filename: "shelf-sample-2.png" },
+    { url: "/images/shelf-sample-3.png", label: "Shelf Sample 3", filename: "shelf-sample-3.png" },
 ];
 
 const urlToFile = async (url: string, filename: string): Promise<File> => {
@@ -109,10 +106,10 @@ const Demo = () => {
                     disabled={!selected || loading}
                     className="bg-primary hover:bg-primary-hover rounded-2xl px-6 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                    {loading ? "Uploading…" : "Run Detection →"}
+                    {loading ? (uploadProgress >= 100 ? "Analyzing…" : "Uploading…") : "Run Detection"}
                 </button>
 
-                {loading && (
+                {loading && uploadProgress < 100 && (
                     <div className="mt-4 space-y-2">
                         <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-text-secondary">Uploading</span>
@@ -124,6 +121,12 @@ const Demo = () => {
                                 style={{ width: `${uploadProgress}%` }}
                             />
                         </div>
+                    </div>
+                )}
+
+                {loading && uploadProgress >= 100 && (
+                    <div className="border-status-info-bg bg-status-info-bg text-status-info-text mt-4 rounded-2xl border px-4 py-3 text-sm font-medium">
+                        Upload complete — analyzing shelf image…
                     </div>
                 )}
 

@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
-import { apiGetAlertHistory, type AlertHistoryItem } from "../api/query/alert";
+import { apiGetAlertHistory, type AlertHistoryItem, type AlertType } from "../api/query/alert";
 import { apiGetReorders, type ReorderResult } from "../api/query/reorders";
+import { NavLink } from "react-router-dom";
 
-const ALERT_TYPE_LABEL: Record<string, string> = {
-    out_of_stock: "Out of Stock",
-    low_stock: "Low Stock",
-    misplaced: "Misplaced Item",
+const ALERT_TYPE_LABEL: Record<AlertType, string> = {
+    restock: "Restock",
+    shelf_detection: "Shelf Detection",
 };
 
-const alertTypeBadgeClass = (type: string) => {
-    if (type === "out_of_stock") return "bg-status-missing-bg text-status-missing-text";
-    if (type === "low_stock") return "bg-status-misplaced-bg text-status-misplaced-text";
-    return "bg-status-info-bg text-status-info-text";
+const alertTypeClass = (alertType: AlertType): string => {
+    switch (alertType) {
+        case "restock":
+            return "bg-status-misplaced-bg text-status-misplaced-text";
+        case "shelf_detection":
+            return "bg-status-missing-bg text-status-missing-text";
+    }
 };
+
 
 const EmptyState = ({ message }: { message: string }) => (
     <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
@@ -70,12 +74,12 @@ const Notifications = () => {
                     ) : (
                         <div className="space-y-3">
                             {alertHistory.map((alert) => (
-                                <div key={alert.id} className="border-border rounded-2xl border px-4 py-3">
+                                <NavLink key={alert.id} to={`/shelf-detection?log_id=${alert.shelf_analysis_log_id}`} className="border-border rounded-2xl border px-4 py-3">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span
-                                            className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em] uppercase ${alertTypeBadgeClass(alert.alert_type)}`}
+                                            className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em] uppercase ${alertTypeClass(alert.alert_type)}`}
                                         >
-                                            {ALERT_TYPE_LABEL[alert.alert_type] ?? alert.alert_type.replace(/_/g, " ")}
+                                            {ALERT_TYPE_LABEL[alert.alert_type]}
                                         </span>
                                         <span className="text-text-muted text-xs">
                                             {alert.sent_time
@@ -86,11 +90,21 @@ const Notifications = () => {
                                                 : "No time recorded"}
                                         </span>
                                     </div>
-                                    <div className="text-text-muted mt-2 flex gap-4 text-xs">
-                                        <span>Product ID: {alert.product_id}</span>
-                                        <span>User ID: {alert.user_id}</span>
+                                    <div className="text-text-muted mt-2 flex flex-wrap gap-4 text-xs">
+                                        <span>
+                                            Scan:{" "}
+                                            {alert.shelf_analysis_log_id !== null
+                                                ? `#${alert.shelf_analysis_log_id}`
+                                                : "—"}
+                                        </span>
+                                        {alert.alert_type === "shelf_detection" && (
+                                            <>
+                                                <span>Missing: {alert.missing}</span>
+                                                <span>Misplaced: {alert.misplaced}</span>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
+                                </NavLink>
                             ))}
                         </div>
                     )}
@@ -113,25 +127,45 @@ const Notifications = () => {
                         <EmptyState message="No reorders have been placed yet." />
                     ) : (
                         <div className="space-y-3">
-                            {reorders.map((reorder) => (
-                                <div key={reorder.id} className="border-border rounded-2xl border px-4 py-3">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="text-sm font-semibold">
-                                            Product ID: {reorder.product_id}
-                                        </span>
-                                        <span className="text-text-muted text-xs">
-                                            {new Date(reorder.created_at).toLocaleString([], {
-                                                dateStyle: "medium",
-                                                timeStyle: "short",
-                                            })}
-                                        </span>
+                            {reorders.map((reorder) => {
+                                const p = reorder.product;
+                                const subtitleParts = p
+                                    ? [p.variant, p.size].filter(Boolean)
+                                    : [];
+                                return (
+                                    <div key={reorder.id} className="border-border rounded-2xl border px-4 py-3">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="text-sm font-semibold">{`${p?.brand ? `${p.brand} ` : ''}${p?.name || 'Unnamed Product'}`}</span>
+                                            <span className="text-text-muted text-xs">
+                                                {new Date(reorder.created_at).toLocaleString([], {
+                                                    dateStyle: "medium",
+                                                    timeStyle: "short",
+                                                })}
+                                            </span>
+                                        </div>
+                                        {subtitleParts.length > 0 && (
+                                            <div className="text-text-muted mt-1 text-xs">
+                                                {subtitleParts.join(" · ")}
+                                            </div>
+                                        )}
+                                        <div className="text-text-muted mt-2 flex flex-wrap gap-4 text-xs">
+                                            {p && (
+                                                <>
+                                                    <span>{p.shelf}</span>
+                                                    <span>{p.aisle}</span>
+                                                    <span className="capitalize">{p.type}</span>
+                                                </>
+                                            )}
+                                            <span>
+                                                Quantity:{" "}
+                                                <span className="text-text-secondary font-semibold">
+                                                    {reorder.quantity}
+                                                </span>
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="text-text-muted mt-2 text-xs">
-                                        Quantity ordered:{" "}
-                                        <span className="text-text-secondary font-semibold">{reorder.quantity}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

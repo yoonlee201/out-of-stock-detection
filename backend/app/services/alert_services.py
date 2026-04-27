@@ -5,13 +5,16 @@ from app.util.send import send_sms
 from datetime import datetime
 
 
-def send_out_of_stock_alerts(detected_items=None):
+def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):
     """
     Send an SMS summary to every active employee and log one Alert row per
-    detected item that has a product_id.
+    employee that links back to the shelf analysis log for the scan.
 
-    detected_items: list of dicts with keys audit_status, product_id, etc.
-                    Defaults to empty list (sends a "no detections" message).
+    detected_items: list of detection dicts (with audit_status, etc.) used to
+                    build the SMS summary and choose alert_type.
+    shelf_analysis_log_id: id of the ShelfAnalysisLog row this scan produced.
+                           Stored on each Alert row so the UI can navigate back
+                           to the analysis result.
     """
     detected_items = detected_items or []
 
@@ -20,10 +23,10 @@ def send_out_of_stock_alerts(detected_items=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not detected_items:
-        message = f"[MCCS] Shelf scan completed at {timestamp}. No detections."
+        message = f"Shelf scan completed at {timestamp}. No detections."
     else:
         message = (
-            f"[MCCS] Shelf scan at {timestamp}. "
+            f"Shelf scan at {timestamp}. "
             f"Total: {len(detected_items)}, Missing: {missing_count}, Misplaced: {misplaced_count}."
         )
 
@@ -36,32 +39,12 @@ def send_out_of_stock_alerts(detected_items=None):
             except Exception as e:
                 print(f"SMS failed for {user.email}: {e}")
 
-        for item in detected_items:
-            product_id = item.get("product_id") if isinstance(item, dict) else getattr(item, "product_id", None)
-            if product_id is not None:
-                db.session.add(Alerts(
-                    user_id=user.user_id,
-                    product_id=product_id,
-                    alert_type="out_of_stock",
-                ))
+        db.session.add(Alerts(
+            user_id=user.user_id,
+            shelf_analysis_log_id=shelf_analysis_log_id,
+            alert_type="shelf_detection",
+            missing=missing_count,
+            misplaced=misplaced_count,
+        ))
 
     db.session.commit()
-
-
-def seed_mock_alerts(user_id, product_ids, alert_types=None):
-    """
-    Insert a batch of mock Alert rows for development / demo purposes.
-    Returns the list of created Alerts.
-    """
-    alert_types = alert_types or ["out_of_stock", "low_stock", "misplaced"]
-    created = []
-    for i, pid in enumerate(product_ids):
-        alert = Alerts(
-            user_id=user_id,
-            product_id=pid,
-            alert_type=alert_types[i % len(alert_types)],
-        )
-        db.session.add(alert)
-        created.append(alert)
-    db.session.commit()
-    return created

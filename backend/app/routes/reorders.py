@@ -9,9 +9,10 @@ reorders_blueprint = Blueprint("reorders", __name__)
 @reorders_blueprint.route("/", methods=["GET"])
 @require_active_employee
 def list_reorders(session):
-    """Return the 100 most recent reorders, newest first."""
-    reorders = (
-        Reorders.query
+    """Return the 100 most recent reorders, newest first, joined with product details."""
+    rows = (
+        db.session.query(Reorders, Products)
+        .outerjoin(Products, Products.product_id == Reorders.product_id)
         .order_by(Reorders.created_at.desc())
         .limit(100)
         .all()
@@ -22,8 +23,21 @@ def list_reorders(session):
             "product_id": r.product_id,
             "quantity": r.quantity,
             "created_at": r.created_at.isoformat(),
+            "product": (
+                {
+                    "name": p.name,
+                    "brand": p.brand,
+                    "variant": p.variant,
+                    "size": p.size,
+                    "type": p.type,
+                    "shelf": p.shelf,
+                    "aisle": p.aisle,
+                }
+                if p is not None
+                else None
+            ),
         }
-        for r in reorders
+        for r, p in rows
     ]), 200
 
 

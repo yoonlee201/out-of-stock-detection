@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
     apiAnalyzeShelf,
     apiGetAnalysisHistory,
@@ -10,15 +11,20 @@ import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
 
 interface HistoryEntry {
+    id: number;
     fileName: string;
     result: ShelfAnalysisResponse;
     analyzedAt: Date;
 }
 
-const toHistoryEntries = (results: Array<{ fileName: string; result: ShelfAnalysisResponse }>): HistoryEntry[] =>
+// TODO: Remove if mock data is no longer needed
+const toHistoryEntries = (results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>): HistoryEntry[] =>
     results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
 
 const Dashboard = () => {
+    const [searchParams] = useSearchParams();
+    const log_id = searchParams.get("log_id");
+
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
@@ -28,8 +34,16 @@ const Dashboard = () => {
     const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
-    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+    // Sync the selection to ?log_id= once history has loaded.
+    useEffect(() => {
+        if (!log_id) return;
+        const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
+        if (index !== -1) setSelectedIndex(index);
+    }, [log_id, history]);
+
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
     const analysisResult = selectedEntry?.result ?? null;
@@ -49,11 +63,13 @@ const Dashboard = () => {
                 if (entries.length > 0) {
                     setHistory(
                         entries.map((e) => ({
+                            id: e.id,
                             fileName: e.file_name,
                             result: e.result,
                             analyzedAt: new Date(e.created_at),
                         })),
                     );
+
                 } else {
                     setHistory(toHistoryEntries(mockAnalysisResults));
                 }
@@ -64,9 +80,11 @@ const Dashboard = () => {
             .finally(() => {
                 if (!cancelled) setHistoryLoading(false);
             });
+
         return () => {
             cancelled = true;
         };
+
     }, []);
 
     useEffect(() => {
@@ -153,7 +171,7 @@ const Dashboard = () => {
                     });
                     stopSim();
                     setProgressValue(100);
-                    newEntries.push({ fileName: imageFile.name, result, analyzedAt: new Date() });
+                    newEntries.push({ id: -1, fileName: imageFile.name, result, analyzedAt: new Date() });
                 } catch {
                     stopSim();
                     failedFiles.push(imageFile.name);

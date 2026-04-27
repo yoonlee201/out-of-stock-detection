@@ -83,7 +83,7 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
                 return undefined;
             }
 
-            logger.info("User validation successful:", user.role, UserRole[user.role as keyof typeof UserRole]);
+            logger.info("User validation successful:", user.role);
 
             return {
                 firstName: user.first_name,

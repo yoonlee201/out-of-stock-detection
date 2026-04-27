@@ -58,6 +58,8 @@ def create_app() -> Flask:
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     )
+    
+    app.url_map.strict_slashes = False
 
     # ── Database ──────────────────────────────────────────────────────────────
     app.config["SQLALCHEMY_DATABASE_URI"] = config.SQLALCHEMY_DATABASE_URI
