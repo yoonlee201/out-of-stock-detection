@@ -193,8 +193,8 @@ docker exec oos_detection-backend python -m db.init_db --seed
 # Open a psql session
 docker exec -it pg-oos_detection psql -U oos_detection -d oos_detection
 
-# Run database migrations
-docker exec oos_detection-backend flask db upgrade
+# Run database migrations (FLASK_APP must be set — dev container CMD is `python -m app.main`)
+docker compose -f compose.dev.yml exec -e FLASK_APP=app.main:app backend flask db upgrade
 ```
 
 For GPU mode, append `-f compose.dev.gpu.yml` to every `docker compose` call, e.g.:
@@ -202,6 +202,30 @@ For GPU mode, append `-f compose.dev.gpu.yml` to every `docker compose` call, e.
 ```bash
 docker compose -f compose.dev.yml -f compose.dev.gpu.yml logs -f backend
 docker compose -f compose.dev.yml -f compose.dev.gpu.yml down
+```
+
+---
+
+### Database migrations
+
+Migrations live in [`backend/migrations/versions/`](backend/migrations/versions/) and are managed by Flask-Migrate (Alembic). Each migration is **idempotent** — every `ADD COLUMN` / `CREATE TABLE` is guarded by an inspector check, so it's safe to run against a database that was already partially-migrated by `db.create_all()` on app startup.
+
+```bash
+# Pull latest, rebuild, and apply all pending migrations in one shot.
+git pull
+docker compose -f compose.dev.yml up -d --build backend
+docker compose -f compose.dev.yml exec -e FLASK_APP=app.main:app backend flask db upgrade
+
+# Verify: should print the latest revision (e.g. `0004 (head)`).
+docker compose -f compose.dev.yml exec -e FLASK_APP=app.main:app backend flask db current
+```
+
+Upgrading from any older revision (e.g. stuck on `0001` after a stale checkout) goes straight to head — Alembic walks `0001 → 0002 → 0003 → 0004`, and each idempotent step skips work that's already been applied. No manual `flask db stamp` is needed.
+
+If `flask db upgrade` errors with a "duplicate column" or "table already exists" message, the container is running an older image without the idempotent migration files. Rebuild it:
+
+```bash
+docker compose -f compose.dev.yml up -d --build backend
 ```
 
 ---
