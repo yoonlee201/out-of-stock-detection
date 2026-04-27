@@ -188,14 +188,12 @@ export const apiCompleteInvitation = async ({
     firstName,
     lastName,
     password,
-    isNew,
 }: {
     token: string;
     phone: string;
     firstName?: string;
     lastName?: string;
     password?: string;
-    isNew: boolean;
 }) => {
     try {
         const { data } = await axiosDefault.post("/users/invitation/complete", {
@@ -204,7 +202,6 @@ export const apiCompleteInvitation = async ({
             first_name: firstName,
             last_name: lastName,
             password,
-            is_new: isNew,
         });
         return data;
     } catch (error: unknown) {

@@ -91,7 +91,6 @@ const Invitation = () => {
             await apiCompleteInvitation({
                 token,
                 phone: form.phone.trim(),
-                isNew: form.isNew,
                 ...(form.isNew && {
                     firstName: form.firstName.trim(),
                     lastName: form.lastName.trim(),
@@ -133,22 +132,24 @@ const Invitation = () => {
                         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                             {form.isNew && (
                                 <div className="flex gap-3">
-                                    <Field
-                                        label="First Name"
-                                        icon={<UserIcon />}
-                                        required
-                                        value={form.firstName}
-                                        onChange={set("firstName")}
-                                        className="flex-1"
-                                    />
-                                    <Field
-                                        label="Last Name"
-                                        icon={<UserIcon />}
-                                        required
-                                        value={form.lastName}
-                                        onChange={set("lastName")}
-                                        className="flex-1"
-                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <Field
+                                            label="First Name"
+                                            icon={<UserIcon />}
+                                            required
+                                            value={form.firstName}
+                                            onChange={set("firstName")}
+                                        />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <Field
+                                            label="Last Name"
+                                            icon={<UserIcon />}
+                                            required
+                                            value={form.lastName}
+                                            onChange={set("lastName")}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
