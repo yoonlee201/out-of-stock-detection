@@ -1,4 +1,5 @@
 import Dashboard from "../pages/Dashboard";
+import Demo from "../pages/Demo";
 import Inventory from "../pages/Inventory";
 import Invitation from "../pages/Invitation";
 import Login from "../pages/Login";
@@ -28,6 +29,7 @@ const useRouter = (role: UserRole | null) => {
         inventory: { path: "/inventory", label: "Inventory", element: <Inventory /> },
         notifications: { path: "/notifications", label: "Notifications", element: <Notifications /> },
         employee_management: { path: "/employee-management", label: "Employee Management", element: <Manager /> },
+        demo: { path: "/demo", label: "Demo", element: <Demo /> },
         // alerts:   { path: "/alerts",    label: "Alerts",    element: <Alerts /> },
         // reorders: { path: "/reorders",  label: "Reorders",  element: <Reorders /> },
         // suppliers: { path: "/suppliers", label: "Suppliers", element: <Suppliers /> },
@@ -44,6 +46,7 @@ const useRouter = (role: UserRole | null) => {
         allRoutes.inventory,
         ...(isEmployee ? employeeRoutes : []),
         allRoutes.notifications,
+        allRoutes.demo,
     ];
 
     return { authRoutes, dashboardRoutes };
