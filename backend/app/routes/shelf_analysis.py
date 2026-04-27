@@ -12,6 +12,7 @@ from PIL import Image
 
 from app.core.db import db
 from app.models import ShelfAnalysisLog
+from app.services.alert_services import send_out_of_stock_alerts
 from app.util.auth import _get_current_user
 
 
@@ -172,6 +173,17 @@ def analyze_shelf():
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+        # Trigger alerts when the analysis found missing or misplaced items
+        issue_detections = [
+            d for d in detections
+            if d.get("audit_status") in ("missing", "misplaced")
+        ]
+        if issue_detections:
+            try:
+                send_out_of_stock_alerts(issue_detections)
+            except Exception:
+                pass  # alert failure must never break the analysis response
 
         return jsonify(payload), 200
     except Exception as error:

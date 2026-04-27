@@ -39,7 +39,7 @@ def generate_token(user):
     if not user.user_id:
         raise ValueError("User ID is None")
 
-    token_value = uuid.uuid4()
+    token_value = str(uuid.uuid4())
     expires = datetime.now(timezone.utc) + timedelta(days=7)
 
     token = Tokens(token_id=token_value, user_id=user.user_id, expires=expires)

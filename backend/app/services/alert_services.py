@@ -1,75 +1,67 @@
-from concurrent.futures import ThreadPoolExecutor
+from app.core.db import db
+from app.models import Alerts
+from app.services.user_services import get_all_active_employees
+from app.util.send import send_sms
 from datetime import datetime
 
-from app.models import Users
-from app.util.send import send_sms
-from agent.db_ops import insert_alert
 
+def send_out_of_stock_alerts(detected_items=None):
+    """
+    Send an SMS summary to every active employee and log one Alert row per
+    detected item that has a product_id.
 
-def send_out_of_stock_sms(detected_items=None):
+    detected_items: list of dicts with keys audit_status, product_id, etc.
+                    Defaults to empty list (sends a "no detections" message).
+    """
     detected_items = detected_items or []
 
-    total_count = len(detected_items)
-    empty_space_count = sum(1 for item in detected_items if item.get("type") == "empty_space")
-    missing_count = sum(1 for item in detected_items if item.get("audit_status") == "missing")
-    misplaced_count = sum(1 for item in detected_items if item.get("audit_status") == "misplaced")
-    correct_count = sum(1 for item in detected_items if item.get("audit_status") == "correct")
-    unverified_count = sum(1 for item in detected_items if item.get("audit_status") == "unverified")
-
+    missing_count = sum(1 for i in detected_items if i.get("audit_status") == "missing")
+    misplaced_count = sum(1 for i in detected_items if i.get("audit_status") == "misplaced")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    if total_count == 0:
-        message = f"[MCCS] Shelf analysis completed at {timestamp}. No detections were returned."
+    if not detected_items:
+        message = f"[MCCS] Shelf scan completed at {timestamp}. No detections."
     else:
         message = (
-            f"[MCCS] Shelf analysis completed at {timestamp}. "
-            f"Detections: {total_count}, Empty: {empty_space_count}, Missing: {missing_count}, "
-            f"Misplaced: {misplaced_count}, Correct: {correct_count}, Unverified: {unverified_count}."
+            f"[MCCS] Shelf scan at {timestamp}. "
+            f"Total: {len(detected_items)}, Missing: {missing_count}, Misplaced: {misplaced_count}."
         )
 
-    test_employee = Users.query.filter_by(email="one@example.com").first()
-    employees = [test_employee] if test_employee else []
+    employees = get_all_active_employees()
 
-    print(f"Employees found: {len(employees)}")
-    print(f"Sending alert to {len(employees)} employees")
+    for user, _emp in employees:
+        if user.phone:
+            try:
+                send_sms(user.phone, message, carrier=user.carrier or "verizon")
+            except Exception as e:
+                print(f"SMS failed for {user.email}: {e}")
 
-    def send_to_one(employee):
-        try:
-            if not employee:
-                print("Skipped empty employee")
-                return
+        for item in detected_items:
+            product_id = item.get("product_id") if isinstance(item, dict) else getattr(item, "product_id", None)
+            if product_id is not None:
+                db.session.add(Alerts(
+                    user_id=user.user_id,
+                    product_id=product_id,
+                    alert_type="out_of_stock",
+                ))
 
-            if not employee.phone:
-                print(f"Skipped {employee.email}: no phone number")
-                return
+    db.session.commit()
 
-            send_sms(employee.phone, message, carrier="tmobile")
-            print("USING HARDCODED CARRIER")
-            print(f"Sent SMS to {employee.email}")
 
-            print("BEFORE DB LOGGING")
-            print(f"About to log alerts for {len(detected_items)} detections")
-
-            for item in detected_items:
-                try:
-                    product_id = None
-
-                    if hasattr(item, "product_id"):
-                        product_id = item.product_id
-                    elif isinstance(item, dict):
-                        product_id = item.get("product_id")
-
-                    if product_id is not None:
-                        alert_id = insert_alert(employee.user_id, product_id, "out_of_stock")
-                        print(f"Logged alert {alert_id} for product {product_id}")
-                    else:
-                        print(f"Skipped DB log because no product_id was found: {item}")
-
-                except Exception as e:
-                    print(f"Failed to log alert for item {item}: {e}")
-
-        except Exception as e:
-            print(f"Failed to send SMS to {getattr(employee, 'email', 'unknown user')}: {e}")
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        list(executor.map(send_to_one, employees))
+def seed_mock_alerts(user_id, product_ids, alert_types=None):
+    """
+    Insert a batch of mock Alert rows for development / demo purposes.
+    Returns the list of created Alerts.
+    """
+    alert_types = alert_types or ["out_of_stock", "low_stock", "misplaced"]
+    created = []
+    for i, pid in enumerate(product_ids):
+        alert = Alerts(
+            user_id=user_id,
+            product_id=pid,
+            alert_type=alert_types[i % len(alert_types)],
+        )
+        db.session.add(alert)
+        created.append(alert)
+    db.session.commit()
+    return created

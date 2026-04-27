@@ -1,65 +1,13 @@
-from flask import Blueprint, request, jsonify
-from app.services.user_services import get_all_active_employees
-from app.services.alert_services import send_out_of_stock_sms
-from app.services.reorder_services import create_mock_reorders
+from flask import Blueprint, jsonify, request
 from app.models import Alerts
+from app.services.alert_services import send_out_of_stock_alerts
+
+alert_blueprint = Blueprint("alert", __name__)
 
 
-alert_blueprint = Blueprint('alert', __name__)
-
-@alert_blueprint.route('/')
-@alert_blueprint.route('')
-def index():
-    employees = get_all_active_employees()
-    return jsonify({
-        "active_employees": [{
-            "user_id": user.user_id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "joined_at": employee.joined_at.isoformat(),
-            "status": employee.status
-        } for user, employee in employees]
-    })
-
-
-@alert_blueprint.route('/send_out_of_stock', methods=['POST', 'OPTIONS'])
-def send_out_of_stock_alert():
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    try:
-        send_out_of_stock_sms()
-        return jsonify({
-            'success': True,
-            'message': 'Out of stock alerts sent'
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-    
-@alert_blueprint.route('/create_reorders', methods=['POST', 'OPTIONS'])
-def create_reorders():
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    try:
-        reorders = create_mock_reorders()
-        return jsonify({
-            'success': True,
-            'message': 'Mock reorders created',
-            'reorders': reorders
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-    
-@alert_blueprint.route('/history', methods=['GET'])
+@alert_blueprint.route("/history", methods=["GET"])
 def alert_history():
+    """Return the 100 most recent alerts, newest first."""
     try:
         alerts = (
             Alerts.query
@@ -67,20 +15,31 @@ def alert_history():
             .limit(100)
             .all()
         )
-
         return jsonify([
             {
-                "id": alert.id,
-                "user_id": alert.user_id,
-                "product_id": alert.product_id,
-                "alert_type": alert.alert_type,
-                "sent_time": alert.sent_time.isoformat() if alert.sent_time else None,
+                "id": a.id,
+                "user_id": a.user_id,
+                "product_id": a.product_id,
+                "alert_type": a.alert_type,
+                "sent_time": a.sent_time.isoformat() if a.sent_time else None,
             }
-            for alert in alerts
+            for a in alerts
         ]), 200
-
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@alert_blueprint.route("/send_out_of_stock", methods=["POST", "OPTIONS"])
+def send_out_of_stock_alert():
+    """Send SMS alerts to all active employees about out-of-stock items."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    body = request.get_json(silent=True) or {}
+    detected_items = body.get("detected_items", [])
+
+    try:
+        send_out_of_stock_alerts(detected_items)
+        return jsonify({"success": True, "message": "Out of stock alerts sent"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
