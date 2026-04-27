@@ -14,6 +14,7 @@ import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import { PlusIcon, TrashIcon } from "../_components/Icons";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
+import Select from "../_components/Select";
 
 // ======================Types========================
 
@@ -55,11 +56,12 @@ const Manager = () => {
     const total = employees.length;
     const active = employees.filter((e) => e.status === "active").length;
     const inactive = employees.filter((e) => e.status === "inactive").length;
+    const pending = employees.filter((e) => e.status === "pending").length;
 
     return (
         <>
             <div className="px-8 py-6">
-                <div className="mb-6 flex items-start justify-between">
+                <header className="mb-6 flex items-start justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold">People</h1>
                         <p className="text-text-muted mt-0.5 text-sm">
@@ -68,17 +70,18 @@ const Manager = () => {
                     </div>
                     <button
                         onClick={() => setOpenInvite(true)}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
                     >
                         <PlusIcon />
-                        Add member
+                        <span className="hidden lg:block">Add member</span>
                     </button>
-                </div>
+                </header>
 
-                <div className="mb-6 grid grid-cols-3 gap-4">
+                <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <SummaryCard label="Total Employees" value={total} />
                     <SummaryCard label="Active" value={active} valueClass="text-green" />
                     <SummaryCard label="Inactive" value={inactive} valueClass="text-text-muted" />
+                    <SummaryCard label="Pending" value={pending} valueClass="text-yellow" />
                 </div>
 
                 <EmployeeTables employees={employees} setEmployees={setEmployees} fetching={fetching} />
@@ -166,8 +169,12 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
     const resetFilters = () =>
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
-    const renderRows = (groupKey: string) => {
-        const rows = grouped[groupKey] || [];
+    const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
+        const source = filters.groupBy === "none" ? filtered : grouped[groupKey] || [];
+        const rows =
+            page && pageSize && filters.groupBy === "none"
+                ? source.slice((page - 1) * pageSize, page * pageSize)
+                : source;
         if (rows.length === 0) {
             return (
                 <tr key={`${groupKey}-empty`}>
@@ -192,7 +199,7 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                         <span className="text-text-secondary text-sm">{STATUS_TEXT[e.status]}</span>
                     </div>
                 </td>
-                <td className="text-text-secondary px-5 py-4 text-sm">{e.phone}</td>
+                <td>{e.phone ? `(${e.phone.slice(0, 3)}) ${e.phone.slice(3, 6)}-${e.phone.slice(6)}` : "—"}</td>
                 <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
                 <td className="px-5 py-4 text-right">
                     <button
@@ -266,8 +273,10 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                 onSort={handleSort}
                 loading={fetching}
                 groupKeys={groupKeys}
-                renderRows={(groupKey) => renderRows(groupKey)}
+                renderRows={renderRows}
                 actionColumn
+                totalItems={filtered.length}
+                resetKey={`${filters.search}-${filters.role}-${filters.status}-${filters.groupBy}`}
             />
 
             <EditDialog target={editTarget} setEmployees={setEmployees} onClose={() => setEditTarget(null)} />
@@ -317,18 +326,18 @@ const InviteDialog = ({ open, setOpen }: { open: boolean; setOpen: React.Dispatc
                 onKeyDown={(e) => e.key === "Enter" && handleInvite()}
                 className="focus:ring-primary border-border bg-surface placeholder:text-text-muted w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
             />
-            <label className="text-text-secondary mt-3 mb-1.5 block text-sm font-medium">Role</label>
-            <select
+            <Select
+                label="Role"
+                labelClassName="mt-3"
                 value={invite.role}
                 onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-                className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2"
             >
                 {EMPLOYEE_ROLES.map((role) => (
                     <option key={role} value={role}>
                         {role.charAt(0).toUpperCase() + role.slice(1)}
                     </option>
                 ))}
-            </select>
+            </Select>
             <div className="mt-5 flex justify-end gap-2">
                 <button
                     onClick={() => setOpen(false)}
@@ -452,18 +461,18 @@ const EditDialog = ({ target, setEmployees, onClose }: EditDialogProps) => {
                 />
             </div>
             <div className="mt-3">
-                <label className="text-text-muted mb-1 block text-xs font-semibold">Role</label>
-                <select
+                <Select
+                    label="Role"
+                    labelClassName="text-text-muted text-xs"
                     value={form.role ?? "associate"}
                     onChange={(e) => setField("role", e.target.value)}
-                    className="focus:ring-primary border-border bg-surface w-full rounded-xl border px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2"
                 >
                     {EMPLOYEE_ROLES.map((role) => (
                         <option key={role} value={role}>
                             {role.charAt(0).toUpperCase() + role.slice(1)}
                         </option>
                     ))}
-                </select>
+                </Select>
             </div>
 
             {/* status toggle — only shown for active/inactive, not other statuses */}

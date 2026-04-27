@@ -19,13 +19,13 @@ interface RawProduct {
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
     id: String(p.product_id),
     productName: p.name,
-    brand: p.brand || "",
-    variant: p.variant || "",
-    size: p.size || "",
+    brand: p.brand,
+    variant: p.variant,
+    size: p.size,
     category: p.type,
     stockCount: p.quantity_in_store,
-    aisle: p.aisle || "-",
-    shelf: p.shelf || "-",
+    aisle: p.aisle,
+    shelf: p.shelf,
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
 });
@@ -43,6 +43,38 @@ export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> 
     }
 };
 
+export const apiCreateProduct = async (product: {
+    name: string;
+    brand?: string;
+    variant?: string;
+    size?: string;
+    type: string;
+    quantity_in_store: number;
+    aisle?: string;
+    shelf?: string;
+}): Promise<InventoryItem> => {
+    try {
+        const { data } = await axiosAuth.post<{ product: RawProduct }>("/products/", product);
+        return toInventoryItem(data.product);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.error || "Failed to create product.");
+        }
+        throw new Error("Failed to create product.");
+    }
+};
+
+export const apiDeleteProduct = async (id: string): Promise<void> => {
+    try {
+        await axiosAuth.delete(`/products/${id}`);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.error || "Failed to delete product.");
+        }
+        throw new Error("Failed to delete product.");
+    }
+};
+
 export const apiUpdateProduct = async (
     id: string,
     updates: Partial<{
@@ -52,6 +84,8 @@ export const apiUpdateProduct = async (
         size: string;
         type: string;
         quantity_in_store: number;
+        aisle: string;
+        shelf: string;
     }>,
 ): Promise<InventoryItem> => {
     try {

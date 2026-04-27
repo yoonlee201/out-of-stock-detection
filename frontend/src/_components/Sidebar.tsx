@@ -1,24 +1,41 @@
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { LogoutIcon } from "./Icons";
 import useRouter from "../hooks/useRouter";
 import logo from "../assets/svg/marine-corp.svg";
 
-const Sidebar = () => {
+type SidebarProps = {
+    open: boolean;
+    onClose: () => void;
+};
+
+const Sidebar = ({ open, onClose }: SidebarProps) => {
     const { user, logout } = useAuth();
     const { dashboardRoutes } = useRouter(user?.role || null);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Auto-close the mobile drawer whenever the route changes.
+    useEffect(() => {
+        onClose();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
+
+    const go = (path: string) => {
+        navigate(path);
+        onClose();
+    };
 
     const navBtn = (label: string, path: string) => {
         const isActive = location.pathname === path;
         return (
             <button
                 key={label}
-                onClick={() => navigate(path)}
+                onClick={() => go(path)}
                 className={`group relative w-full overflow-hidden border-l-2 px-8 py-3.5 text-left text-xs font-bold tracking-[0.2em] transition-colors duration-50 ${
                     isActive
-                        ? "border-primary text-primary bg-primary/10"
+                        ? "border-primary text-text bg-primary/10"
                         : "text-primary hover:border-primary hover:text-primary border-transparent"
                 }`}
             >
@@ -31,7 +48,11 @@ const Sidebar = () => {
     };
 
     return (
-        <nav className="bg-surface border-border fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r">
+        <nav
+            className={`bg-surface border-border fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r transition-transform duration-200 lg:translate-x-0 ${
+                open ? "translate-x-0" : "-translate-x-full"
+            }`}
+        >
             <div className="border-border flex flex-col items-center gap-4 border-b px-6 py-8">
                 <div className="border-primary flex h-20 w-20 items-center justify-center rounded-full border-4 text-3xl shadow-[0_0_24px_rgba(205,26,26,0.2)]">
                     <div
@@ -45,11 +66,11 @@ const Sidebar = () => {
                     />
                 </div>
                 <div className="text-center">
-                    <p className="text-primary text-base leading-tight font-black tracking-[0.25em] uppercase">
+                    <p className="text-text text-base leading-tight font-black tracking-[0.25em] uppercase">
                         Stock Detection
                     </p>
                     <div className="via-primary mt-2 h-px w-full bg-linear-to-r from-transparent to-transparent" />
-                    <p className="text-primary mt-2 text-[10px] font-bold tracking-[0.3em] uppercase">
+                    <p className="text-text-muted/50 mt-2 text-[10px] font-bold tracking-[0.3em] uppercase">
                         Inventory Command
                     </p>
                 </div>
