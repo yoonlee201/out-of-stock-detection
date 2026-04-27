@@ -466,7 +466,10 @@ const EditDialog = ({ target, setEmployees, onClose }: EditDialogProps) => {
                     labelClassName="text-text-muted text-xs"
                     value={form.role ?? "associate"}
                     onChange={(e) => setField("role", e.target.value)}
-                    options={EMPLOYEE_ROLES.map((role) => ({ value: role, label: role.charAt(0).toUpperCase() + role.slice(1) }))}
+                    options={EMPLOYEE_ROLES.map((role) => ({
+                        value: role,
+                        label: role.charAt(0).toUpperCase() + role.slice(1),
+                    }))}
                 />
             </div>
 

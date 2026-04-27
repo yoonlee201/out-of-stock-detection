@@ -332,7 +332,10 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 )}
                 <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
                     <span className="text-text-muted tracking-[0.14em] uppercase">Group by</span>
-                    <Select variant="sm" value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupField)}
+                    <Select
+                        variant="sm"
+                        value={groupBy}
+                        onChange={(e) => setGroupBy(e.target.value as GroupField)}
                         options={groupOptions.map((o) => ({ value: o.value, label: o.label }))}
                     />
                 </label>
@@ -570,8 +573,18 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         options={categories.map((c) => ({ value: c, label: c }))}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <Select label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} options={AISLES.map((a) => ({ value: a, label: a }))} />
-                        <Select label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)} options={SHELVES.map((s) => ({ value: s, label: s }))} />
+                        <Select
+                            label="Aisle"
+                            value={form.aisle}
+                            onChange={(e) => setField("aisle", e.target.value)}
+                            options={AISLES.map((a) => ({ value: a, label: a }))}
+                        />
+                        <Select
+                            label="Shelf"
+                            value={form.shelf}
+                            onChange={(e) => setField("shelf", e.target.value)}
+                            options={SHELVES.map((s) => ({ value: s, label: s }))}
+                        />
                     </div>
                     <Field
                         label="Stock Count"
@@ -898,8 +911,7 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                     options={categories.map((c) => ({ value: c, label: c }))}
                     onChange={(e) => setField("category", e.target.value)}
                     required
-                >
-                </Select>
+                ></Select>
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         label="Aisle"

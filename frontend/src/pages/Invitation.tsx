@@ -187,9 +187,7 @@ const Invitation = () => {
                                         required
                                         options={[...CARRIER_OPTIONS]}
                                         value={form.carrier}
-                                        onChange={(e) =>
-                                            setForm((f) => f && { ...f, carrier: e.target.value })
-                                        }
+                                        onChange={(e) => setForm((f) => f && { ...f, carrier: e.target.value })}
                                     />
                                 </div>
                             </div>

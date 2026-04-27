@@ -147,10 +147,7 @@ const Register = () => {
                             })}
                         />
                     </div>
-                    <div
-                        className="anim-item min-w-0 flex-1"
-                        style={{ animationDelay: "0.35s" }}
-                    >
+                    <div className="anim-item min-w-0 flex-1" style={{ animationDelay: "0.35s" }}>
                         <Select
                             label="Carrier"
                             required
