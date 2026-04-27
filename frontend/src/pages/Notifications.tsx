@@ -17,7 +17,6 @@ const alertTypeClass = (alertType: AlertType): string => {
     }
 };
 
-
 const EmptyState = ({ message }: { message: string }) => (
     <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
         <p className="text-text-muted text-sm">{message}</p>
@@ -61,9 +60,7 @@ const Notifications = () => {
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Alert History</h2>
                         {!alertLoading && alertHistory.length > 0 && (
-                            <span className="text-text-muted text-xs font-semibold">
-                                {alertHistory.length} total
-                            </span>
+                            <span className="text-text-muted text-xs font-semibold">{alertHistory.length} total</span>
                         )}
                     </div>
 
@@ -74,7 +71,11 @@ const Notifications = () => {
                     ) : (
                         <div className="space-y-3">
                             {alertHistory.map((alert) => (
-                                <NavLink key={alert.id} to={`/shelf-detection?log_id=${alert.shelf_analysis_log_id}`} className="border-border rounded-2xl border px-4 py-3">
+                                <NavLink
+                                    key={alert.id}
+                                    to={`/shelf-detection?log_id=${alert.shelf_analysis_log_id}`}
+                                    className="border-border rounded-2xl border px-4 py-3"
+                                >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span
                                             className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em] uppercase ${alertTypeClass(alert.alert_type)}`}
@@ -115,9 +116,7 @@ const Notifications = () => {
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Reorder History</h2>
                         {!reorderLoading && reorders.length > 0 && (
-                            <span className="text-text-muted text-xs font-semibold">
-                                {reorders.length} total
-                            </span>
+                            <span className="text-text-muted text-xs font-semibold">{reorders.length} total</span>
                         )}
                     </div>
 
@@ -129,13 +128,11 @@ const Notifications = () => {
                         <div className="space-y-3">
                             {reorders.map((reorder) => {
                                 const p = reorder.product;
-                                const subtitleParts = p
-                                    ? [p.variant, p.size].filter(Boolean)
-                                    : [];
+                                const subtitleParts = p ? [p.variant, p.size].filter(Boolean) : [];
                                 return (
                                     <div key={reorder.id} className="border-border rounded-2xl border px-4 py-3">
                                         <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <span className="text-sm font-semibold">{`${p?.brand ? `${p.brand} ` : ''}${p?.name || 'Unnamed Product'}`}</span>
+                                            <span className="text-sm font-semibold">{`${p?.brand ? `${p.brand} ` : ""}${p?.name || "Unnamed Product"}`}</span>
                                             <span className="text-text-muted text-xs">
                                                 {new Date(reorder.created_at).toLocaleString([], {
                                                     dateStyle: "medium",

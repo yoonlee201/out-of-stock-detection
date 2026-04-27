@@ -18,8 +18,9 @@ interface HistoryEntry {
 }
 
 // TODO: Remove if mock data is no longer needed
-const toHistoryEntries = (results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>): HistoryEntry[] =>
-    results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
+const toHistoryEntries = (
+    results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>,
+): HistoryEntry[] => results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
 
 const Dashboard = () => {
     const [searchParams] = useSearchParams();
@@ -43,7 +44,6 @@ const Dashboard = () => {
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
         if (index !== -1) setSelectedIndex(index);
     }, [log_id, history]);
-
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
     const analysisResult = selectedEntry?.result ?? null;
@@ -69,7 +69,6 @@ const Dashboard = () => {
                             analyzedAt: new Date(e.created_at),
                         })),
                     );
-
                 } else {
                     setHistory(toHistoryEntries(mockAnalysisResults));
                 }
@@ -84,7 +83,6 @@ const Dashboard = () => {
         return () => {
             cancelled = true;
         };
-
     }, []);
 
     useEffect(() => {

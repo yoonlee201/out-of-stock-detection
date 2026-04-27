@@ -36,7 +36,9 @@ export const apiCreateReorder = async (productId: string, quantity: number): Pro
     } catch (error) {
         if (isAxiosError(error)) {
             console.log("Reorder error response:", error.response?.status, error.response?.data);
-            throw new Error(error.response?.data?.error || error.response?.data?.message || "Failed to create reorder.");
+            throw new Error(
+                error.response?.data?.error || error.response?.data?.message || "Failed to create reorder.",
+            );
         }
         throw new Error("Failed to create reorder.");
     }
