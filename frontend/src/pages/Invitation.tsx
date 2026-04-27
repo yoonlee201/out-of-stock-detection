@@ -4,11 +4,13 @@ import Button from "../_components/Button";
 import Field from "../_components/Field";
 import { LockIcon, UserIcon } from "../_components/Icons";
 import { apiCompleteInvitation, apiVerifyInvitation } from "../api/query/user";
+import { CARRIER_OPTIONS } from "../utils/carriers";
+import Select from "../_components/Select";
 
 type VerifyResponse = {
     invited_role: "associate" | "manager";
     is_new: boolean;
-    user: { first_name: string; last_name: string; email: string; phone?: string };
+    user: { first_name: string; last_name: string; email: string; phone?: string; carrier?: string };
 };
 
 type Form = {
@@ -18,6 +20,7 @@ type Form = {
     lastName: string;
     email: string;
     phone: string;
+    carrier: string;
     password: string;
 };
 
@@ -54,6 +57,7 @@ const Invitation = () => {
                     lastName: data.user.last_name,
                     email: data.user.email,
                     phone: data.user.phone ?? "",
+                    carrier: data.user.carrier ?? "",
                     password: "",
                 });
             })
@@ -69,6 +73,10 @@ const Invitation = () => {
 
         if (!form.phone.trim()) {
             setError("Phone number is required.");
+            return;
+        }
+        if (!form.carrier) {
+            setError("Carrier is required.");
             return;
         }
         if (form.isNew) {
@@ -91,6 +99,7 @@ const Invitation = () => {
             await apiCompleteInvitation({
                 token,
                 phone: form.phone.trim(),
+                carrier: form.carrier,
                 ...(form.isNew && {
                     firstName: form.firstName.trim(),
                     lastName: form.lastName.trim(),
@@ -162,13 +171,28 @@ const Invitation = () => {
                                 inputClassName="opacity-60 cursor-not-allowed"
                             />
 
-                            <Field
-                                label="Phone Number"
-                                icon={<UserIcon />}
-                                required
-                                value={form.phone}
-                                onChange={set("phone")}
-                            />
+                            <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                    <Field
+                                        label="Phone Number"
+                                        icon={<UserIcon />}
+                                        required
+                                        value={form.phone}
+                                        onChange={set("phone")}
+                                    />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <Select
+                                        label="Carrier"
+                                        required
+                                        options={[...CARRIER_OPTIONS]}
+                                        value={form.carrier}
+                                        onChange={(e) =>
+                                            setForm((f) => f && { ...f, carrier: e.target.value })
+                                        }
+                                    />
+                                </div>
+                            </div>
 
                             {form.isNew && (
                                 <Field

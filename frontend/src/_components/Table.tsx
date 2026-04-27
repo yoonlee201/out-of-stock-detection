@@ -131,14 +131,9 @@ function PaginationBar({ page, totalPages, total, pageSize, onPage, onPageSize }
                         className="rounded-lg"
                         selectClassName="py-1 pl-2 pr-6"
                         value={pageSize}
+                        options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n.toString(), label: n.toString() }))}
                         onChange={(e) => onPageSize(Number(e.target.value))}
-                    >
-                        {PAGE_SIZE_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </Select>
+                    />
                 </label>
                 <span className="text-text-muted text-xs">
                     {from}–{to} of {total}

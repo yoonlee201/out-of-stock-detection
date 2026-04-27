@@ -382,7 +382,7 @@ def verify_invitation_token(token):
     return user, payload.get("role", "associate"), payload.get("is_new", False)
 
 
-def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
+def complete_invitation(token, phone, carrier, first_name=None, last_name=None, password=None):
     payload = load_invitation_payload(token)
     invited_role = payload.get("role", "associate")
     if invited_role not in EMPLOYEE_ROLES:
@@ -403,11 +403,7 @@ def complete_invitation(token, phone, first_name=None, last_name=None, password=
         user.is_verified = True
 
     user.phone = phone
-    try:
-        user.carrier = lookup_carrier(phone)
-    except Exception as e:
-        print(f"Carrier lookup failed: {e}")
-        user.carrier = "verizon"
+    user.carrier = carrier
     user.role = invited_role
 
     employee = Employee.query.filter_by(user_id=user.user_id).first()

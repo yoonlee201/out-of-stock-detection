@@ -332,13 +332,9 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 )}
                 <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
                     <span className="text-text-muted tracking-[0.14em] uppercase">Group by</span>
-                    <Select variant="sm" value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupField)}>
-                        {groupOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </Select>
+                    <Select variant="sm" value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupField)}
+                        options={groupOptions.map((o) => ({ value: o.value, label: o.label }))}
+                    />
                 </label>
             </FilterBar>
 
@@ -571,22 +567,11 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         label="Category"
                         value={form.category}
                         onChange={(e) => setField("category", e.target.value)}
-                    >
-                        {categories.map((c) => (
-                            <option key={c}>{c}</option>
-                        ))}
-                    </Select>
+                        options={categories.map((c) => ({ value: c, label: c }))}
+                    />
                     <div className="grid grid-cols-2 gap-3">
-                        <Select label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)}>
-                            {AISLES.map((a) => (
-                                <option key={a}>{a}</option>
-                            ))}
-                        </Select>
-                        <Select label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)}>
-                            {SHELVES.map((s) => (
-                                <option key={s}>{s}</option>
-                            ))}
-                        </Select>
+                        <Select label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} options={AISLES.map((a) => ({ value: a, label: a }))} />
+                        <Select label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)} options={SHELVES.map((s) => ({ value: s, label: s }))} />
                     </div>
                     <Field
                         label="Stock Count"
@@ -910,12 +895,10 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                 <Select
                     label="Category"
                     value={form.category}
+                    options={categories.map((c) => ({ value: c, label: c }))}
                     onChange={(e) => setField("category", e.target.value)}
                     required
                 >
-                    {categories.map((c) => (
-                        <option key={c}>{c}</option>
-                    ))}
                 </Select>
                 <div className="grid grid-cols-2 gap-3">
                     <Select
@@ -923,21 +906,15 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         required
                         value={form.aisle}
                         onChange={(e) => setField("aisle", e.target.value)}
-                    >
-                        {AISLES.map((a) => (
-                            <option key={a}>{a}</option>
-                        ))}
-                    </Select>
+                        options={AISLES.map((a) => ({ value: a, label: a }))}
+                    />
                     <Select
                         label="Shelf"
                         required
                         value={form.shelf}
                         onChange={(e) => setField("shelf", e.target.value)}
-                    >
-                        {SHELVES.map((s) => (
-                            <option key={s}>{s}</option>
-                        ))}
-                    </Select>
+                        options={SHELVES.map((s) => ({ value: s, label: s }))}
+                    />
                 </div>
                 <Field
                     label="Stock Count"

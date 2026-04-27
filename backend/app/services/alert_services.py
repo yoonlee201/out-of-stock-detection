@@ -1,7 +1,7 @@
 from app.core.db import db
 from app.models import Alerts
 from app.services.user_services import get_all_active_employees
-from app.util.send import send_sms
+from app.util.send import send_sms, send_email
 from datetime import datetime
 
 
@@ -35,6 +35,7 @@ def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):
     for user, _emp in employees:
         if user.phone:
             try:
+                send_email(user.phone, message, carrier=user.carrier or "verizon")
                 send_sms(user.phone, message, carrier=user.carrier or "verizon")
             except Exception as e:
                 print(f"SMS failed for {user.email}: {e}")

@@ -19,6 +19,14 @@ _PASSWORD = fields.Str(
 
 _ALLOWED_ROLES = ("customer", "associate", "manager", "supervisor")
 
+# Mirrors the keys of CARRIER_GATEWAYS in app/util/send.py and the values in
+# frontend/src/utils/carriers.ts. Keep these in sync.
+_ALLOWED_CARRIERS = (
+    "att", "verizon", "t-mobile", "sprint", "boost", "cricket", "metro",
+    "uscellular", "virgin", "xfinity", "visible", "google fi", "mint",
+    "consumer cellular",
+)
+
 
 class RegisterSchema(Schema):
     first_name = fields.Str(required=True, validate=validate.Length(min=1, max=80))
@@ -34,6 +42,11 @@ class RegisterSchema(Schema):
         allow_none=True,
         validate=validate.Length(max=20),
     )
+    carrier    = fields.Str(
+        load_default=None,
+        allow_none=True,
+        validate=validate.OneOf(_ALLOWED_CARRIERS),
+    )
 
 
 class LoginSchema(Schema):
@@ -48,6 +61,7 @@ class UpdateRoleSchema(Schema):
 class InvitationCompleteSchema(Schema):
     token      = fields.Str(required=True)
     phone      = fields.Str(required=True, validate=validate.Length(max=20))
+    carrier    = fields.Str(required=True, validate=validate.OneOf(_ALLOWED_CARRIERS))
     first_name = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=80))
     last_name  = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=80))
     password   = fields.Str(load_default=None, allow_none=True, validate=validate.Length(min=8, max=128))

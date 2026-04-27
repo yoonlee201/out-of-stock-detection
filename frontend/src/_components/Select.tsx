@@ -8,7 +8,7 @@ type SelectProps = {
     selectClassName?: string;
     error?: string;
     variant?: "sm" | "md";
-    children: React.ReactNode;
+    options?: { value: string; label: string }[];
 } & SelectHTMLAttributes<HTMLSelectElement>;
 
 const Select = ({
@@ -19,7 +19,7 @@ const Select = ({
     error,
     variant = "md",
     required,
-    children,
+    options,
     ...props
 }: SelectProps) => {
     const control = (
@@ -41,7 +41,11 @@ const Select = ({
                 )}
                 {...props}
             >
-                {children}
+                {options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
             </select>
             <span className="text-text-muted pointer-events-none absolute right-2.5 shrink-0">
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
