@@ -1,5 +1,5 @@
-import type { ShelfAnalysisResponse } from "./api/query/shelfAnalysis";
-import type { InventoryItem } from "./types/inventory";
+import type { ShelfAnalysisResponse } from "../../api/query/shelfAnalysis";
+import type { InventoryItem } from "../../types/inventory";
 
 const makeSvgImage = (label: string) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" style="background:#e8e8e8">

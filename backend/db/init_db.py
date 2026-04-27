@@ -41,15 +41,15 @@ def _seed(app):
         # Suppliers  (model fields: email, phone_number)
         # ------------------------------------------------------------------
         supplier_rows = [
-            ("sysco@suppliers.com",          "800-555-0101"),
-            ("usfoods@distro.com",           "888-555-0202"),
-            ("kehe@distributors.net",        "877-555-0303"),
-            ("cswholesale@supplyco.com",     "800-555-0404"),
-            ("performancefood@group.com",    "866-555-0505"),
-            ("unfi@naturalfoods.com",        "800-555-0606"),
-            ("dairyfarmers@coop.com",        "855-555-0707"),
-            ("freshpoint@produce.com",       "877-555-0808"),
-            ("localmeat@regional.com",       "540-555-0912"),
+            ("sysco@suppliers.com",          "8005550101"),
+            ("usfoods@distro.com",           "8885550202"),
+            ("kehe@distributors.net",        "8775550303"),
+            ("cswholesale@supplyco.com",     "8005550404"),
+            ("performancefood@group.com",    "8665550505"),
+            ("unfi@naturalfoods.com",        "8005550606"),
+            ("dairyfarmers@coop.com",        "8555550707"),
+            ("freshpoint@produce.com",       "8775550808"),
+            ("localmeat@regional.com",       "5405550912"),
         ]
         suppliers = [Suppliers(email=e, phone_number=p) for e, p in supplier_rows]
         db.session.add_all(suppliers)
@@ -93,16 +93,16 @@ def _seed(app):
         # ------------------------------------------------------------------
         PW = bcrypt.hashpw("12345678".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         user_rows = [
-            ("Maria",   "Gonzalez", "703-555-0123", "supervisor", "one@example.com",          True),
-            ("James",   "Carter",   "757-555-0198", "manager",    "james.carter@mccs.mil",    True),
-            ("Michael", "Lee",      "804-555-0765", "manager",    "michael.lee@mccs.mil",     True),
-            ("Sarah",   "Johnson",  "540-555-0341", "associate",  "sarah.j@mccs.mil",         True),
-            ("Robert",  "Wilson",   "202-555-1123", "associate",  "robert.w@mccs.mil",        True),
-            ("Linda",   "Martinez", "301-555-1456", "associate",  "linda.m@mccs.mil",         True),
-            ("Emily",   "Davis",    "571-555-0882", "customer",   "emily.davis@email.com",    True),
-            ("David",   "Brown",    "703-555-1678", "customer",   "david.brown@email.com",    True),
-            ("Jessica", "Taylor",   "540-555-1890", "customer",   "jessica.t@email.com",      False),
-            ("Kevin",   "Anderson", "757-555-2034", "customer",   "kevin.anderson@email.com", True),
+            ("Maria",   "Gonzalez", "7035550123", "supervisor", "one@example.com",          True),
+            ("James",   "Carter",   "7575550198", "manager",    "james.carter@mccs.mil",    True),
+            ("Michael", "Lee",      "8045550765", "manager",    "michael.lee@mccs.mil",     True),
+            ("Sarah",   "Johnson",  "5405550341", "associate",  "sarah.j@mccs.mil",         True),
+            ("Robert",  "Wilson",   "2025551123", "associate",  "robert.w@mccs.mil",        True),
+            ("Linda",   "Martinez", "3015551456", "associate",  "linda.m@mccs.mil",         True),
+            ("Emily",   "Davis",    "5715550882", "customer",   "emily.davis@email.com",    True),
+            ("David",   "Brown",    "7035551678", "customer",   "david.brown@email.com",    True),
+            ("Jessica", "Taylor",   "5405551890", "customer",   "jessica.t@email.com",      False),
+            ("Kevin$",   "Anderson", "7575552034", "customer",   "kevin.anderson@email.com", True),
         ]
         users = [
             Users(first_name=fn, last_name=ln, phone=ph, role=role,
