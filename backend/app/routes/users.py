@@ -73,11 +73,12 @@ def add_user(data):
     password   = data['password']
     role       = data['role']
     phone      = data.get('phone')
-    carrier    = None
+    carrier    = data.get('carrier')
 
     if role_is_employee(role=role) and not phone:
         return {"message": "Phone number is required for employees"}, 400
-    if phone:
+    if phone and not carrier:
+        # Fallback only — UI now requires the user to pick a carrier explicitly.
         try:
             carrier = lookup_carrier(phone)
         except Exception as e:
@@ -375,6 +376,7 @@ def finish_invitation(data):
 
     token = data['token']
     phone = data['phone']
+    carrier = data['carrier']
     kwargs = dict(
         first_name=data.get("first_name"),
         last_name=data.get("last_name"),
@@ -382,7 +384,7 @@ def finish_invitation(data):
     )
 
     try:
-        user = complete_invitation(token, phone, **kwargs)
+        user = complete_invitation(token, phone, carrier, **kwargs)
     except SignatureExpired:
         return {"message": "Invitation link has expired"}, 410
     except BadSignature:

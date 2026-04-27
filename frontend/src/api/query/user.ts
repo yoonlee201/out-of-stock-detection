@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { axiosAuth, axiosDefault } from "..";
-import { getUserRole, UserRole, type EmployeeStatus, type User } from "../../types/db";
+import { getUserRole, type EmployeeStatus, type User } from "../../types/db";
 import logger from "../../utils/log";
 
 export const apiRegisterUser = async ({
@@ -9,12 +9,14 @@ export const apiRegisterUser = async ({
     firstName,
     lastName,
     phone,
+    carrier,
 }: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
     phone: string;
+    carrier: string;
 }) => {
     try {
         const { data } = await axiosDefault.post("/users/register", {
@@ -23,6 +25,7 @@ export const apiRegisterUser = async ({
             first_name: firstName,
             last_name: lastName,
             phone,
+            carrier,
         });
 
         return data;
@@ -83,7 +86,7 @@ export const apiValidateUser = async (): Promise<User | undefined> => {
                 return undefined;
             }
 
-            logger.info("User validation successful:", user.role, UserRole[user.role as keyof typeof UserRole]);
+            logger.info("User validation successful:", user.role);
 
             return {
                 firstName: user.first_name,
@@ -185,26 +188,26 @@ export const apiVerifyInvitation = async (token: string) => {
 export const apiCompleteInvitation = async ({
     token,
     phone,
+    carrier,
     firstName,
     lastName,
     password,
-    isNew,
 }: {
     token: string;
     phone: string;
+    carrier: string;
     firstName?: string;
     lastName?: string;
     password?: string;
-    isNew: boolean;
 }) => {
     try {
         const { data } = await axiosDefault.post("/users/invitation/complete", {
             token,
             phone,
+            carrier,
             first_name: firstName,
             last_name: lastName,
             password,
-            is_new: isNew,
         });
         return data;
     } catch (error: unknown) {

@@ -12,7 +12,7 @@ import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
 import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
-import { PlusIcon, TrashIcon } from "../_components/Icons";
+import { PlusIcon, ThreeVerticalDotsIcon, TrashIcon } from "../_components/Icons";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import Select from "../_components/Select";
 
@@ -120,6 +120,9 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
         }));
     };
 
+    // When grouping is on, sort by group key first so items in the same group
+    // are contiguous across the paginated slice. Group order respects the
+    // canonical EMPLOYEE_ROLES / STATUSES sequence (not alphabetical).
     const filtered = employees
         .filter((e) => filters.role === "all" || e.role === filters.role)
         .filter((e) => filters.status === "all" || e.status === filters.status)
@@ -133,6 +136,15 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
             );
         })
         .sort((a, b) => {
+            if (filters.groupBy === "role") {
+                const ai = EMPLOYEE_ROLES.indexOf(a.role as EmployeeRole);
+                const bi = EMPLOYEE_ROLES.indexOf(b.role as EmployeeRole);
+                if (ai !== bi) return ai - bi;
+            } else if (filters.groupBy === "status") {
+                const ai = STATUSES.indexOf(a.status);
+                const bi = STATUSES.indexOf(b.status);
+                if (ai !== bi) return ai - bi;
+            }
             const av =
                 filters.sortField === "firstName" ? `${a.firstName} ${a.lastName}` : (a[filters.sortField] ?? "");
             const bv =
@@ -142,80 +154,76 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                 : String(bv).localeCompare(String(av));
         });
 
-    const grouped: Record<string, Employee[]> =
-        filters.groupBy === "none"
-            ? { all: filtered }
-            : filters.groupBy === "role"
-              ? EMPLOYEE_ROLES.reduce(
-                    (acc, r) => {
-                        acc[r] = filtered.filter((e) => e.role === r);
-                        return acc;
-                    },
-                    {} as Record<string, Employee[]>,
-                )
-              : STATUSES.reduce(
-                    (acc, s) => {
-                        acc[s] = filtered.filter((e) => e.status === s);
-                        return acc;
-                    },
-                    {} as Record<string, Employee[]>,
-                );
-
-    const groupKeys = filters.groupBy === "none" ? undefined : filters.groupBy === "role" ? EMPLOYEE_ROLES : STATUSES;
-
     const hasActiveFilters =
         filters.role !== "all" || filters.status !== "active" || filters.groupBy !== "none" || filters.search;
 
     const resetFilters = () =>
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
-    const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
-        const source = filters.groupBy === "none" ? filtered : grouped[groupKey] || [];
-        const rows =
-            page && pageSize && filters.groupBy === "none"
-                ? source.slice((page - 1) * pageSize, page * pageSize)
-                : source;
-        if (rows.length === 0) {
+    // 5 visible columns + the action column.
+    const COL_SPAN = 6;
+
+    const renderRows = (page: number, pageSize: number) => {
+        const items = filtered.slice((page - 1) * pageSize, page * pageSize);
+        if (items.length === 0) {
             return (
-                <tr key={`${groupKey}-empty`}>
-                    <td colSpan={6} className="text-text-muted py-16 text-center text-sm">
+                <tr key="empty">
+                    <td colSpan={COL_SPAN} className="text-text-muted py-16 text-center text-sm">
                         No employees found.
                     </td>
                 </tr>
             );
         }
-        return rows.map((e) => (
-            <tr key={e.id} className="border-border hover:bg-surface-muted border-b transition-colors">
-                <td className="px-5 py-4">
-                    <p className="text-sm font-medium">
-                        {e.firstName} {e.lastName}
-                    </p>
-                    <p className="text-text-muted mt-0.5 text-xs">{e.email}</p>
-                </td>
-                <td className="text-text-secondary px-5 py-4 text-sm capitalize">{e.role}</td>
-                <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
-                        <span className="text-text-secondary text-sm">{STATUS_TEXT[e.status]}</span>
-                    </div>
-                </td>
-                <td>{e.phone ? `(${e.phone.slice(0, 3)}) ${e.phone.slice(3, 6)}-${e.phone.slice(6)}` : "—"}</td>
-                <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
-                <td className="px-5 py-4 text-right">
-                    <button
-                        onClick={() => setEditTarget(e)}
-                        className="text-text-muted hover:bg-surface-muted rounded-lg p-1.5 transition-colors"
-                        aria-label="Edit employee"
-                    >
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" />
-                            <circle cx="10" cy="10" r="1.5" />
-                            <circle cx="10" cy="16" r="1.5" />
-                        </svg>
-                    </button>
-                </td>
-            </tr>
-        ));
+
+        const out: React.ReactNode[] = [];
+        let prevGroup: string | null = null;
+        items.forEach((e) => {
+            if (filters.groupBy !== "none") {
+                const k = filters.groupBy === "role" ? e.role : e.status;
+                if (k !== prevGroup) {
+                    out.push(
+                        <tr key={`hdr-${k}`} className="border-border bg-surface-muted border-b">
+                            <td
+                                colSpan={COL_SPAN}
+                                className="text-text-muted px-5 py-2 text-xs font-semibold tracking-[0.14em] uppercase"
+                            >
+                                {k}
+                            </td>
+                        </tr>,
+                    );
+                    prevGroup = k;
+                }
+            }
+            out.push(
+                <tr key={e.id} className="border-border hover:bg-surface-muted border-b transition-colors">
+                    <td className="px-5 py-4">
+                        <p className="text-sm font-medium">
+                            {e.firstName} {e.lastName}
+                        </p>
+                        <p className="text-text-muted mt-0.5 text-xs">{e.email}</p>
+                    </td>
+                    <td className="text-text-secondary px-5 py-4 text-sm capitalize">{e.role}</td>
+                    <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[e.status]}`} />
+                            <span className="text-text-secondary text-sm">{STATUS_TEXT[e.status]}</span>
+                        </div>
+                    </td>
+                    <td>{e.phone ? `(${e.phone.slice(0, 3)}) ${e.phone.slice(3, 6)}-${e.phone.slice(6)}` : "—"}</td>
+                    <td className="text-text-secondary px-5 py-4 text-sm">{formatDate(e.joinedAt)}</td>
+                    <td className="px-5 py-4 text-right">
+                        <button
+                            onClick={() => setEditTarget(e)}
+                            className="text-text-muted hover:bg-surface-muted rounded-lg p-1.5 transition-colors"
+                            aria-label="Edit employee"
+                        >
+                            <ThreeVerticalDotsIcon />
+                        </button>
+                    </td>
+                </tr>,
+            );
+        });
+        return out;
     };
 
     return (
@@ -272,7 +280,6 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
                 sortDir={filters.sortDir}
                 onSort={handleSort}
                 loading={fetching}
-                groupKeys={groupKeys}
                 renderRows={renderRows}
                 actionColumn
                 totalItems={filtered.length}
@@ -331,13 +338,11 @@ const InviteDialog = ({ open, setOpen }: { open: boolean; setOpen: React.Dispatc
                 labelClassName="mt-3"
                 value={invite.role}
                 onChange={(e) => setInvite((s) => ({ ...s, role: e.target.value as EmployeeRole }))}
-            >
-                {EMPLOYEE_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </option>
-                ))}
-            </Select>
+                options={EMPLOYEE_ROLES.map((role) => ({
+                    value: role,
+                    label: role.charAt(0).toUpperCase() + role.slice(1),
+                }))}
+            />
             <div className="mt-5 flex justify-end gap-2">
                 <button
                     onClick={() => setOpen(false)}
@@ -466,13 +471,11 @@ const EditDialog = ({ target, setEmployees, onClose }: EditDialogProps) => {
                     labelClassName="text-text-muted text-xs"
                     value={form.role ?? "associate"}
                     onChange={(e) => setField("role", e.target.value)}
-                >
-                    {EMPLOYEE_ROLES.map((role) => (
-                        <option key={role} value={role}>
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
-                        </option>
-                    ))}
-                </Select>
+                    options={EMPLOYEE_ROLES.map((role) => ({
+                        value: role,
+                        label: role.charAt(0).toUpperCase() + role.slice(1),
+                    }))}
+                />
             </div>
 
             {/* status toggle — only shown for active/inactive, not other statuses */}

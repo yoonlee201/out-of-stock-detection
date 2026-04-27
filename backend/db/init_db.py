@@ -127,16 +127,16 @@ def _seed(app):
         # ------------------------------------------------------------------
         now = datetime.now(timezone.utc)
         db.session.add_all([
-            Alerts(user_id=u["one@example.com"].user_id,          product_id=p["QR-MILK-001"].product_id, alert_type="low_stock",    sent_time=now - timedelta(hours=2)),
-            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    product_id=p["QR-BEEF-001"].product_id, alert_type="out_of_stock", sent_time=now - timedelta(minutes=45)),
-            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     product_id=p["QR-BANA-001"].product_id, alert_type="low_stock",    sent_time=now - timedelta(days=1)),
-            Alerts(user_id=u["sarah.j@mccs.mil"].user_id,         product_id=p["QR-PIZA-001"].product_id, alert_type="out_of_stock", sent_time=now - timedelta(hours=3)),
-            Alerts(user_id=u["robert.w@mccs.mil"].user_id,        product_id=p["QR-CHIP-001"].product_id, alert_type="low_stock",    sent_time=now - timedelta(minutes=30)),
-            Alerts(user_id=u["emily.davis@email.com"].user_id,    product_id=p["QR-YOGT-001"].product_id, alert_type="out_of_stock", sent_time=now - timedelta(minutes=90)),
-            Alerts(user_id=u["one@example.com"].user_id,          product_id=p["QR-EGGS-001"].product_id, alert_type="low_stock",    sent_time=now - timedelta(hours=4)),
-            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    product_id=p["QR-MILK-002"].product_id, alert_type="low_stock",    sent_time=now - timedelta(hours=1)),
-            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     product_id=p["QR-OJ-001"].product_id,   alert_type="out_of_stock", sent_time=now - timedelta(days=2)),
-            Alerts(user_id=u["linda.m@mccs.mil"].user_id,         product_id=p["QR-CHED-001"].product_id, alert_type="low_stock",    sent_time=now),
+            Alerts(user_id=u["one@example.com"].user_id,          alert_type="restock",         sent_time=now - timedelta(hours=2)),
+            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    alert_type="shelf_detection", missing=3, misplaced=1, sent_time=now - timedelta(minutes=45)),
+            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     alert_type="restock",         sent_time=now - timedelta(days=1)),
+            Alerts(user_id=u["sarah.j@mccs.mil"].user_id,         alert_type="shelf_detection", missing=2, misplaced=0, sent_time=now - timedelta(hours=3)),
+            Alerts(user_id=u["robert.w@mccs.mil"].user_id,        alert_type="restock",         sent_time=now - timedelta(minutes=30)),
+            Alerts(user_id=u["emily.davis@email.com"].user_id,    alert_type="shelf_detection", missing=0, misplaced=4, sent_time=now - timedelta(minutes=90)),
+            Alerts(user_id=u["one@example.com"].user_id,          alert_type="restock",         sent_time=now - timedelta(hours=4)),
+            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    alert_type="restock",         sent_time=now - timedelta(hours=1)),
+            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     alert_type="shelf_detection", missing=5, misplaced=2, sent_time=now - timedelta(days=2)),
+            Alerts(user_id=u["linda.m@mccs.mil"].user_id,         alert_type="restock",         sent_time=now),
         ])
 
         # ------------------------------------------------------------------

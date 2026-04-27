@@ -81,15 +81,17 @@ tools = [
         "type": "function",
         "function": {
             "name": "create_alert",
-            "description": "Log an alert when stock is low.",
+            "description": "Log an alert. alert_type is 'restock' for reorder prompts or 'shelf_detection' for shelf-scan results (in which case set missing / misplaced).",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "user_id": {"type": "integer"},
-                    "product_id": {"type": "integer"},
-                    "alert_type": {"type": "string"}
+                    "alert_type": {"type": "string", "enum": ["restock", "shelf_detection"]},
+                    "shelf_analysis_log_id": {"type": "integer"},
+                    "missing": {"type": "integer"},
+                    "misplaced": {"type": "integer"}
                 },
-                "required": ["user_id", "product_id", "alert_type"]
+                "required": ["user_id", "alert_type"]
             }
         }
     }
@@ -117,7 +119,13 @@ def handle_tool_call(tool_call):
         return json.dumps({'reorder_id': reorder_id})
 
     if name == 'create_alert':
-        alert_id = insert_alert(args['user_id'], args['product_id'], args['alert_type'])
+        alert_id = insert_alert(
+            args['user_id'],
+            args['alert_type'],
+            args.get('shelf_analysis_log_id'),
+            args.get('missing', 0),
+            args.get('misplaced', 0),
+        )
         return json.dumps({'alert_id': alert_id})
 
     return 'Tool not found.'

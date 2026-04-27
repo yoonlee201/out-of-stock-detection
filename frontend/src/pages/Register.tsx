@@ -8,6 +8,8 @@ import { apiRegisterUser } from "../api/query/user";
 import logger from "../utils/log";
 import Loading from "../_components/Loading";
 import { useForm } from "react-hook-form";
+import { CARRIER_OPTIONS } from "../utils/carriers";
+import Select from "../_components/Select";
 
 type RegisterForm = {
     firstName: string;
@@ -16,6 +18,7 @@ type RegisterForm = {
     password: string;
     confirmPassword: string;
     phone: string;
+    carrier: string;
 };
 
 const Register = () => {
@@ -53,6 +56,7 @@ const Register = () => {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.phone,
+                carrier: data.carrier,
             });
             navigate(`/login?register=success&firstName=${encodeURIComponent(data.firstName)}`);
         } catch (error) {
@@ -129,17 +133,30 @@ const Register = () => {
                         setValueAs: (v) => v.replace(/\s/g, ""),
                     })}
                 />
-                <Field
-                    required
-                    label="Phone Number"
-                    icon={<UserIcon />}
-                    animationDelay="0.35s"
-                    error={errors.phone?.message}
-                    {...register("phone", {
-                        required: "Phone number is required",
-                        setValueAs: (v) => v.replace(/\s/g, ""),
-                    })}
-                />
+                <div className="flex w-full items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                        <Field
+                            required
+                            label="Phone Number"
+                            icon={<UserIcon />}
+                            animationDelay="0.35s"
+                            error={errors.phone?.message}
+                            {...register("phone", {
+                                required: "Phone number is required",
+                                setValueAs: (v) => v.replace(/\s/g, ""),
+                            })}
+                        />
+                    </div>
+                    <div className="anim-item min-w-0 flex-1" style={{ animationDelay: "0.35s" }}>
+                        <Select
+                            label="Carrier"
+                            required
+                            options={[...CARRIER_OPTIONS]}
+                            error={errors.carrier?.message}
+                            {...register("carrier", { required: "Carrier is required" })}
+                        />
+                    </div>
+                </div>
 
                 <div className="mt-4">
                     <Button

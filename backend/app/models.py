@@ -89,11 +89,14 @@ class Reorders(db.Model):
 
 class Alerts(db.Model):
     __tablename__ = 'alerts'
-    
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
+    shelf_analysis_log_id = db.Column(db.Integer, db.ForeignKey('shelf_analysis_logs.id'), nullable=True)
+    # 'restock' (low/out-of-stock reorder prompts) or 'shelf_detection' (scan results).
     alert_type = db.Column(db.String(50), nullable=False)
+    missing = db.Column(db.Integer, nullable=False, server_default='0')
+    misplaced = db.Column(db.Integer, nullable=False, server_default='0')
     sent_time = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 class InventoryLogs(db.Model):

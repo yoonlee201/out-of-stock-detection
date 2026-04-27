@@ -120,14 +120,15 @@ def insert_reorder(user_id, product_id, quantity):
         conn.close()
 
 
-def insert_alert(user_id, product_id, alert_type):
+def insert_alert(user_id, alert_type, shelf_analysis_log_id=None, missing=0, misplaced=0):
     query = sql.SQL(
-        "INSERT INTO alerts (user_id, product_id, alert_type, sent_time) VALUES (%s, %s, %s, NOW()) RETURNING alert_id"
+        "INSERT INTO alerts (user_id, shelf_analysis_log_id, alert_type, missing, misplaced, sent_time) "
+        "VALUES (%s, %s, %s, %s, %s, NOW()) RETURNING id"
     )
     conn = _connect()
     try:
         with conn.cursor() as cur:
-            cur.execute(query, (user_id, product_id, alert_type))
+            cur.execute(query, (user_id, shelf_analysis_log_id, alert_type, missing, misplaced))
             row = cur.fetchone()
             conn.commit()
             return row[0] if row else None

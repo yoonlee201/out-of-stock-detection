@@ -1,75 +1,184 @@
-from concurrent.futures import ThreadPoolExecutor
+from html import escape
+
+from app.core.config import config
+from app.core.db import db
+from app.models import Alerts, Products
+from app.services.user_services import get_all_active_employees
+from app.util.send import render_email, send_email, send_sms
 from datetime import datetime
 
-from app.models import Users
-from app.util.send import send_sms
-from agent.db_ops import insert_alert
+
+def _resolve_product(item):
+    """Try to match a detection's expected/actual SKU to a row in Products.
+    Returns (Products row | None). Used to enrich alert emails with shelf/aisle.
+    """
+    if not isinstance(item, dict):
+        return None
+    sku = item.get("expected_sku") or item.get("sku") or {}
+    name = sku.get("product_name") or sku.get("name")
+    if not name:
+        return None
+    query = Products.query.filter(Products.name == name)
+    brand = sku.get("brand")
+    if brand:
+        query = query.filter(Products.brand == brand)
+    variant = sku.get("variant")
+    if variant:
+        query = query.filter(Products.variant == variant)
+    size = sku.get("size")
+    if size:
+        query = query.filter(Products.size == size)
+    return query.first()
 
 
-def send_out_of_stock_sms(detected_items=None):
-    detected_items = detected_items or []
+def _describe_sku(sku: dict | None) -> str:
+    """Compact human label for an SKU dict; falls back to '—'."""
+    if not sku:
+        return "—"
+    parts = [
+        sku.get("brand"),
+        sku.get("product_name") or sku.get("name"),
+        sku.get("variant"),
+        sku.get("size"),
+    ]
+    parts = [str(p) for p in parts if p and str(p).strip() and str(p).lower() != "unknown"]
+    return " · ".join(parts) or "—"
 
-    total_count = len(detected_items)
-    empty_space_count = sum(1 for item in detected_items if item.get("type") == "empty_space")
-    missing_count = sum(1 for item in detected_items if item.get("audit_status") == "missing")
-    misplaced_count = sum(1 for item in detected_items if item.get("audit_status") == "misplaced")
-    correct_count = sum(1 for item in detected_items if item.get("audit_status") == "correct")
-    unverified_count = sum(1 for item in detected_items if item.get("audit_status") == "unverified")
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def _slot_label(item: dict) -> str:
+    """Detection coordinates straight from the planogram match."""
+    slot_id = item.get("slot_id")
+    if slot_id:
+        return str(slot_id)
+    row = item.get("row")
+    pos = item.get("position")
+    if row and pos:
+        return f"R{row}-P{pos}"
+    return "—"
 
-    if total_count == 0:
-        message = f"[MCCS] Shelf analysis completed at {timestamp}. No detections were returned."
-    else:
-        message = (
-            f"[MCCS] Shelf analysis completed at {timestamp}. "
-            f"Detections: {total_count}, Empty: {empty_space_count}, Missing: {missing_count}, "
-            f"Misplaced: {misplaced_count}, Correct: {correct_count}, Unverified: {unverified_count}."
+
+def _build_items_table(detected_items: list[dict]) -> str:
+    """Render the missing/misplaced items as an HTML table for the email body."""
+    rows: list[str] = []
+    for item in detected_items:
+        if not isinstance(item, dict):
+            continue
+        status = item.get("audit_status")
+        if status not in ("missing", "misplaced"):
+            continue
+
+        # For missing slots, the "what should be here" SKU is expected_sku.
+        # For misplaced products, sku is the actual product detected; expected_sku
+        # is what the planogram said belongs in that slot.
+        primary_sku = item.get("expected_sku") if status == "missing" else item.get("sku")
+        product = _resolve_product(item)
+        shelf = product.shelf if product is not None else "—"
+        aisle = product.aisle if product is not None else "—"
+
+        rows.append(
+            "<tr>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #f3f4f6;'><span class='accent'>{escape(status.title())}</span></td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #f3f4f6;'>{escape(_describe_sku(primary_sku))}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;'>{escape(_slot_label(item))}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;'>{escape(str(shelf))}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;'>{escape(str(aisle))}</td>"
+            "</tr>"
         )
 
-    test_employee = Users.query.filter_by(email="one@example.com").first()
-    employees = [test_employee] if test_employee else []
+    if not rows:
+        return ""
 
-    print(f"Employees found: {len(employees)}")
-    print(f"Sending alert to {len(employees)} employees")
+    return (
+        "<table style='width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 24px;'>"
+        "<thead>"
+        "<tr style='text-align:left;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.05em;'>"
+        "<th style='padding:8px 12px;border-bottom:1px solid #e5e7eb;'>Status</th>"
+        "<th style='padding:8px 12px;border-bottom:1px solid #e5e7eb;'>Product</th>"
+        "<th style='padding:8px 12px;border-bottom:1px solid #e5e7eb;'>Slot</th>"
+        "<th style='padding:8px 12px;border-bottom:1px solid #e5e7eb;'>Shelf</th>"
+        "<th style='padding:8px 12px;border-bottom:1px solid #e5e7eb;'>Aisle</th>"
+        "</tr>"
+        "</thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
+    )
 
-    def send_to_one(employee):
-        try:
-            if not employee:
-                print("Skipped empty employee")
-                return
 
-            if not employee.phone:
-                print(f"Skipped {employee.email}: no phone number")
-                return
+def _build_email(
+    detected_items: list[dict],
+    shelf_analysis_log_id: int | None,
+    missing_count: int,
+    misplaced_count: int,
+    timestamp: str,
+) -> tuple[str, str]:
+    """Return (plain_text_body, html_body) for the alert email."""
+    base_url = config.FRONTEND_URL.split(",")[0].strip().rstrip("/")
+    if shelf_analysis_log_id is not None:
+        link = f"{base_url}/shelf-detection?log_id={shelf_analysis_log_id}"
+    else:
+        link = f"{base_url}/shelf-detection"
 
-            send_sms(employee.phone, message, carrier="tmobile")
-            print("USING HARDCODED CARRIER")
-            print(f"Sent SMS to {employee.email}")
+    plain = (
+        f"Shelf scan at {timestamp}\n"
+        f"Total issues: {len(detected_items)} (missing: {missing_count}, misplaced: {misplaced_count})\n\n"
+        f"View the scan: {link}\n"
+    )
 
-            print("BEFORE DB LOGGING")
-            print(f"About to log alerts for {len(detected_items)} detections")
+    items_html = _build_items_table(detected_items)
+    content = (
+        f"<p>A shelf scan completed at <span class='accent'>{escape(timestamp)}</span> "
+        f"and flagged <span class='accent'>{len(detected_items)}</span> issue(s) — "
+        f"missing: <span class='accent'>{missing_count}</span>, "
+        f"misplaced: <span class='accent'>{misplaced_count}</span>.</p>"
+        f"{items_html}"
+        f"<a class='btn' href='{escape(link)}'>View Shelf Detection</a>"
+        f"<p class='muted'>If the button doesn't work, copy this URL into your browser:<br>"
+        f"<a href='{escape(link)}' style='color:#6b7280;'>{escape(link)}</a></p>"
+    )
+    return plain, render_email(content)
 
-            for item in detected_items:
-                try:
-                    product_id = None
 
-                    if hasattr(item, "product_id"):
-                        product_id = item.product_id
-                    elif isinstance(item, dict):
-                        product_id = item.get("product_id")
+def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):
+    """Email every active employee with the scan summary and a deep-link to the
+    shelf-detection page. Also sends a short SMS for users with a phone/carrier,
+    and writes one Alerts row per employee tied to the analysis log.
+    """
+    detected_items = detected_items or []
 
-                    if product_id is not None:
-                        alert_id = insert_alert(employee.user_id, product_id, "out_of_stock")
-                        print(f"Logged alert {alert_id} for product {product_id}")
-                    else:
-                        print(f"Skipped DB log because no product_id was found: {item}")
+    missing_count = sum(1 for i in detected_items if i.get("audit_status") == "missing")
+    misplaced_count = sum(1 for i in detected_items if i.get("audit_status") == "misplaced")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                except Exception as e:
-                    print(f"Failed to log alert for item {item}: {e}")
+    sms_summary = (
+        f"Shelf scan at {timestamp}. "
+        f"Total: {len(detected_items)}, Missing: {missing_count}, Misplaced: {misplaced_count}."
+    )
+    plain_body, html_body = _build_email(
+        detected_items, shelf_analysis_log_id, missing_count, misplaced_count, timestamp,
+    )
+    subject = f"[MCCS Shelf Detector] {missing_count} missing, {misplaced_count} misplaced"
 
-        except Exception as e:
-            print(f"Failed to send SMS to {getattr(employee, 'email', 'unknown user')}: {e}")
+    employees = get_all_active_employees()
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        list(executor.map(send_to_one, employees))
+    for user, _emp in employees:
+        if user.email:
+            try:
+                send_email(user.email, subject, plain_body, html=html_body)
+            except Exception as e:
+                print(f"Email failed for {user.email}: {e}")
+
+        if user.phone and user.carrier:
+            try:
+                send_sms(user.phone, sms_summary, carrier=user.carrier)
+            except Exception as e:
+                print(f"SMS failed for {user.email}: {e}")
+
+        db.session.add(Alerts(
+            user_id=user.user_id,
+            shelf_analysis_log_id=shelf_analysis_log_id,
+            alert_type="shelf_detection",
+            missing=missing_count,
+            misplaced=misplaced_count,
+        ))
+
+    db.session.commit()

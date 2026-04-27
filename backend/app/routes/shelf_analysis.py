@@ -12,6 +12,7 @@ from PIL import Image
 
 from app.core.db import db
 from app.models import ShelfAnalysisLog
+from app.services.alert_services import send_out_of_stock_alerts
 from app.util.auth import _get_current_user
 
 
@@ -161,6 +162,7 @@ def analyze_shelf():
         }
 
         # Persist result — best-effort, never blocks the response
+        log_id = None
         try:
             current_user = _get_current_user()
             log = ShelfAnalysisLog(
@@ -170,8 +172,22 @@ def analyze_shelf():
             )
             db.session.add(log)
             db.session.commit()
+            log_id = log.id
         except Exception:
             db.session.rollback()
+            traceback.print_exc()
+
+        # Trigger alerts when the analysis found missing or misplaced items
+        issue_detections = [
+            d for d in detections
+            if d.get("audit_status") in ("missing", "misplaced")
+        ]
+        if issue_detections:
+            try:
+                send_out_of_stock_alerts(issue_detections, shelf_analysis_log_id=log_id)
+            except Exception:
+                db.session.rollback()
+                traceback.print_exc()  # surface alert failures in logs
 
         return jsonify(payload), 200
     except Exception as error:
@@ -182,7 +198,8 @@ def analyze_shelf():
             os.remove(temp_path)
 
 
-@shelf_analysis_blueprint.route("/history", methods=["GET"])
+@shelf_analysis_blueprint.route("/", methods=["GET"])
+@shelf_analysis_blueprint.route("", methods=["GET"])
 def get_analysis_history():
     """Return the most recent 50 analysis logs (newest first)."""
     limit = min(int(request.args.get("limit", 50)), 200)

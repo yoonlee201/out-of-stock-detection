@@ -113,7 +113,7 @@ export interface AnalysisHistoryEntry {
 
 export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
     try {
-        const { data } = await axiosAuth.get<AnalysisHistoryEntry[]>("/shelf-analysis/history");
+        const { data } = await axiosAuth.get<AnalysisHistoryEntry[]>("/shelf-analysis");
         return data;
     } catch (error) {
         if (isAxiosError(error)) {
