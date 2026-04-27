@@ -36,7 +36,7 @@ const Select = ({
                 required={required}
                 className={twMerge(
                     "text-text w-full appearance-none bg-transparent outline-none",
-                    variant === "md" ? "py-2.5 pl-3 pr-8 text-sm" : "py-1.5 pl-3 pr-7 text-xs font-semibold",
+                    variant === "md" ? "py-2.5 pr-8 pl-3 text-sm" : "py-1.5 pr-7 pl-3 text-xs font-semibold",
                     selectClassName,
                 )}
                 {...props}

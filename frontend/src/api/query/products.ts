@@ -30,7 +30,6 @@ const toInventoryItem = (p: RawProduct): InventoryItem => ({
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
 });
 
-
 export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> => {
     try {
         const params = search ? { search } : {};

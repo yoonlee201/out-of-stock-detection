@@ -166,10 +166,7 @@ const Inventory = () => {
         };
     }, [inventory]);
 
-    const categories = useMemo(
-        () => [...new Set(inventory.map((item) => item.category))].sort(),
-        [inventory],
-    );
+    const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
     if (loading || !user) return <Loading message="Checking authentication..." />;
     if (inventoryLoading) return <Loading message="Loading inventory..." />;
@@ -203,7 +200,6 @@ const Inventory = () => {
                 <SummaryCard label="Low in Stock" value={summary.lowStock} valueClass="text-yellow" />
                 <SummaryCard label="Out of Stock" value={summary.outOfStock} valueClass="text-red" />
             </div>
-
 
             <InventoryTable view={view} inventory={inventory} setInventory={setInventory} categories={categories} />
 
@@ -336,11 +332,7 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 )}
                 <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
                     <span className="text-text-muted tracking-[0.14em] uppercase">Group by</span>
-                    <Select
-                        variant="sm"
-                        value={groupBy}
-                        onChange={(e) => setGroupBy(e.target.value as GroupField)}
-                    >
+                    <Select variant="sm" value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupField)}>
                         {groupOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                                 {opt.label}
@@ -361,9 +353,18 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 resetKey={`${search}-${categoryFilter}-${statusFilter}-${groupBy}`}
             />
 
-            <EditProductDialog target={editTarget} setInventory={setInventory} onClose={() => setEditTarget(null)} categories={categories} />
+            <EditProductDialog
+                target={editTarget}
+                setInventory={setInventory}
+                onClose={() => setEditTarget(null)}
+                categories={categories}
+            />
             <ReorderDialog target={reorderTarget} onClose={() => setReorderTarget(null)} />
-            <DeleteProductDialog target={deleteTarget} setInventory={setInventory} onClose={() => setDeleteTarget(null)} />
+            <DeleteProductDialog
+                target={deleteTarget}
+                setInventory={setInventory}
+                onClose={() => setDeleteTarget(null)}
+            />
         </>
     );
 };
@@ -571,22 +572,20 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         value={form.category}
                         onChange={(e) => setField("category", e.target.value)}
                     >
-                        {categories.map((c) => <option key={c}>{c}</option>)}
+                        {categories.map((c) => (
+                            <option key={c}>{c}</option>
+                        ))}
                     </Select>
                     <div className="grid grid-cols-2 gap-3">
-                        <Select
-                            label="Aisle"
-                            value={form.aisle}
-                            onChange={(e) => setField("aisle", e.target.value)}
-                        >
-                            {AISLES.map((a) => <option key={a}>{a}</option>)}
+                        <Select label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)}>
+                            {AISLES.map((a) => (
+                                <option key={a}>{a}</option>
+                            ))}
                         </Select>
-                        <Select
-                            label="Shelf"
-                            value={form.shelf}
-                            onChange={(e) => setField("shelf", e.target.value)}
-                        >
-                            {SHELVES.map((s) => <option key={s}>{s}</option>)}
+                        <Select label="Shelf" value={form.shelf} onChange={(e) => setField("shelf", e.target.value)}>
+                            {SHELVES.map((s) => (
+                                <option key={s}>{s}</option>
+                            ))}
                         </Select>
                     </div>
                     <Field
@@ -897,7 +896,7 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
     return (
         <Dialog open={open} title="Add Product" description="Create a new inventory item." onClose={onClose}>
             <div className="space-y-3">
-                <Field label="Brand" value={form.brand} onChange={(e) => setField("brand", e.target.value)} required/>
+                <Field label="Brand" value={form.brand} onChange={(e) => setField("brand", e.target.value)} required />
                 <Field
                     label="Product Name"
                     value={form.productName}
@@ -925,7 +924,9 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         value={form.aisle}
                         onChange={(e) => setField("aisle", e.target.value)}
                     >
-                        {AISLES.map((a) => <option key={a}>{a}</option>)}
+                        {AISLES.map((a) => (
+                            <option key={a}>{a}</option>
+                        ))}
                     </Select>
                     <Select
                         label="Shelf"
@@ -933,7 +934,9 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         value={form.shelf}
                         onChange={(e) => setField("shelf", e.target.value)}
                     >
-                        {SHELVES.map((s) => <option key={s}>{s}</option>)}
+                        {SHELVES.map((s) => (
+                            <option key={s}>{s}</option>
+                        ))}
                     </Select>
                 </div>
                 <Field

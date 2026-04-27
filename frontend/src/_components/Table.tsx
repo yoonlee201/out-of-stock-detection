@@ -134,7 +134,9 @@ function PaginationBar({ page, totalPages, total, pageSize, onPage, onPageSize }
                         onChange={(e) => onPageSize(Number(e.target.value))}
                     >
                         {PAGE_SIZE_OPTIONS.map((n) => (
-                            <option key={n} value={n}>{n}</option>
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
                         ))}
                     </Select>
                 </label>
@@ -206,7 +208,9 @@ function DataTable<SortField extends string = string>({
     const [pageSize, setPageSize] = useState(defaultPageSize);
 
     // Reset to page 1 whenever the caller signals a filter/search change or page size changes.
-    useEffect(() => { setPage(1); }, [resetKey, pageSize]);
+    useEffect(() => {
+        setPage(1);
+    }, [resetKey, pageSize]);
 
     const isPaginated = !groupKeys && totalItems !== undefined;
     const totalPages = isPaginated ? Math.max(1, Math.ceil(totalItems! / pageSize)) : 1;

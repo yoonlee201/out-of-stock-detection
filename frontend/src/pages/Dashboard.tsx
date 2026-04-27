@@ -194,7 +194,7 @@ const Dashboard = () => {
 
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
                 {/* ── History sidebar ── */}
-                <div className="bg-surface w-full rounded-xl p-6 shadow lg:w-80 lg:shrink-0 lg:sticky lg:top-6 xl:w-96">
+                <div className="bg-surface w-full rounded-xl p-6 shadow lg:sticky lg:top-6 lg:w-80 lg:shrink-0 xl:w-96">
                     <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
                     {historyLoading ? (
                         <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">

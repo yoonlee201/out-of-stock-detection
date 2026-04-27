@@ -170,10 +170,11 @@ const EmployeeTables = ({ employees, setEmployees, fetching }: EmployeeTablesPro
         setFilters({ search: "", role: "all", status: "active", sortField: "status", sortDir: "asc", groupBy: "none" });
 
     const renderRows = (groupKey: string, page?: number, pageSize?: number) => {
-        const source = filters.groupBy === "none" ? filtered : (grouped[groupKey] || []);
-        const rows = page && pageSize && filters.groupBy === "none"
-            ? source.slice((page - 1) * pageSize, page * pageSize)
-            : source;
+        const source = filters.groupBy === "none" ? filtered : grouped[groupKey] || [];
+        const rows =
+            page && pageSize && filters.groupBy === "none"
+                ? source.slice((page - 1) * pageSize, page * pageSize)
+                : source;
         if (rows.length === 0) {
             return (
                 <tr key={`${groupKey}-empty`}>

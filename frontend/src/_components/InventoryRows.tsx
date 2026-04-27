@@ -1,11 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { InventoryItem, InventoryStatus } from "../types/inventory";
-import {
-    QUANTITY_STATUS_LABEL,
-    quantityStatusClass,
-    SHELF_STATUS_LABEL,
-    shelfStatusClass,
-} from "../utils/constants";
+import { QUANTITY_STATUS_LABEL, quantityStatusClass, SHELF_STATUS_LABEL, shelfStatusClass } from "../utils/constants";
 
 export const EmployeeRow = ({
     item,
@@ -47,12 +42,16 @@ export const EmployeeRow = ({
             <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
             <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
             <td className="px-5 py-4">
-                <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
+                <span
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${quantityStatusClass(status)}`}
+                >
                     {QUANTITY_STATUS_LABEL[status]}
                 </span>
             </td>
             <td className="px-5 py-4">
-                <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${shelfStatusClass(item.shelfStatus)}`}>
+                <span
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${shelfStatusClass(item.shelfStatus)}`}
+                >
                     {SHELF_STATUS_LABEL[item.shelfStatus]}
                 </span>
             </td>
@@ -74,25 +73,34 @@ export const EmployeeRow = ({
                         </svg>
                     </button>
                     {menuOpen && (
-                        <div className="bg-surface border-border absolute right-0 top-full z-20 mt-1 w-36 rounded-2xl border shadow-xl">
+                        <div className="bg-surface border-border absolute top-full right-0 z-20 mt-1 w-36 rounded-2xl border shadow-xl">
                             <div className="space-y-0.5 p-1.5">
                                 <button
                                     type="button"
-                                    onClick={() => { onEdit(); setMenuOpen(false); }}
+                                    onClick={() => {
+                                        onEdit();
+                                        setMenuOpen(false);
+                                    }}
                                     className="hover:bg-surface-muted text-text-secondary w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                                 >
                                     Edit
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { onReorder(); setMenuOpen(false); }}
+                                    onClick={() => {
+                                        onReorder();
+                                        setMenuOpen(false);
+                                    }}
                                     className="hover:bg-surface-muted text-text-secondary w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                                 >
                                     Reorder
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { onDelete(); setMenuOpen(false); }}
+                                    onClick={() => {
+                                        onDelete();
+                                        setMenuOpen(false);
+                                    }}
                                     className="text-red hover:bg-red/10 w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition"
                                 >
                                     Delete
@@ -121,7 +129,9 @@ export const CustomerRow = ({ item, status }: { item: InventoryItem; status: Inv
         <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
-            <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${quantityStatusClass(status)}`}>
+            <span
+                className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${quantityStatusClass(status)}`}
+            >
                 {QUANTITY_STATUS_LABEL[status]}
             </span>
         </td>
