@@ -3,6 +3,7 @@ import Inventory from "../pages/Inventory";
 import Invitation from "../pages/Invitation";
 import Login from "../pages/Login";
 import Manager from "../pages/Manager";
+import Notifications from "../pages/Notifications";
 import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import type { UserRole } from "../types/db";
@@ -25,6 +26,7 @@ const useRouter = (role: UserRole | null) => {
         invitation: { path: "/invitation", label: "Invitation", element: <Invitation /> },
         dashboard: { path: "/shelf-detection", label: "Shelf Detection", element: <Dashboard /> },
         inventory: { path: "/inventory", label: "Inventory", element: <Inventory /> },
+        notifications: { path: "/notifications", label: "Notifications", element: <Notifications /> },
         employee_management: { path: "/employee-management", label: "Employee Management", element: <Manager /> },
         // alerts:   { path: "/alerts",    label: "Alerts",    element: <Alerts /> },
         // reorders: { path: "/reorders",  label: "Reorders",  element: <Reorders /> },
@@ -34,13 +36,15 @@ const useRouter = (role: UserRole | null) => {
 
     const authRoutes: Route[] = [allRoutes.login, allRoutes.register, allRoutes.verify_email, allRoutes.invitation];
 
-    const publicSidebarRoutes: Route[] = [allRoutes.inventory];
-
     const employeeRoutes: Route[] = [allRoutes.dashboard, allRoutes.employee_management];
 
     const isEmployee = role !== null && role !== "customer";
 
-    const dashboardRoutes: Route[] = [...publicSidebarRoutes, ...(isEmployee ? employeeRoutes : [])];
+    const dashboardRoutes: Route[] = [
+        allRoutes.inventory,
+        ...(isEmployee ? employeeRoutes : []),
+        allRoutes.notifications,
+    ];
 
     return { authRoutes, dashboardRoutes };
 };
