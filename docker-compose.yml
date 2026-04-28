@@ -5,24 +5,38 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        TORCH_VARIANT: ${TORCH_VARIANT:-cu124}
     # Secrets must be injected as environment variables in production —
     # never from a file on disk. On EC2 use an .env file only for local
     # testing; in real production use AWS Secrets Manager or ECS task defs.
     env_file: backend/.env
     restart: unless-stopped
     ports:
-      # Mapping the EC2's public HTTP port (80) to Flask's port (5000).
-      - "80:5000"
+      # Caddy owns port 80/443; Flask is internal on 8080.
+      - "127.0.0.1:8080:5000"
     environment:
       # Gunicorn 25.x control server needs a writable home directory.
       # appuser's home is /nonexistent (intentionally absent), so redirect to /tmp.
       HOME: /tmp
       HF_HOME: /usr/src/app/.cache/huggingface
+      HF_HUB_CACHE: /usr/src/app/.cache/huggingface/hub
+      HF_DATASETS_CACHE: /usr/src/app/.cache/huggingface/datasets
+      TRANSFORMERS_CACHE: /usr/src/app/.cache/huggingface/hub
+      YOLO_CONFIG_DIR: /usr/src/app/.cache/ultralytics
       # Required so `flask db upgrade` (run on container start) can find the app.
       FLASK_APP: app.main:app
     volumes:
-      - ./weights:/usr/src/app/weights
+      - ./shelf_analyzer:/usr/src/app/shelf_analyzer
+      - ./weights:/usr/src/app/weights:ro
       - hf_cache:/usr/src/app/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     # Run pending Alembic migrations, then start Gunicorn. Migrations are
     # idempotent — `flask db upgrade` is a no-op if the DB is already current.
     # The Flask dev server is single-threaded and not hardened; production

@@ -27,7 +27,8 @@ RUN apt-get update && \
 
 COPY backend/requirements.txt .
 ARG TORCH_VARIANT=cpu
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 
