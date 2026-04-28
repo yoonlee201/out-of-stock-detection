@@ -57,32 +57,35 @@ def _seed(app):
         s = {sup.email: sup for sup in suppliers}
 
         # ------------------------------------------------------------------
-        # Products  (fields: name, type, qrcode, quantity_in_store, shelf, aisle, supplier_id)
+        # Products  (fields: name, brand, variant, size, type, qrcode,
+        #            quantity_in_store, shelf, aisle, supplier_id)
         # ------------------------------------------------------------------
         product_rows = [
-            ("Whole Milk 1gal",          "dairy",         "QR-MILK-001", 18, "Shelf 3",   "Aisle 3",  s["dairyfarmers@coop.com"].id),
-            ("2% Reduced Fat Milk",      "dairy",         "QR-MILK-002", 12, "Shelf 3",   "Aisle 3",  s["dairyfarmers@coop.com"].id),
-            ("Ground Beef 80/20",        "meat",          "QR-BEEF-001",  8, "Shelf 2",   "Aisle 7",  s["localmeat@regional.com"].id),
-            ("Boneless Chicken Breast",  "meat",          "QR-CHKN-001", 22, "Shelf 1",   "Aisle 7",  s["localmeat@regional.com"].id),
-            ("Bananas (bunch)",          "produce",       "QR-BANA-001", 45, "Shelf 1",   "Aisle 1",  s["freshpoint@produce.com"].id),
-            ("Roma Tomatoes 1lb",        "produce",       "QR-TOMA-001", 14, "Shelf 2",   "Aisle 1",  s["freshpoint@produce.com"].id),
-            ("Sourdough Bread",          "bakery",        "QR-BRED-001",  9, "Shelf 5",   "Aisle 2",  s["usfoods@distro.com"].id),
-            ("Orange Juice 64oz",        "beverage",      "QR-OJ-001",   16, "Shelf 4",   "Aisle 4",  s["performancefood@group.com"].id),
-            ("Frozen Pepperoni Pizza",   "frozen",        "QR-PIZA-001",  7, "Freezer 2", "Aisle 8",  s["performancefood@group.com"].id),
-            ("Classic Potato Chips",     "snacks",        "QR-CHIP-001", 31, "Shelf 4",   "Aisle 6",  s["cswholesale@supplyco.com"].id),
-            ("Tomato Soup 10.75oz",      "canned",        "QR-SOUP-001", 24, "Shelf 6",   "Aisle 5",  s["kehe@distributors.net"].id),
-            ("Shampoo 13oz",             "personal care", "QR-SHMP-001", 11, "Shelf 1",   "Aisle 9",  s["unfi@naturalfoods.com"].id),
-            ("Greek Yogurt Plain",       "dairy",         "QR-YOGT-001",  5, "Shelf 4",   "Aisle 3",  s["dairyfarmers@coop.com"].id),
-            ("Eggs Large 12ct",          "dairy",         "QR-EGGS-001", 19, "Shelf 5",   "Aisle 3",  s["dairyfarmers@coop.com"].id),
-            ("Apples Gala 3lb bag",      "produce",       "QR-APPL-001", 28, "Shelf 1",   "Aisle 1",  s["freshpoint@produce.com"].id),
-            ("Cheddar Cheese Block",     "dairy",         "QR-CHED-001",  6, "Shelf 6",   "Aisle 3",  s["dairyfarmers@coop.com"].id),
-            ("Pasta Sauce Marinara",     "canned",        "QR-SAUCE-001",17, "Shelf 7",   "Aisle 5",  s["kehe@distributors.net"].id),
-            ("Toilet Paper 12 rolls",    "personal care", "QR-TP-001",   13, "Shelf 3",   "Aisle 10", s["unfi@naturalfoods.com"].id),
+            # name                    brand                variant               size         type             qrcode          qty  shelf aisle  supplier
+            ("Whole Milk",            "Organic Valley",    "Whole",              "1 gal",     "dairy",         "QR-MILK-001",  18,   "3",  "3",  s["dairyfarmers@coop.com"].id),
+            ("Reduced Fat Milk",      "Horizon",           "2% Reduced Fat",     "1 gal",     "dairy",         "QR-MILK-002",  12,   "3",  "3",  s["dairyfarmers@coop.com"].id),
+            ("Ground Beef",           "Local Farm",        "80/20",              "1 lb",      "meat",          "QR-BEEF-001",   8,   "2",  "7",  s["localmeat@regional.com"].id),
+            ("Chicken Breast",        "Tyson",             "Boneless Skinless",  "2 lb",      "meat",          "QR-CHKN-001",  22,   "1",  "7",  s["localmeat@regional.com"].id),
+            ("Bananas",               "Dole",              "Yellow",             "Bunch",     "produce",       "QR-BANA-001",  45,   "1",  "1",  s["freshpoint@produce.com"].id),
+            ("Roma Tomatoes",         "Local Farm",        "Roma",               "1 lb",      "produce",       "QR-TOMA-001",  14,   "2",  "1",  s["freshpoint@produce.com"].id),
+            ("Sourdough Bread",       "Pepperidge Farm",   "Classic",            "24 oz",     "bakery",        "QR-BRED-001",   9,   "5",  "2",  s["usfoods@distro.com"].id),
+            ("Orange Juice",          "Tropicana",         "Original No Pulp",   "64 oz",     "beverage",      "QR-OJ-001",    16,   "4",  "4",  s["performancefood@group.com"].id),
+            ("Pepperoni Pizza",       "DiGiorno",          "Rising Crust",       "28.2 oz",   "frozen",        "QR-PIZA-001",   7,   "2",  "8",  s["performancefood@group.com"].id),
+            ("Potato Chips",          "Lay's",             "Classic",            "8 oz",      "snacks",        "QR-CHIP-001",  31,   "4",  "6",  s["cswholesale@supplyco.com"].id),
+            ("Tomato Soup",           "Campbell's",        "Classic",            "10.75 oz",  "canned",        "QR-SOUP-001",  24,   "6",  "5",  s["kehe@distributors.net"].id),
+            ("Shampoo",               "Head & Shoulders",  "Classic Clean",      "13.5 oz",   "personal care", "QR-SHMP-001",  11,   "1",  "9",  s["unfi@naturalfoods.com"].id),
+            ("Greek Yogurt",          "Chobani",           "Plain",              "32 oz",     "dairy",         "QR-YOGT-001",   5,   "4",  "3",  s["dairyfarmers@coop.com"].id),
+            ("Large Eggs",            "Eggland's Best",    "Grade A",            "12 ct",     "dairy",         "QR-EGGS-001",  19,   "5",  "3",  s["dairyfarmers@coop.com"].id),
+            ("Gala Apples",           "Local Farm",        "Gala",               "3 lb bag",  "produce",       "QR-APPL-001",  28,   "1",  "1",  s["freshpoint@produce.com"].id),
+            ("Cheddar Cheese",        "Tillamook",         "Sharp",              "16 oz",     "dairy",         "QR-CHED-001",   6,   "6",  "3",  s["dairyfarmers@coop.com"].id),
+            ("Pasta Sauce",           "Rao's",             "Marinara",           "24 oz",     "canned",        "QR-SAUCE-001", 17,   "7",  "5",  s["kehe@distributors.net"].id),
+            ("Toilet Paper",          "Charmin",           "Ultra Soft",         "12 rolls",  "personal care", "QR-TP-001",    13,   "3",  "10", s["unfi@naturalfoods.com"].id),
         ]
         products = [
-            Products(name=n, type=t, qrcode=qr, quantity_in_store=qty,
+            Products(name=n, brand=brand, variant=variant, size=size,
+                     type=t, qrcode=qr, quantity_in_store=qty,
                      shelf=shelf, aisle=aisle, supplier_id=sid)
-            for n, t, qr, qty, shelf, aisle, sid in product_rows
+            for n, brand, variant, size, t, qr, qty, shelf, aisle, sid in product_rows
         ]
         db.session.add_all(products)
         db.session.flush()
@@ -93,21 +96,21 @@ def _seed(app):
         # ------------------------------------------------------------------
         PW = bcrypt.hashpw("12345678".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         user_rows = [
-            ("Maria",   "Gonzalez", "7035550123", "supervisor", "one@example.com",          True),
-            ("James",   "Carter",   "7575550198", "manager",    "james.carter@mccs.mil",    True),
-            ("Michael", "Lee",      "8045550765", "manager",    "michael.lee@mccs.mil",     True),
-            ("Sarah",   "Johnson",  "5405550341", "associate",  "sarah.j@mccs.mil",         True),
-            ("Robert",  "Wilson",   "2025551123", "associate",  "robert.w@mccs.mil",        True),
-            ("Linda",   "Martinez", "3015551456", "associate",  "linda.m@mccs.mil",         True),
-            ("Emily",   "Davis",    "5715550882", "customer",   "emily.davis@email.com",    True),
-            ("David",   "Brown",    "7035551678", "customer",   "david.brown@email.com",    True),
-            ("Jessica", "Taylor",   "5405551890", "customer",   "jessica.t@email.com",      False),
-            ("Kevin$",   "Anderson", "7575552034", "customer",   "kevin.anderson@email.com", True),
+            ("Maria",   "Gonzalez", "7035550123", "verizon", "supervisor", "one@example.com",          True),
+            ("James",   "Carter",   "7575550198", "verizon", "manager",    "james.carter@mccs.mil",    True),
+            ("Michael", "Lee",      "8045550765", "verizon", "manager",    "michael.lee@mccs.mil",     True),
+            ("Sarah",   "Johnson",  "5405550341", "verizon", "associate",  "sarah.j@mccs.mil",         True),
+            ("Robert",  "Wilson",   "2025551123", "verizon", "associate",  "robert.w@mccs.mil",        True),
+            ("Linda",   "Martinez", "3015551456", "verizon", "associate",  "linda.m@mccs.mil",         True),
+            ("Emily",   "Davis",    "5715550882", "verizon",  "customer",   "emily.davis@email.com",    True),
+            ("David",   "Brown",    "7035551678", "verizon",  "customer",   "david.brown@email.com",    True),
+            ("Jessica", "Taylor",   "5405551890", "verizon",  "customer",   "jessica.t@email.com",      False),
+            ("Kevin$",   "Anderson", "7575552034", "verizon",  "customer",   "kevin.anderson@email.com", True),
         ]
         users = [
-            Users(first_name=fn, last_name=ln, phone=ph, role=role,
+            Users(first_name=fn, last_name=ln, phone=ph, carrier=carrier, role=role,
                   email=email, is_verified=verified, password=PW)
-            for fn, ln, ph, role, email, verified in user_rows
+            for fn, ln, ph, carrier, role, email, verified in user_rows
         ]
         db.session.add_all(users)
         db.session.flush()
@@ -119,57 +122,10 @@ def _seed(app):
             "sarah.j@mccs.mil", "robert.w@mccs.mil", "linda.m@mccs.mil",
         ]
         db.session.add_all([
-            Employee(user_id=u[e].user_id, status="active") for e in employee_emails
-        ])
-
-        # ------------------------------------------------------------------
-        # Alerts
-        # ------------------------------------------------------------------
-        now = datetime.now(timezone.utc)
-        db.session.add_all([
-            Alerts(user_id=u["one@example.com"].user_id,          alert_type="restock",         sent_time=now - timedelta(hours=2)),
-            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    alert_type="shelf_detection", missing=3, misplaced=1, sent_time=now - timedelta(minutes=45)),
-            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     alert_type="restock",         sent_time=now - timedelta(days=1)),
-            Alerts(user_id=u["sarah.j@mccs.mil"].user_id,         alert_type="shelf_detection", missing=2, misplaced=0, sent_time=now - timedelta(hours=3)),
-            Alerts(user_id=u["robert.w@mccs.mil"].user_id,        alert_type="restock",         sent_time=now - timedelta(minutes=30)),
-            Alerts(user_id=u["emily.davis@email.com"].user_id,    alert_type="shelf_detection", missing=0, misplaced=4, sent_time=now - timedelta(minutes=90)),
-            Alerts(user_id=u["one@example.com"].user_id,          alert_type="restock",         sent_time=now - timedelta(hours=4)),
-            Alerts(user_id=u["james.carter@mccs.mil"].user_id,    alert_type="restock",         sent_time=now - timedelta(hours=1)),
-            Alerts(user_id=u["michael.lee@mccs.mil"].user_id,     alert_type="shelf_detection", missing=5, misplaced=2, sent_time=now - timedelta(days=2)),
-            Alerts(user_id=u["linda.m@mccs.mil"].user_id,         alert_type="restock",         sent_time=now),
-        ])
-
-        # ------------------------------------------------------------------
-        # Reorders
-        # ------------------------------------------------------------------
-        db.session.add_all([
-            Reorders(user_id=u["one@example.com"].user_id,          product_id=p["QR-MILK-001"].product_id, quantity=48),
-            Reorders(user_id=u["emily.davis@email.com"].user_id,    product_id=p["QR-BEEF-001"].product_id, quantity=60),
-            Reorders(user_id=u["james.carter@mccs.mil"].user_id,    product_id=p["QR-PIZA-001"].product_id, quantity=36),
-            Reorders(user_id=u["one@example.com"].user_id,          product_id=p["QR-YOGT-001"].product_id, quantity=24),
-            Reorders(user_id=u["sarah.j@mccs.mil"].user_id,         product_id=p["QR-BANA-001"].product_id, quantity=72),
-            Reorders(user_id=u["robert.w@mccs.mil"].user_id,        product_id=p["QR-CHIP-001"].product_id, quantity=48),
-            Reorders(user_id=u["emily.davis@email.com"].user_id,    product_id=p["QR-EGGS-001"].product_id, quantity=30),
-        ])
-
-        # ------------------------------------------------------------------
-        # Inventory logs
-        # ------------------------------------------------------------------
-        db.session.add_all([
-            InventoryLogs(product_id=p["QR-MILK-001"].product_id, change_type="sale",             quantity_changed=-6),
-            InventoryLogs(product_id=p["QR-MILK-001"].product_id, change_type="restock",          quantity_changed=48),
-            InventoryLogs(product_id=p["QR-BEEF-001"].product_id, change_type="sale",             quantity_changed=-12),
-            InventoryLogs(product_id=p["QR-BANA-001"].product_id, change_type="sale",             quantity_changed=-18),
-            InventoryLogs(product_id=p["QR-PIZA-001"].product_id, change_type="damage",           quantity_changed=-4),
-            InventoryLogs(product_id=p["QR-CHIP-001"].product_id, change_type="restock",          quantity_changed=36),
-            InventoryLogs(product_id=p["QR-YOGT-001"].product_id, change_type="sale",             quantity_changed=-8),
-            InventoryLogs(product_id=p["QR-EGGS-001"].product_id, change_type="reorder_received", quantity_changed=24),
-            InventoryLogs(product_id=p["QR-MILK-002"].product_id, change_type="sale",             quantity_changed=-5),
-            InventoryLogs(product_id=p["QR-OJ-001"].product_id,   change_type="sale",             quantity_changed=-10),
+            Employee(user_id=u[e].user_id, status="inactive") for e in employee_emails
         ])
 
         db.session.commit()
-        print("Seeding complete.")
 
 
 def main():
