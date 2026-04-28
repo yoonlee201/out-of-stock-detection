@@ -1,4 +1,5 @@
 import http from "node:http";
+import https from "node:https";
 
 export default function handler(req, res) {
     const backendUrl = process.env.BACKEND_URL;
@@ -8,6 +9,8 @@ export default function handler(req, res) {
     }
 
     const url = new URL(`${backendUrl}${req.url}`);
+    const transport = url.protocol === "https:" ? https : http;
+    const defaultPort = url.protocol === "https:" ? 443 : 80;
 
     const skipHeaders = new Set(["host", "connection", "transfer-encoding"]);
     const headers = {};
@@ -17,10 +20,10 @@ export default function handler(req, res) {
         }
     }
 
-    const proxyReq = http.request(
+    const proxyReq = transport.request(
         {
             hostname: url.hostname,
-            port: url.port || 80,
+            port: url.port || defaultPort,
             path: url.pathname + url.search,
             method: req.method,
             headers,
