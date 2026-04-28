@@ -81,8 +81,8 @@ const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
 // ======================Constants========================
 // TODO: fetch categories from backend instead of hardcoding
 // const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
-const AISLES = ["Aisle 1", "Aisle 2", "Aisle 3", "Aisle 4", "Aisle 5", "Aisle 6", "Aisle 7", "Aisle 8", "Aisle 9"];
-const SHELVES = ["Shelf 1", "Shelf 2", "Shelf 3", "Shelf 4", "Shelf 5", "Shelf 6", "Shelf 7", "Freezer 1", "Freezer 2"];
+const AISLES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const SHELVES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: true },
