@@ -1,16 +1,7 @@
 {
     "trailingSlash": false,
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "/api/proxy.js"
-        },
-        {
-            "handle": "filesystem"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/index.html"
-        }
+    "rewrites": [
+        { "source": "/api/:path*", "destination": "/api/proxy" },
+        { "source": "/(.*)", "destination": "/index.html" }
     ]
 }
