@@ -53,6 +53,8 @@ export interface ShelfAnalysisResponse {
     annotated_image: string;
 }
 
+const DIRECT_URL = import.meta.env.VITE_DIRECT_BACKEND_URL;
+
 export const apiAnalyzeShelf = async (
     image: File,
     onUploadProgress?: (percent: number) => void,
@@ -60,8 +62,10 @@ export const apiAnalyzeShelf = async (
     const formData = new FormData();
     formData.append("image", image);
 
+    const endpoint = DIRECT_URL ? `${DIRECT_URL}/shelf-analysis/analyze` : "/shelf-analysis/analyze";
+
     try {
-        const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
+        const { data } = await axiosAuth.post<ShelfAnalysisResponse>(endpoint, formData, {
             timeout: 1800000,
             headers: { "Content-Type": "multipart/form-data" },
             onUploadProgress: onUploadProgress
