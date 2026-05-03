@@ -61,31 +61,31 @@ def _seed(app):
         #            quantity_in_store, shelf, aisle, supplier_id)
         # ------------------------------------------------------------------
         product_rows = [
-            # name                    brand                variant               size         type             qrcode          qty  shelf aisle  supplier
-            ("Whole Milk",            "Organic Valley",    "Whole",              "1 gal",     "dairy",         "QR-MILK-001",  18,   "3",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Reduced Fat Milk",      "Horizon",           "2% Reduced Fat",     "1 gal",     "dairy",         "QR-MILK-002",  12,   "3",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Ground Beef",           "Local Farm",        "80/20",              "1 lb",      "meat",          "QR-BEEF-001",   8,   "2",  "7",  s["localmeat@regional.com"].id),
-            ("Chicken Breast",        "Tyson",             "Boneless Skinless",  "2 lb",      "meat",          "QR-CHKN-001",  22,   "1",  "7",  s["localmeat@regional.com"].id),
-            ("Bananas",               "Dole",              "Yellow",             "Bunch",     "produce",       "QR-BANA-001",  45,   "1",  "1",  s["freshpoint@produce.com"].id),
-            ("Roma Tomatoes",         "Local Farm",        "Roma",               "1 lb",      "produce",       "QR-TOMA-001",  14,   "2",  "1",  s["freshpoint@produce.com"].id),
-            ("Sourdough Bread",       "Pepperidge Farm",   "Classic",            "24 oz",     "bakery",        "QR-BRED-001",   9,   "5",  "2",  s["usfoods@distro.com"].id),
-            ("Orange Juice",          "Tropicana",         "Original No Pulp",   "64 oz",     "beverage",      "QR-OJ-001",    16,   "4",  "4",  s["performancefood@group.com"].id),
-            ("Pepperoni Pizza",       "DiGiorno",          "Rising Crust",       "28.2 oz",   "frozen",        "QR-PIZA-001",   7,   "2",  "8",  s["performancefood@group.com"].id),
-            ("Potato Chips",          "Lay's",             "Classic",            "8 oz",      "snacks",        "QR-CHIP-001",  31,   "4",  "6",  s["cswholesale@supplyco.com"].id),
-            ("Tomato Soup",           "Campbell's",        "Classic",            "10.75 oz",  "canned",        "QR-SOUP-001",  24,   "6",  "5",  s["kehe@distributors.net"].id),
-            ("Shampoo",               "Head & Shoulders",  "Classic Clean",      "13.5 oz",   "personal care", "QR-SHMP-001",  11,   "1",  "9",  s["unfi@naturalfoods.com"].id),
-            ("Greek Yogurt",          "Chobani",           "Plain",              "32 oz",     "dairy",         "QR-YOGT-001",   5,   "4",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Large Eggs",            "Eggland's Best",    "Grade A",            "12 ct",     "dairy",         "QR-EGGS-001",  19,   "5",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Gala Apples",           "Local Farm",        "Gala",               "3 lb bag",  "produce",       "QR-APPL-001",  28,   "1",  "1",  s["freshpoint@produce.com"].id),
-            ("Cheddar Cheese",        "Tillamook",         "Sharp",              "16 oz",     "dairy",         "QR-CHED-001",   6,   "6",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Pasta Sauce",           "Rao's",             "Marinara",           "24 oz",     "canned",        "QR-SAUCE-001", 17,   "7",  "5",  s["kehe@distributors.net"].id),
-            ("Toilet Paper",          "Charmin",           "Ultra Soft",         "12 rolls",  "personal care", "QR-TP-001",    13,   "3",  "10", s["unfi@naturalfoods.com"].id),
+            # name                    brand                variant               size         type             qrcode          qty  shelf aisle  supplier                                    shelf_status
+            ("Whole Milk",            "Organic Valley",    "Whole",              "1 gal",     "dairy",         "QR-MILK-001",  18,   "3",  "3",  s["dairyfarmers@coop.com"].id,              "on_shelf"),
+            ("Reduced Fat Milk",      "Horizon",           "2% Reduced Fat",     "1 gal",     "dairy",         "QR-MILK-002",  12,   "3",  "3",  s["dairyfarmers@coop.com"].id,              "on_shelf"),
+            ("Ground Beef",           "Local Farm",        "80/20",              "1 lb",      "meat",          "QR-BEEF-001",   8,   "2",  "7",  s["localmeat@regional.com"].id,             "on_shelf"),
+            ("Chicken Breast",        "Tyson",             "Boneless Skinless",  "2 lb",      "meat",          "QR-CHKN-001",  22,   "1",  "7",  s["localmeat@regional.com"].id,             "on_shelf"),
+            ("Bananas",               "Dole",              "Yellow",             "Bunch",     "produce",       "QR-BANA-001",  45,   "1",  "1",  s["freshpoint@produce.com"].id,             "on_shelf"),
+            ("Roma Tomatoes",         "Local Farm",        "Roma",               "1 lb",      "produce",       "QR-TOMA-001",  14,   "2",  "1",  s["freshpoint@produce.com"].id,             "on_shelf"),
+            ("Sourdough Bread",       "Pepperidge Farm",   "Classic",            "24 oz",     "bakery",        "QR-BRED-001",   9,   "5",  "2",  s["usfoods@distro.com"].id,                 "on_shelf"),
+            ("Orange Juice",          "Tropicana",         "Original No Pulp",   "64 oz",     "beverage",      "QR-OJ-001",    16,   "4",  "4",  s["performancefood@group.com"].id,          "on_shelf"),
+            ("Pepperoni Pizza",       "DiGiorno",          "Rising Crust",       "28.2 oz",   "frozen",        "QR-PIZA-001",   7,   "2",  "8",  s["performancefood@group.com"].id,          "on_shelf"),
+            ("Potato Chips",          "Lay's",             "Classic",            "8 oz",      "snacks",        "QR-CHIP-001",  31,   "4",  "6",  s["cswholesale@supplyco.com"].id,           "on_shelf"),
+            ("Tomato Soup",           "Campbell's",        "Classic",            "10.75 oz",  "canned",        "QR-SOUP-001",  24,   "6",  "5",  s["kehe@distributors.net"].id,              "on_shelf"),
+            ("Shampoo",               "Head & Shoulders",  "Classic Clean",      "13.5 oz",   "personal care", "QR-SHMP-001",  11,   "1",  "9",  s["unfi@naturalfoods.com"].id,              "on_shelf"),
+            ("Greek Yogurt",          "Chobani",           "Plain",              "32 oz",     "dairy",         "QR-YOGT-001",   5,   "4",  "3",  s["dairyfarmers@coop.com"].id,              "missing"),
+            ("Large Eggs",            "Eggland's Best",    "Grade A",            "12 ct",     "dairy",         "QR-EGGS-001",  19,   "5",  "3",  s["dairyfarmers@coop.com"].id,              "on_shelf"),
+            ("Gala Apples",           "Local Farm",        "Gala",               "3 lb bag",  "produce",       "QR-APPL-001",  28,   "1",  "1",  s["freshpoint@produce.com"].id,             "misplaced"),
+            ("Cheddar Cheese",        "Tillamook",         "Sharp",              "16 oz",     "dairy",         "QR-CHED-001",   6,   "6",  "3",  s["dairyfarmers@coop.com"].id,              "unknown"),
+            ("Pasta Sauce",           "Rao's",             "Marinara",           "24 oz",     "canned",        "QR-SAUCE-001", 17,   "7",  "5",  s["kehe@distributors.net"].id,              "on_shelf"),
+            ("Toilet Paper",          "Charmin",           "Ultra Soft",         "12 rolls",  "personal care", "QR-TP-001",    13,   "3",  "10", s["unfi@naturalfoods.com"].id,              "unknown"),
         ]
         products = [
             Products(name=n, brand=brand, variant=variant, size=size,
                      type=t, qrcode=qr, quantity_in_store=qty,
-                     shelf=shelf, aisle=aisle, supplier_id=sid)
-            for n, brand, variant, size, t, qr, qty, shelf, aisle, sid in product_rows
+                     shelf=shelf, aisle=aisle, supplier_id=sid, shelf_status=status)
+            for n, brand, variant, size, t, qr, qty, shelf, aisle, sid, status in product_rows
         ]
         db.session.add_all(products)
         db.session.flush()
