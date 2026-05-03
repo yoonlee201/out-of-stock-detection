@@ -2,7 +2,7 @@ import http from "node:http";
 import https from "node:https";
 
 export default function handler(req, res) {
-    const backendUrl = process.env.BACKEND_URL;
+    const backendUrl = process.env.VITE_BACKEND_BASE_URL || '';
     if (!backendUrl) {
         res.status(500).json({ error: "BACKEND_URL not configured" });
         return;
