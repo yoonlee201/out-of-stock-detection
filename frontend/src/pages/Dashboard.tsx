@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-    apiAnalyzeShelf,
     apiGetAnalysisHistory,
+    apiGetJobStatus,
+    apiSubmitAnalysis,
+    type JobStatus,
     type ShelfAnalysisResponse,
     type ShelfDetection,
 } from "../api/query/shelfAnalysis";
@@ -17,7 +19,16 @@ interface HistoryEntry {
     analyzedAt: Date;
 }
 
-// TODO: Remove if mock data is no longer needed
+interface ActiveJob {
+    jobId: string;
+    fileName: string;
+    submittedAt: Date;
+    status: JobStatus["status"];
+    progress: number;
+    etaSeconds: number | null;
+    queuePosition: number | null;
+}
+
 const toHistoryEntries = (
     results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>,
 ): HistoryEntry[] => results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
@@ -29,16 +40,15 @@ const Dashboard = () => {
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
-    const [progressPhase, setProgressPhase] = useState<"uploading" | "analyzing" | "idle">("idle");
-    const [progressValue, setProgressValue] = useState(0);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [analysisError, setAnalysisError] = useState("");
-    const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
+    const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Sync the selection to ?log_id= once history has loaded.
     useEffect(() => {
         if (!log_id) return;
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
@@ -53,25 +63,22 @@ const Dashboard = () => {
         return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
     }, [analysisResult]);
 
-    // Load history from backend; fall back to mock data in dev if unavailable
     useEffect(() => {
         let cancelled = false;
         setHistoryLoading(true);
         apiGetAnalysisHistory()
             .then((entries) => {
                 if (cancelled) return;
-                if (entries.length > 0) {
-                    setHistory(
-                        entries.map((e) => ({
-                            id: e.id,
-                            fileName: e.file_name,
-                            result: e.result,
-                            analyzedAt: new Date(e.created_at),
-                        })),
-                    );
-                } else {
-                    setHistory(toHistoryEntries(mockAnalysisResults));
-                }
+                setHistory(
+                    entries.length > 0
+                        ? entries.map((e) => ({
+                              id: e.id,
+                              fileName: e.file_name,
+                              result: e.result,
+                              analyzedAt: new Date(e.created_at),
+                          }))
+                        : toHistoryEntries(mockAnalysisResults),
+                );
             })
             .catch(() => {
                 if (!cancelled) setHistory(toHistoryEntries(mockAnalysisResults));
@@ -79,17 +86,79 @@ const Dashboard = () => {
             .finally(() => {
                 if (!cancelled) setHistoryLoading(false);
             });
+        return () => { cancelled = true; };
+    }, []);
+
+    // Poll active jobs every 2 seconds
+    useEffect(() => {
+        const pendingJobs = activeJobs.filter((j) => j.status === "queued" || j.status === "running");
+        if (pendingJobs.length === 0) {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            return;
+        }
+
+        if (pollingRef.current) return; // already polling
+
+        pollingRef.current = setInterval(async () => {
+            const updates = await Promise.all(
+                pendingJobs.map(async (job) => {
+                    try {
+                        const status = await apiGetJobStatus(job.jobId);
+                        return { jobId: job.jobId, ...status };
+                    } catch {
+                        return null;
+                    }
+                }),
+            );
+
+            const completed: HistoryEntry[] = [];
+
+            setActiveJobs((prev) => {
+                const next = prev.map((job) => {
+                    const update = updates.find((u) => u?.jobId === job.jobId);
+                    if (!update) return job;
+                    if (update.status === "done" && update.result) {
+                        completed.push({
+                            id: -1,
+                            fileName: job.fileName,
+                            result: update.result,
+                            analyzedAt: new Date(),
+                        });
+                    }
+                    return {
+                        ...job,
+                        status: update.status,
+                        progress: update.progress,
+                        etaSeconds: update.eta_seconds,
+                        queuePosition: update.queue_position,
+                    };
+                });
+                return next.filter((j) => j.status !== "done" && j.status !== "failed");
+            });
+
+            if (completed.length > 0) {
+                setHistory((prev) => {
+                    const next = [...completed, ...prev];
+                    setSelectedIndex(0);
+                    return next;
+                });
+            }
+        }, 2000);
 
         return () => {
-            cancelled = true;
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
         };
-    }, []);
+    }, [activeJobs]);
 
     useEffect(() => {
         if (!imageDialogOpen) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setImageDialogOpen(false);
-        };
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setImageDialogOpen(false); };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [imageDialogOpen]);
@@ -97,13 +166,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (!uploadDialogOpen) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && !analysisLoading) {
-                setUploadDialogOpen(false);
-                setSelectedImages([]);
-                setAnalysisError("");
-                setProgressPhase("idle");
-                setProgressValue(0);
-            }
+            if (e.key === "Escape" && !analysisLoading) handleCloseUploadDialog();
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
@@ -114,32 +177,13 @@ const Dashboard = () => {
         setUploadDialogOpen(false);
         setSelectedImages([]);
         setAnalysisError("");
-        setProgressPhase("idle");
-        setProgressValue(0);
+        setUploadProgress(0);
     };
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
         setSelectedImages(files);
         setAnalysisError("");
-    };
-
-    const stopSim = () => {
-        if (simRef.current) {
-            clearInterval(simRef.current);
-            simRef.current = null;
-        }
-    };
-
-    const startAnalysisSim = () => {
-        setProgressPhase("analyzing");
-        setProgressValue(0);
-        let v = 0;
-        simRef.current = setInterval(() => {
-            v += (90 - v) * 0.06 + 0.4;
-            if (v >= 90) v = 90;
-            setProgressValue(Math.round(v));
-        }, 250);
     };
 
     const handleAnalyzeShelf = async () => {
@@ -150,41 +194,42 @@ const Dashboard = () => {
         try {
             setAnalysisLoading(true);
             setAnalysisError("");
-            const newEntries: HistoryEntry[] = [];
-            const failedFiles: string[] = [];
-            for (let i = 0; i < selectedImages.length; i += 1) {
-                const imageFile = selectedImages[i];
-                let analysisStarted = false;
-                setProgressPhase("uploading");
-                setProgressValue(0);
+            const submitted: ActiveJob[] = [];
+            const failed: string[] = [];
+
+            for (const imageFile of selectedImages) {
+                setUploadProgress(0);
                 try {
-                    const result = await apiAnalyzeShelf(imageFile, (percent) => {
-                        if (!analysisStarted) {
-                            setProgressValue(percent);
-                            if (percent >= 100) {
-                                analysisStarted = true;
-                                startAnalysisSim();
-                            }
-                        }
+                    const { job_id, queue_position } = await apiSubmitAnalysis(imageFile, setUploadProgress);
+                    submitted.push({
+                        jobId: job_id,
+                        fileName: imageFile.name,
+                        submittedAt: new Date(),
+                        status: "queued",
+                        progress: 0,
+                        etaSeconds: null,
+                        queuePosition: queue_position,
                     });
-                    stopSim();
-                    setProgressValue(100);
-                    newEntries.push({ id: -1, fileName: imageFile.name, result, analyzedAt: new Date() });
                 } catch {
-                    stopSim();
-                    failedFiles.push(imageFile.name);
+                    failed.push(imageFile.name);
                 }
             }
-            if (newEntries.length === 0) throw new Error("None of the selected images could be analyzed.");
-            setHistory((prev) => [...newEntries, ...prev]);
-            setSelectedIndex(0);
+
+            if (submitted.length === 0) {
+                throw new Error("Failed to submit any images for analysis.");
+            }
+
+            setActiveJobs((prev) => [...prev, ...submitted]);
             handleCloseUploadDialog();
+
+            if (failed.length > 0) {
+                setAnalysisError(`Failed to submit: ${failed.join(", ")}`);
+            }
         } catch (err) {
-            setAnalysisError(err instanceof Error ? err.message : "Shelf analysis failed.");
+            setAnalysisError(err instanceof Error ? err.message : "Submission failed.");
         } finally {
-            stopSim();
-            setProgressPhase("idle");
             setAnalysisLoading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -194,7 +239,6 @@ const Dashboard = () => {
                 <div>
                     <h1 className="text-3xl font-semibold">Shelf Detection</h1>
                     <p className="text-text-muted mt-0.5 text-sm">
-                        {" "}
                         Upload shelf images to identify out-of-stock and misplaced items
                     </p>
                 </div>
@@ -212,18 +256,34 @@ const Dashboard = () => {
                 {/* ── History sidebar ── */}
                 <div className="bg-surface w-full rounded-xl p-6 shadow lg:sticky lg:top-6 lg:w-80 lg:shrink-0 xl:w-96">
                     <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
+
+                    {/* Active jobs */}
+                    {activeJobs.length > 0 && (
+                        <div className="mb-4">
+                            <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                                In Progress
+                            </p>
+                            <div className="space-y-2">
+                                {activeJobs.map((job) => (
+                                    <ActiveJobCard key={job.jobId} job={job} />
+                                ))}
+                            </div>
+                            {history.length > 0 && <div className="border-border mt-4 border-t" />}
+                        </div>
+                    )}
+
                     {historyLoading ? (
                         <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
                             <p className="text-text-muted text-sm">Loading history...</p>
                         </div>
-                    ) : history.length === 0 ? (
+                    ) : history.length === 0 && activeJobs.length === 0 ? (
                         <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed text-center">
                             <div>
                                 <p className="font-semibold">No analyses yet</p>
                                 <p className="text-text-muted mt-1 text-sm">Click "+ New Analysis" to get started.</p>
                             </div>
                         </div>
-                    ) : (
+                    ) : history.length > 0 ? (
                         <div className="no-scrollbar max-h-[60vh] space-y-2 overflow-y-auto lg:max-h-[calc(100vh-14rem)]">
                             {history.map((entry, index) => (
                                 <HistoryCard
@@ -234,7 +294,7 @@ const Dashboard = () => {
                                 />
                             ))}
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* ── Detail panel ── */}
@@ -262,7 +322,6 @@ const Dashboard = () => {
                             </div>
 
                             <div className="space-y-4">
-                                {/* Annotated image */}
                                 <div className="bg-surface border-border rounded-2xl border p-4">
                                     <div className="space-y-4">
                                         <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
@@ -282,7 +341,6 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                {/* Compliance summary */}
                                 {analysisResult!.compliance_report && (
                                     <div className="bg-surface border-border rounded-2xl border px-4 py-4">
                                         <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
@@ -296,7 +354,6 @@ const Dashboard = () => {
                                     </div>
                                 )}
 
-                                {/* Issue cards + table */}
                                 <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
                                     <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
                                     {issueDetections.length > 0 ? (
@@ -391,7 +448,21 @@ const Dashboard = () => {
                                     {selectedImages.length} image{selectedImages.length === 1 ? "" : "s"} selected
                                 </p>
                             )}
-                            {progressPhase !== "idle" && <ProgressBar phase={progressPhase} value={progressValue} />}
+                            {analysisLoading && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs font-semibold">
+                                        <span className="text-text-secondary">Uploading</span>
+                                        <span className="text-text-muted">{uploadProgress}%</span>
+                                    </div>
+                                    <div className="bg-surface-muted h-2 w-full overflow-hidden rounded-full">
+                                        <div
+                                            className="bg-status-info-text h-full rounded-full transition-all duration-200 ease-out"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-text-muted text-xs">Sending image to server...</p>
+                                </div>
+                            )}
                             {analysisError && (
                                 <div className="border-status-missing-bg bg-status-missing-bg text-status-missing-text rounded-2xl border px-4 py-3 text-sm font-medium">
                                     {analysisError}
@@ -412,7 +483,7 @@ const Dashboard = () => {
                                     disabled={selectedImages.length === 0 || analysisLoading}
                                     className="bg-primary flex-1 rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                                 >
-                                    {analysisLoading ? "Analyzing..." : "Analyze"}
+                                    {analysisLoading ? "Uploading..." : "Analyze"}
                                 </button>
                             </div>
                         </div>
@@ -445,21 +516,48 @@ const Dashboard = () => {
     );
 };
 
-const ProgressBar = ({ phase, value }: { phase: "uploading" | "analyzing"; value: number }) => (
-    <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-text-secondary capitalize">{phase === "uploading" ? "Uploading" : "Analyzing"}</span>
-            <span className="text-text-muted">{value}%</span>
+const formatEta = (seconds: number): string => {
+    if (seconds >= 60) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s left`;
+    return `${Math.round(seconds)}s left`;
+};
+
+const ActiveJobCard = ({ job }: { job: ActiveJob }) => (
+    <div className="border-border rounded-2xl border px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+            <span className="text-text-secondary truncate text-sm font-semibold">{job.fileName}</span>
+            {job.status === "queued" ? (
+                <span className="bg-surface-muted text-text-muted shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                    Queue #{job.queuePosition ?? "…"}
+                </span>
+            ) : (
+                <span className="bg-primary/10 text-primary shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                    Analyzing
+                </span>
+            )}
         </div>
-        <div className="bg-surface-muted h-2 w-full overflow-hidden rounded-full">
-            <div
-                className={`h-full rounded-full transition-all duration-200 ease-out ${phase === "uploading" ? "bg-status-info-text" : "bg-primary"}`}
-                style={{ width: `${value}%` }}
-            />
-        </div>
-        <p className="text-text-muted text-xs">
-            {phase === "uploading" ? "Sending image to server..." : "Server is analyzing the shelf..."}
-        </p>
+        {job.status === "running" && (
+            <div className="mt-2 space-y-1">
+                <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">{job.progress}%</span>
+                    {job.etaSeconds != null && (
+                        <span className="text-text-muted">{formatEta(job.etaSeconds)}</span>
+                    )}
+                </div>
+                <div className="bg-surface-muted h-1.5 w-full overflow-hidden rounded-full">
+                    <div
+                        className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${job.progress}%` }}
+                    />
+                </div>
+            </div>
+        )}
+        {job.status === "queued" && (
+            <div className="mt-2">
+                <div className="bg-surface-muted h-1.5 w-full overflow-hidden rounded-full">
+                    <div className="bg-surface-muted from-surface-muted via-text-muted/30 to-surface-muted h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r" />
+                </div>
+            </div>
+        )}
     </div>
 );
 
@@ -514,14 +612,10 @@ const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_me
 
 const detectionRowBg = (status: string) => {
     switch (status) {
-        case "missing":
-            return "bg-status-missing-bg";
-        case "misplaced":
-            return "bg-status-misplaced-bg";
-        case "unverified":
-            return "bg-status-info-bg";
-        default:
-            return "";
+        case "missing": return "bg-status-missing-bg";
+        case "misplaced": return "bg-status-misplaced-bg";
+        case "unverified": return "bg-status-info-bg";
+        default: return "";
     }
 };
 
@@ -565,9 +659,7 @@ const IssueCard = ({ detection, reviewOnly = false }: { detection: ShelfDetectio
                 <span className="bg-text text-background rounded-full px-3 py-1 text-xs font-bold tracking-[0.18em]">
                     {marker}
                 </span>
-                <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeClass}`}
-                >
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeClass}`}>
                     {SHELF_STATUS_LABEL[status as keyof typeof SHELF_STATUS_LABEL] ?? status.replace("_", " ")}
                 </span>
                 <span className="text-text-secondary text-sm font-semibold">{detection.slot_id || "Unknown slot"}</span>
