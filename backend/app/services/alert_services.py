@@ -10,23 +10,29 @@ from datetime import datetime
 
 def _resolve_product(item):
     """Try to match a detection's expected/actual SKU to a row in Products.
-    Returns (Products row | None). Used to enrich alert emails with shelf/aisle.
+    Returns (Products row | None). Used to enrich alert emails with shelf/aisle
+    AND to decrement inventory when a slot scans as missing.
     """
     if not isinstance(item, dict):
         return None
     sku = item.get("expected_sku") or item.get("sku") or {}
     name = sku.get("product_name") or sku.get("name")
-    if not name:
+    if not name or str(name).strip().lower() in ("", "unknown"):
         return None
+
+    def _useful(value):
+        # Treat blanks and the planogram's "unknown" placeholder as no-filter.
+        return value and str(value).strip().lower() not in ("", "unknown")
+
     query = Products.query.filter(Products.name == name)
     brand = sku.get("brand")
-    if brand:
+    if _useful(brand):
         query = query.filter(Products.brand == brand)
     variant = sku.get("variant")
-    if variant:
+    if _useful(variant):
         query = query.filter(Products.variant == variant)
     size = sku.get("size")
-    if size:
+    if _useful(size):
         query = query.filter(Products.size == size)
     return query.first()
 
@@ -152,6 +158,7 @@ def update_shelf_status_from_detections(detections):
     missing_by_product: dict[int, int] = {}
     misplaced_seen: set[int] = set()
     products_by_id: dict[int, Products] = {}
+    unresolved_skus: list[str] = []
 
     for item in detections:
         if not isinstance(item, dict):
@@ -162,6 +169,10 @@ def update_shelf_status_from_detections(detections):
 
         product = _resolve_product(item)
         if product is None:
+            sku = item.get("expected_sku") or item.get("sku") or {}
+            unresolved_skus.append(
+                f"{sku.get('brand', '?')}/{sku.get('product_name') or sku.get('name', '?')}/{sku.get('variant', '?')}"
+            )
             continue
 
         products_by_id[product.product_id] = product
@@ -201,6 +212,14 @@ def update_shelf_status_from_detections(detections):
 
     if products_by_id:
         db.session.commit()
+
+    print(
+        f"[shelf_status] resolved={len(products_by_id)} "
+        f"decremented={sum(1 for q in missing_by_product.values() if q > 0)} "
+        f"unresolved={len(unresolved_skus)}"
+    )
+    if unresolved_skus:
+        print(f"[shelf_status] unresolved SKUs (first 10): {unresolved_skus[:10]}")
 
 
 def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):
