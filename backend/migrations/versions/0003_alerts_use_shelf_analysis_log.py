@@ -55,11 +55,18 @@ def downgrade():
     if has_product_id and not has_log_id:
         return
 
+    # Look up the actual FK name — it may differ when the column was created by
+    # create_all() rather than by this migration (Postgres auto-names it).
+    fk_name = None
+    for fk in inspector.get_foreign_keys("alerts"):
+        if fk.get("constrained_columns") == ["shelf_analysis_log_id"]:
+            fk_name = fk.get("name")
+            break
+
     with op.batch_alter_table("alerts") as batch_op:
         if has_log_id:
-            batch_op.drop_constraint(
-                "fk_alerts_shelf_analysis_log_id", type_="foreignkey"
-            )
+            if fk_name:
+                batch_op.drop_constraint(fk_name, type_="foreignkey")
             batch_op.drop_column("shelf_analysis_log_id")
         if not has_product_id:
             batch_op.add_column(sa.Column("product_id", sa.Integer(), nullable=True))

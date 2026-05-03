@@ -89,8 +89,8 @@ def _seed(app):
         products = [
             Products(name=n, brand=brand, variant=variant, size=size,
                      type=t, qrcode=qr, quantity_in_store=qty,
-                     shelf=shelf, aisle=aisle, supplier_id=sid)
-            for n, brand, variant, size, t, qr, qty, shelf, aisle, sid in product_rows
+                     shelf=shelf, aisle=aisle, supplier_id=sid, shelf_status=status)
+            for n, brand, variant, size, t, qr, qty, shelf, aisle, sid, status in product_rows
         ]
         db.session.add_all(products)
         db.session.flush()

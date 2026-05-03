@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         try {
             const data = await apiLoginUser({ email, password });
             if (data) {
+                if (data.token) localStorage.setItem("accessToken", data.token);
                 await checkAuth();
             }
         } catch (error) {
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const logout = async (): Promise<void> => {
         try {
             await apiLogoutUser();
+            localStorage.removeItem("accessToken");
             setUser(null);
         } catch (error) {
             logger.error("Logout error:", error);

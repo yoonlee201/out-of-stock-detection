@@ -53,7 +53,9 @@ export interface ShelfAnalysisResponse {
     annotated_image: string;
 }
 
-const DIRECT_URL = import.meta.env.VITE_DIRECT_BACKEND_URL;
+const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
+    ? `${import.meta.env.VITE_BACKEND_BASE_URL}${import.meta.env.VITE_BACKEND_URL}`
+    : import.meta.env.VITE_BACKEND_URL;
 
 export const apiAnalyzeShelf = async (
     image: File,
