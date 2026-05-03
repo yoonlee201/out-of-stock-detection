@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 
 import torch
 from PIL import Image
@@ -34,6 +35,7 @@ BASE_PROMPT = (
 
 _PROCESSOR = None
 _MODEL = None
+_LOAD_LOCK = threading.Lock()
 
 
 def _fallback_response() -> dict:
@@ -50,12 +52,12 @@ def _fallback_response() -> dict:
 def _model_load_kwargs() -> dict:
     if torch.cuda.is_available():
         return {
-            "dtype": torch.float16,
-            "device_map": "auto",
+            "torch_dtype": torch.float16,
+            "device_map": "cuda",
         }
 
     return {
-        "dtype": torch.float32,
+        "torch_dtype": torch.bfloat16,
         "device_map": "cpu",
     }
 
@@ -63,23 +65,25 @@ def _model_load_kwargs() -> dict:
 def load_qwen_resources():
     global _PROCESSOR, _MODEL
 
+    if _PROCESSOR is not None and _MODEL is not None:
+        return _PROCESSOR, _MODEL
+
     if QwenModelClass is None:
         raise ImportError(
             "This transformers version does not support Qwen2-VL. "
             "Please install a newer version, for example: pip install 'transformers>=4.45.0'"
         )
 
-    if _PROCESSOR is None or _MODEL is None:
-        # ARC networks can be slow to respond to Hugging Face HEAD checks.
-        # Set longer default timeouts unless the user already configured them.
-        os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "60")
-        os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
+    with _LOAD_LOCK:
+        if _PROCESSOR is None or _MODEL is None:
+            os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "60")
+            os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
 
-        _PROCESSOR = AutoProcessor.from_pretrained(MODEL_ID, use_fast=True)
-        _MODEL = QwenModelClass.from_pretrained(
-            MODEL_ID,
-            **_model_load_kwargs(),
-        )
+            _PROCESSOR = AutoProcessor.from_pretrained(MODEL_ID, use_fast=True)
+            _MODEL = QwenModelClass.from_pretrained(
+                MODEL_ID,
+                **_model_load_kwargs(),
+            )
 
     return _PROCESSOR, _MODEL
 
