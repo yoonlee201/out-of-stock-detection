@@ -14,7 +14,7 @@ import {
 import { CustomerRow, EmployeeRow } from "../_components/InventoryRows";
 import { useAuth } from "../hooks/useAuth";
 import Loading from "../_components/Loading";
-import { apiCreateProduct, apiDeleteProduct, apiGetProducts, apiUpdateProduct } from "../api/query/products";
+import { apiCreateProduct, apiDeleteProduct, apiGetProducts, apiUpdateProduct, apiUploadProductsCsv } from "../api/query/products";
 import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
@@ -143,6 +143,8 @@ const Inventory = () => {
     const [inventoryLoading, setInventoryLoading] = useState(true);
     const [inventoryError, setInventoryError] = useState<string | null>(null);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [csvUploading, setCsvUploading] = useState(false);
+    const csvInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -168,6 +170,23 @@ const Inventory = () => {
 
     const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
+    const handleCsvUpload = async (file: File) => {
+        setCsvUploading(true);
+        setInventoryError(null);
+
+        try {
+            const result = await apiUploadProductsCsv(file);
+            const refreshed = await apiGetProducts();
+            setInventory(refreshed ?? []);
+            alert(`CSV uploaded successfully. Added ${result.added_count} products.`);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "CSV upload failed.");
+        } finally {
+            setCsvUploading(false);
+            if (csvInputRef.current) csvInputRef.current.value = "";
+        }
+    };
+
     if (loading || !user) return <Loading message="Checking authentication..." />;
     if (inventoryLoading) return <Loading message="Loading inventory..." />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
@@ -183,14 +202,36 @@ const Inventory = () => {
                     </p>
                 </div>
                 {view === "employee" && (
-                    <button
-                        type="button"
-                        onClick={() => setAddDialogOpen(true)}
-                        className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
-                    >
-                        <PlusIcon />
-                        <span className="hidden lg:block">Add Item</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={csvInputRef}
+                            type="file"
+                            accept=".csv"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleCsvUpload(file);
+                            }}
+                        />
+
+                        <button
+                            type="button"
+                            onClick={() => csvInputRef.current?.click()}
+                            disabled={csvUploading}
+                            className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 lg:rounded-xl lg:px-4"
+                        >
+                            <span className="hidden lg:block">{csvUploading ? "Uploading..." : "Upload CSV"}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setAddDialogOpen(true)}
+                            className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
+                        >
+                            <PlusIcon />
+                            <span className="hidden lg:block">Add Item</span>
+                        </button>
+                    </div>
                 )}
             </header>
 
