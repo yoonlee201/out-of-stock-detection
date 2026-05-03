@@ -146,9 +146,9 @@ def update_shelf_status_from_detections(detections):
         return
 
     now = datetime.now()
-    # Per product: total expected facings across all its slots, and how many of
-    # those facings the scan reported as missing. remaining = expected - missing.
-    expected_by_product: dict[int, int] = {}
+    # Subtractive update: each scan only DECREMENTS quantity_in_store by the
+    # number of facings newly reported missing. We never reset it back to the
+    # planogram total — once depleted, only a real restock should refill it.
     missing_by_product: dict[int, int] = {}
     misplaced_seen: set[int] = set()
     products_by_id: dict[int, Products] = {}
@@ -165,36 +165,33 @@ def update_shelf_status_from_detections(detections):
             continue
 
         products_by_id[product.product_id] = product
-        slot_qty = (item.get("expected_sku") or {}).get("quantity")
-        slot_qty = int(slot_qty) if slot_qty is not None else 0
 
-        if audit_status in ("correct", "missing"):
-            expected_by_product[product.product_id] = expected_by_product.get(product.product_id, 0) + slot_qty
         if audit_status == "missing":
-            # The camera only sees the front face. gap_type hints at how deep
-            # the hole is: a "full" gap means the whole stack is empty;
-            # "partial" means front is gone but something is still behind it.
+            slot_qty = (item.get("expected_sku") or {}).get("quantity")
+            slot_qty = int(slot_qty) if slot_qty is not None else 0
+            # Camera only sees the front face. gap_type hints at depth:
+            # "full" gap → assume the whole stack is gone;
+            # "partial" → front is gone but something still sits behind it.
             gap_type = item.get("gap_type")
             if gap_type == "partial":
                 lost = max(1, slot_qty // 2)
             else:
-                # "full" or "inferred_slot" — assume the depth is depleted.
-                lost = slot_qty
+                lost = slot_qty if slot_qty > 0 else 1
             missing_by_product[product.product_id] = missing_by_product.get(product.product_id, 0) + lost
-        if audit_status == "misplaced":
+        elif audit_status == "misplaced":
             misplaced_seen.add(product.product_id)
 
     for product_id, product in products_by_id.items():
-        expected = expected_by_product.get(product_id, 0)
-        missing = missing_by_product.get(product_id, 0)
-        remaining = max(0, expected - missing)
-        product.quantity_in_store = remaining
+        lost = missing_by_product.get(product_id, 0)
+        if lost > 0:
+            product.quantity_in_store = max(0, (product.quantity_in_store or 0) - lost)
 
+        remaining = product.quantity_in_store or 0
         if remaining < 5:
             product.shelf_status = "out_of_stock"
         elif remaining < 10:
             product.shelf_status = "low_stock"
-        elif product_id in misplaced_seen and missing == 0:
+        elif product_id in misplaced_seen and lost == 0:
             product.shelf_status = "misplaced"
         else:
             product.shelf_status = "on_shelf"
