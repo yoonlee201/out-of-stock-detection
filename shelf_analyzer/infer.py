@@ -288,10 +288,14 @@ def analyze_shelf_debug(
         }
 
     report(90)
-    for index in sorted(retry_indices):
+    retry_list = sorted(retry_indices)
+    retry_total = len(retry_list)
+    for i, index in enumerate(retry_list):
         x1, y1, x2, y2 = product_candidates[index]["bbox"]
         crop = image.crop((x1, y1, x2, y2))
         sku_results[index] = identify_sku(crop, merged_box=True)
+        pct = int(90 + ((i + 1) / retry_total) * 6)  # 90→96%
+        report(pct)
 
     report(96)
     outputs = _build_outputs(product_candidates, sku_results)

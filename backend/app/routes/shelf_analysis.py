@@ -160,6 +160,7 @@ def _process_job(job_id: str, temp_path: str, file_name: str, user_id, app) -> N
         buffer = BytesIO()
         annotated_image.save(buffer, format="PNG")
         encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        on_progress(99)
 
         payload = {
             "message": "Shelf analysis completed.",

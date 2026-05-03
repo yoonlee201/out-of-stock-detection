@@ -258,19 +258,44 @@ const Dashboard = () => {
                     <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
 
                     {/* Active jobs */}
-                    {activeJobs.length > 0 && (
-                        <div className="mb-4">
-                            <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                                In Progress
-                            </p>
-                            <div className="space-y-2">
-                                {activeJobs.map((job) => (
-                                    <ActiveJobCard key={job.jobId} job={job} />
-                                ))}
+                    {activeJobs.length > 0 && (() => {
+                        const runningJobs = activeJobs.filter((j) => j.status === "running");
+                        const queuedJobs = activeJobs.filter((j) => j.status === "queued");
+                        return (
+                            <div className="mb-4 space-y-3">
+                                {runningJobs.length > 0 && (
+                                    <div>
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
+                                                Processing
+                                            </p>
+                                            <span className="text-text-muted text-xs font-semibold">
+                                                {runningJobs.length} / 3
+                                            </span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {runningJobs.map((job) => (
+                                                <ActiveJobCard key={job.jobId} job={job} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {queuedJobs.length > 0 && (
+                                    <div>
+                                        <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                                            Waiting
+                                        </p>
+                                        <div className="space-y-2">
+                                            {queuedJobs.map((job) => (
+                                                <ActiveJobCard key={job.jobId} job={job} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {history.length > 0 && <div className="border-border mt-1 border-t" />}
                             </div>
-                            {history.length > 0 && <div className="border-border mt-4 border-t" />}
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {historyLoading ? (
                         <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
@@ -451,7 +476,9 @@ const Dashboard = () => {
                             {analysisLoading && (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between text-xs font-semibold">
-                                        <span className="text-text-secondary">Uploading</span>
+                                        <span className="text-text-secondary">
+                                            {uploadProgress < 100 ? "Uploading" : "Queuing"}
+                                        </span>
                                         <span className="text-text-muted">{uploadProgress}%</span>
                                     </div>
                                     <div className="bg-surface-muted h-2 w-full overflow-hidden rounded-full">
@@ -460,7 +487,11 @@ const Dashboard = () => {
                                             style={{ width: `${uploadProgress}%` }}
                                         />
                                     </div>
-                                    <p className="text-text-muted text-xs">Sending image to server...</p>
+                                    <p className="text-text-muted text-xs">
+                                        {uploadProgress < 100
+                                            ? "Sending image to server..."
+                                            : "Queued — analysis will begin shortly..."}
+                                    </p>
                                 </div>
                             )}
                             {analysisError && (
@@ -483,7 +514,11 @@ const Dashboard = () => {
                                     disabled={selectedImages.length === 0 || analysisLoading}
                                     className="bg-primary flex-1 rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                                 >
-                                    {analysisLoading ? "Uploading..." : "Analyze"}
+                                    {analysisLoading
+                                    ? uploadProgress < 100
+                                        ? "Uploading..."
+                                        : "Queuing..."
+                                    : "Analyze"}
                                 </button>
                             </div>
                         </div>
