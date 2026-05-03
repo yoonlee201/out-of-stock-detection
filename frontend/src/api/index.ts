@@ -1,16 +1,11 @@
 import axios, { type AxiosRequestConfig } from "axios";
 import logger from "../utils/log";
 
-// Debug environment variables
-logger.info("All env variables:", import.meta.env);
-logger.info("VITE_BACKEND_URL:", import.meta.env.VITE_BACKEND_URL);
-logger.info("Type of VITE_BACKEND_URL:", typeof import.meta.env.VITE_BACKEND_URL);
-logger.info("PRODUCTION:", import.meta.env.MODE);
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+// All VITE_* vars are baked into the JS bundle at build time.
+// Never log import.meta.env in production — it exposes all build-time config
+// (including any VITE_* secrets) to anyone who opens DevTools.
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 const ACCESSTOKEN = import.meta.env.VITE_ACCESS_TOKEN || "accessToken";
-
-logger.info("Using BASE_URL:", BASE_URL);
 
 export const axiosDefault = axios.create({
     baseURL: BASE_URL,
@@ -78,7 +73,7 @@ const retryRequestWithNewToken = async (originalRequest: AxiosRequestConfig, new
     try {
         return await axios(originalRequest);
     } catch (error) {
-        logger.error("재요청 실패");
+        logger.error("Failed to retry request");
         window.location.replace("/login");
         return Promise.reject(error);
     }
@@ -119,7 +114,7 @@ axiosAuth.interceptors.response.use(
                     return await retryRequestWithNewToken(originalRequest, newAccessToken);
                 }
             } catch (error) {
-                alert("토큰이 만료되었습니다. 다시 로그인 해주세요: " + error);
+                alert("The session has expired. Please log in again: " + error);
                 window.location.replace("/login");
             }
         }

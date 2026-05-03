@@ -39,7 +39,7 @@ def generate_token(user):
     if not user.user_id:
         raise ValueError("User ID is None")
 
-    token_value = uuid.uuid4()
+    token_value = str(uuid.uuid4())
     expires = datetime.now(timezone.utc) + timedelta(days=7)
 
     token = Tokens(token_id=token_value, user_id=user.user_id, expires=expires)
@@ -49,12 +49,10 @@ def generate_token(user):
 
 
 def _coerce_token_uuid(token):
-    if isinstance(token, uuid.UUID):
-        return token
     if not token:
         return None
     try:
-        return uuid.UUID(str(token))
+        return str(uuid.UUID(str(token)))
     except (ValueError, TypeError, AttributeError):
         return None
 
@@ -67,7 +65,10 @@ def get_user_by_token(token):
     stored_token = Tokens.query.filter(Tokens.token_id == token_uuid).first()
     if not stored_token:
         return None
-    if stored_token.expires <= datetime.now(timezone.utc):
+    expires = stored_token.expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires <= datetime.now(timezone.utc):
         db.session.delete(stored_token)
         db.session.commit()
         return None
@@ -230,23 +231,8 @@ def update_employee(user_id, first_name=None, last_name=None, email=None, phone=
     return user
 
 
-def deactivate_employee(user_id):
-    """Deactivate an employee. Raises LookupError if user or employee record not found."""
-    user = Users.query.get(user_id)
-    if not user:
-        raise LookupError("User not found")
-
-    employee = Employee.query.filter_by(user_id=user_id).first()
-    if not employee:
-        raise LookupError("Employee record not found")
-
-    user.role = 'customer'
-    employee.status = 'inactive'
-    db.session.commit()
-
-
 def delete_employee(user_id):
-    """Delete both employee and user records."""
+    """Remove the employee record without deleting the user account."""
     user = Users.query.get(user_id)
     if not user:
         raise LookupError("User not found")
@@ -256,7 +242,7 @@ def delete_employee(user_id):
         raise LookupError("Employee record not found")
 
     db.session.delete(employee)
-    db.session.delete(user)
+    user.role = 'customer'
     db.session.commit()
 
 
@@ -396,7 +382,7 @@ def verify_invitation_token(token):
     return user, payload.get("role", "associate"), payload.get("is_new", False)
 
 
-def complete_invitation(token, phone, first_name=None, last_name=None, password=None):
+def complete_invitation(token, phone, carrier, first_name=None, last_name=None, password=None):
     payload = load_invitation_payload(token)
     invited_role = payload.get("role", "associate")
     if invited_role not in EMPLOYEE_ROLES:
@@ -417,11 +403,7 @@ def complete_invitation(token, phone, first_name=None, last_name=None, password=
         user.is_verified = True
 
     user.phone = phone
-    try:
-        user.carrier = lookup_carrier(phone)
-    except Exception as e:
-        print(f"Carrier lookup failed: {e}")
-        user.carrier = "verizon"
+    user.carrier = carrier
     user.role = invited_role
 
     employee = Employee.query.filter_by(user_id=user.user_id).first()

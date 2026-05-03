@@ -1,12 +1,12 @@
 from app.core.db import db
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
 import bcrypt
 
 class Tokens(db.Model):
     __tablename__ = 'tokens'
-        
-    token_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # String(36) stores UUID as text — works on PostgreSQL, SQLite, and MySQL.
+    token_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     expires = db.Column(db.DateTime(timezone=True), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
@@ -52,15 +52,31 @@ class Suppliers(db.Model):
 
 class Products(db.Model):
     __tablename__ = 'products'
-    
+
     product_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    brand = db.Column(db.String(80), nullable=False, server_default='')
+    variant = db.Column(db.String(80), nullable=False, server_default='')
+    size = db.Column(db.String(50), nullable=False, server_default='')
     type = db.Column(db.String(50), nullable=False)
     qrcode = db.Column(db.String(100), unique=True, nullable=False)
     quantity_in_store = db.Column(db.Integer, nullable=False)
     shelf = db.Column(db.String(50), nullable=False)
     aisle = db.Column(db.String(50), nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    # Set by shelf detection — 'on_shelf', 'missing', 'misplaced', 'unknown'
+    shelf_status = db.Column(db.String(50), nullable=False, server_default='unknown')
+    last_checked = db.Column(db.DateTime(timezone=True), nullable=True)
+
+
+class ShelfAnalysisLog(db.Model):
+    __tablename__ = 'shelf_analysis_logs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    result_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 class Reorders(db.Model):
     __tablename__ = 'reorders'
@@ -73,11 +89,14 @@ class Reorders(db.Model):
 
 class Alerts(db.Model):
     __tablename__ = 'alerts'
-    
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
+    shelf_analysis_log_id = db.Column(db.Integer, db.ForeignKey('shelf_analysis_logs.id'), nullable=True)
+    # 'restock' (low/out-of-stock reorder prompts) or 'shelf_detection' (scan results).
     alert_type = db.Column(db.String(50), nullable=False)
+    missing = db.Column(db.Integer, nullable=False, server_default='0')
+    misplaced = db.Column(db.Integer, nullable=False, server_default='0')
     sent_time = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 class InventoryLogs(db.Model):

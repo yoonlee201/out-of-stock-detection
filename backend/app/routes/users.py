@@ -2,9 +2,16 @@
 from flask import Blueprint, request, jsonify, make_response
 from app.core.config import config
 from app.core.db import db
+from app.core.schemas import (
+    RegisterSchema,
+    LoginSchema,
+    UpdateRoleSchema,
+    InvitationCompleteSchema,
+    validate_request,
+)
 from app.util.auth import (
-    session, 
-    require_active_employee, 
+    session,
+    require_active_employee,
     require_active_supervisor_or_manager,
 )
 from app.util.send import lookup_carrier
@@ -18,9 +25,9 @@ from app.services.user_services import (
     get_all_employees,
 
     create_user,
+    update_employee_status,
     update_user_role,
     update_employee,
-    deactivate_employee,
     delete_employee,
 
     prepare_invitation,
@@ -55,35 +62,28 @@ def get_users():
 
 @users_blueprint.route('/register', methods=['POST', 'OPTIONS'])
 @users_blueprint.route('/register/', methods=['POST', 'OPTIONS'])
-def add_user():
+@validate_request(RegisterSchema())
+def add_user(data):
     if request.method == 'OPTIONS':
         return '', 204
 
-    data = request.get_json()
-    if data is None:
-        return {"message": "Invalid JSON payload"}, 400
-
-    first_name = data.get('first_name')
-    last_name  = data.get('last_name')
-    email      = data.get('email')
-    password   = data.get('password')
-    role       = data.get('role', 'customer')
+    first_name = data['first_name']
+    last_name  = data['last_name']
+    email      = data['email']
+    password   = data['password']
+    role       = data['role']
     phone      = data.get('phone')
-    carrier    = None
-
-    if not first_name: return {"message": "First name is required"}, 400
-    if not last_name:  return {"message": "Last name is required"}, 400
-    if not email:      return {"message": "Email is required"}, 400
-    if not password:   return {"message": "Password is required"}, 400
+    carrier    = data.get('carrier')
 
     if role_is_employee(role=role) and not phone:
         return {"message": "Phone number is required for employees"}, 400
-    if phone:
+    if phone and not carrier:
+        # Fallback only — UI now requires the user to pick a carrier explicitly.
         try:
             carrier = lookup_carrier(phone)
         except Exception as e:
             print(f"Carrier lookup failed: {e}")
-            carrier = "verizon"   
+            carrier = "verizon"
 
     try:
         create_user(first_name, last_name, role, email, password, phone=phone, carrier=carrier)
@@ -102,13 +102,13 @@ def add_user():
 
 @users_blueprint.route('/login', methods=['POST', 'OPTIONS'])
 @users_blueprint.route('/login/', methods=['POST', 'OPTIONS'])
-def login():
+@validate_request(LoginSchema())
+def login(data):
     if request.method == 'OPTIONS':
         return '', 204
 
-    data     = request.get_json()
-    email    = data.get('email')
-    password = data.get('password')
+    email    = data['email']
+    password = data['password']
 
     try:
         user = get_user_by_email(email)
@@ -213,16 +213,9 @@ def employees(session):
 @users_blueprint.route('/<int:user_id>/role', methods=['PATCH'])
 @users_blueprint.route('/<int:user_id>/role/', methods=['PATCH'])
 @require_active_supervisor_or_manager
-def update_role(user_id, session):
-    data = request.get_json()
-    if not data:
-        return {"message": "Invalid JSON payload"}, 400
-
-    new_role = data.get('role')
-    if not new_role:
-        return {"message": "Role is required"}, 400
-    if not role_is_allowed(role=new_role):
-        return {"message": "Invalid role."}, 400
+@validate_request(UpdateRoleSchema())
+def update_role(data, user_id, session):
+    new_role = data['role']
 
     try:
         update_user_role(user_id, new_role)
@@ -275,12 +268,20 @@ def update_employee_route(user_id, session):
     }, 200
 
 
-@users_blueprint.route('/<int:user_id>/deactivate', methods=['PATCH'])
-@users_blueprint.route('/<int:user_id>/deactivate/', methods=['PATCH'])
+@users_blueprint.route('/<int:user_id>/status', methods=['PATCH'])
+@users_blueprint.route('/<int:user_id>/status/', methods=['PATCH'])
 @require_active_supervisor_or_manager
-def deactivate_user(user_id, session):
+def update_user_status(user_id, session):
+    data = request.get_json(silent=True)
+    if not data:
+        return {"message": "Invalid JSON payload"}, 400
+
+    new_status = data.get("status")
+    if not new_status:
+        return {"message": "Status is required"}, 400
+
     try:
-        deactivate_employee(user_id)
+        update_employee_status(user_id, new_status)
     except LookupError as e:
         return {"message": str(e)}, 404
     except Exception:
@@ -368,28 +369,22 @@ def verify_invitation():
 
 @users_blueprint.route('/invitation/complete', methods=['POST', 'OPTIONS'])
 @users_blueprint.route('/invitation/complete/', methods=['POST', 'OPTIONS'])
-def finish_invitation():
+@validate_request(InvitationCompleteSchema())
+def finish_invitation(data):
     if request.method == 'OPTIONS':
         return '', 204
 
-    data = request.get_json(silent=True)
-    if not data:
-        return {"message": "Invalid JSON payload"}, 400
-
-    token = data.get("token")
-    phone = data.get("phone")
-
-    if not token: return {"message": "Invitation token is required"}, 400
-    if not phone: return {"message": "Phone number is required"}, 400
-
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    password = data.get("password")
-
-    kwargs = dict(first_name=first_name, last_name=last_name, password=password)
+    token = data['token']
+    phone = data['phone']
+    carrier = data['carrier']
+    kwargs = dict(
+        first_name=data.get("first_name"),
+        last_name=data.get("last_name"),
+        password=data.get("password"),
+    )
 
     try:
-        user = complete_invitation(token, phone, **kwargs)
+        user = complete_invitation(token, phone, carrier, **kwargs)
     except SignatureExpired:
         return {"message": "Invitation link has expired"}, 410
     except BadSignature:

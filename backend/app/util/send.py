@@ -151,7 +151,7 @@ def load_verification_payload(token: str):
 
 
 # ── Core SMTP helper ──────────────────────────────────────────────────────────
-def _send_via_gmail(to_address: str, subject: str, body: str, html: str = None) -> None:
+def _send_via_gmail(to_address: str, subject: str = "[MCCS Shelf Detector]", body: str = "", html: str = None) -> None:
     msg = MIMEMultipart("alternative")
     msg["From"] = config.GMAIL_ADDRESS
     msg["To"] = to_address
@@ -208,7 +208,7 @@ def send_sms(phone_number: str, message: str, carrier: str = None) -> None:
     gateway_address = f"{digits}@{get_gateway(carrier)}"
     print(f"[SMS DEBUG] gateway address: {gateway_address}")
 
-    _send_via_gmail(gateway_address, subject=str(uuid.uuid4()), body=message)
+    _send_via_gmail(gateway_address, body=message)
     print(f"[SMS] Sent to {phone_number} ({carrier}) ✓")
 
 def lookup_carrier(phone_number: str) -> str:

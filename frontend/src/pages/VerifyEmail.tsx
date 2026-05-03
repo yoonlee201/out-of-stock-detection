@@ -34,8 +34,8 @@ const VerifyEmail = () => {
     }, [searchParams]);
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 px-4 py-12">
-            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="bg-background flex min-h-screen w-full items-center justify-center px-4 py-12">
+            <div className="border-border bg-background w-full max-w-md rounded-xl border p-6 shadow-sm">
                 <h1 className="text-primary text-2xl font-bold">Email Verification</h1>
                 <p className={`mt-4 text-sm ${isSuccess ? "text-green-700" : "text-gray-700"}`}>{message}</p>
 
@@ -43,7 +43,7 @@ const VerifyEmail = () => {
                     <div className="mt-6">
                         <Link
                             to="/login"
-                            className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active inline-flex w-full items-center justify-center rounded px-4 py-2 font-semibold text-white"
+                            className="hover:bg-primary-hover active:bg-primary-active bg-primary inline-flex w-full items-center justify-center rounded px-4 py-2 font-semibold text-white"
                         >
                             Continue to Login
                         </Link>

@@ -3,23 +3,38 @@ services:
   backend:
     container_name: oos_detection-backend
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        TORCH_VARIANT: ${TORCH_VARIANT:-cpu}
     env_file: ./backend/.env
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    volumes:
+      - ./shelf_analyzer:/usr/src/app/shelf_analyzer
+      - ./weights:/usr/src/app/weights:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/"]
+      interval: 1h
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+      start_interval: 5s
     develop:
       watch:
-        - action: sync+restart
+        # sync only — Flask's debug reloader handles restarts inside the container
+        - action: sync
           path: ./backend/app
           target: /usr/src/app/app
           ignore:
             - "**/__pycache__/**"
             - "**/*.pyc"
             - "**/*.pyo"
+            - "**/.DS_Store"
             - "**/.pytest_cache/**"
             - "**/.mypy_cache/**"
             - "**/.venv/**"
@@ -27,6 +42,14 @@ services:
             - "**/.git/**"
             - "**/.idea/**"
             - "**/.vscode/**"
+        # sync+restart — shelf_analyzer is lazily imported so Flask won't watch it
+        - action: sync+restart
+          path: ./shelf_analyzer
+          target: /usr/src/app/shelf_analyzer
+          ignore:
+            - "**/__pycache__/**"
+            - "**/*.pyc"
+            - "**/.DS_Store"
   db:
     container_name: pg-oos_detection
     image: postgres:16-alpine
@@ -51,9 +74,10 @@ services:
     env_file: ./frontend/.env
     restart: unless-stopped
     ports:
-      - "5173:5173" # or "3000:3000" if Next.js
+      - "5173:5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     develop:
       watch:
         - action: sync
@@ -61,6 +85,7 @@ services:
           target: /usr/src/app/src
           ignore:
             - "**/.git/**"
+            - "**/.DS_Store"
             - "**/.idea/**"
             - "**/.vscode/**"
         - action: rebuild

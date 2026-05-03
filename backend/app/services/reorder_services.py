@@ -1,32 +1,38 @@
-from app.services.product_services import get_low_stock_products
-from app.models import Users
-from agent.db_ops import insert_reorder
+from app.core.db import db
+from app.models import Products, Reorders
+from app.services.user_services import get_all_active_employees
 
 
-def create_mock_reorders():
+def get_low_stock_products(threshold=10):
+    return Products.query.filter(Products.quantity_in_store < threshold).all()
+
+
+def seed_mock_reorders(quantity=10):
+    """
+    Create Reorder rows for every low-stock product, assigned to the first active
+    employee. Intended for development / demo use only.
+    Returns a list of serialised reorder dicts.
+    """
     products = get_low_stock_products()
     if not products:
-        print("No low stock products found for reorder.")
         return []
 
-    test_employee = Users.query.filter_by(email='albertwang041006@gmail.com').first()
-    if not test_employee:
-        print("No test employee found.")
+    employees = get_all_active_employees()
+    if not employees:
         return []
 
-    created_reorders = []
+    user, _emp = employees[0]
+    created = []
 
     for product in products:
-        try:
-            reorder_quantity = 10
-            reorder_id = insert_reorder(test_employee.user_id, product.product_id, reorder_quantity)
-            print(f"Created reorder {reorder_id} for product {product.product_id}")
-            created_reorders.append({
-                "reorder_id": reorder_id,
-                "product_id": product.product_id,
-                "quantity": reorder_quantity
-            })
-        except Exception as e:
-            print(f"Failed to create reorder for product {product.product_id}: {e}")
+        reorder = Reorders(user_id=user.user_id, product_id=product.product_id, quantity=quantity)
+        db.session.add(reorder)
+        db.session.flush()
+        created.append({
+            "id": reorder.id,
+            "product_id": product.product_id,
+            "quantity": quantity,
+        })
 
-    return created_reorders
+    db.session.commit()
+    return created

@@ -8,6 +8,8 @@ import { apiRegisterUser } from "../api/query/user";
 import logger from "../utils/log";
 import Loading from "../_components/Loading";
 import { useForm } from "react-hook-form";
+import { CARRIER_OPTIONS } from "../utils/carriers";
+import Select from "../_components/Select";
 
 type RegisterForm = {
     firstName: string;
@@ -16,6 +18,7 @@ type RegisterForm = {
     password: string;
     confirmPassword: string;
     phone: string;
+    carrier: string;
 };
 
 const Register = () => {
@@ -32,7 +35,7 @@ const Register = () => {
     } = useForm<RegisterForm>();
 
     useEffect(() => {
-        if (!loading && user) navigate("/dashboard");
+        if (!loading && user) navigate("/inventory");
     }, [user, loading, navigate]);
 
     useEffect(() => {
@@ -53,6 +56,7 @@ const Register = () => {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.phone,
+                carrier: data.carrier,
             });
             navigate(`/login?register=success&firstName=${encodeURIComponent(data.firstName)}`);
         } catch (error) {
@@ -129,23 +133,36 @@ const Register = () => {
                         setValueAs: (v) => v.replace(/\s/g, ""),
                     })}
                 />
-                <Field
-                    required
-                    label="Phone Number"
-                    icon={<UserIcon />}
-                    animationDelay="0.35s"
-                    error={errors.phone?.message}
-                    {...register("phone", {
-                        required: "Phone number is required",
-                        setValueAs: (v) => v.replace(/\s/g, ""),
-                    })}
-                />
+                <div className="flex w-full items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                        <Field
+                            required
+                            label="Phone Number"
+                            icon={<UserIcon />}
+                            animationDelay="0.35s"
+                            error={errors.phone?.message}
+                            {...register("phone", {
+                                required: "Phone number is required",
+                                setValueAs: (v) => v.replace(/\s/g, ""),
+                            })}
+                        />
+                    </div>
+                    <div className="anim-item min-w-0 flex-1" style={{ animationDelay: "0.35s" }}>
+                        <Select
+                            label="Carrier"
+                            required
+                            options={[...CARRIER_OPTIONS]}
+                            error={errors.carrier?.message}
+                            {...register("carrier", { required: "Carrier is required" })}
+                        />
+                    </div>
+                </div>
 
                 <div className="mt-4">
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active mt-4 w-full text-white disabled:opacity-60"
+                        className="hover:bg-primary-hover active:bg-primary-active bg-primary mt-4 w-full text-white disabled:opacity-60"
                     >
                         {isSubmitting ? "Registering..." : "Register"}
                     </Button>
@@ -159,7 +176,7 @@ const Register = () => {
 
                 <div className="mt-8 flex items-center justify-center gap-1">
                     {"Do you have an account? "}
-                    <a href="/login" className="text-gray-500 underline transition-colors hover:text-gray-700">
+                    <a href="/login" className="text-text-muted hover:text-text-secondary underline transition-colors">
                         Login here.
                     </a>
                 </div>

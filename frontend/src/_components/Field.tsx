@@ -25,11 +25,9 @@ const Field = ({
     ...rest
 }: FieldProps) => (
     <div className="anim-item" style={{ animationDelay: animationDelay ?? "0s" }}>
-        <style>{`
-            `}</style>
-        <label className={`mb-1 block text-sm font-semibold text-gray-600 ${labelClassName ?? ""}`}>
+        <label className={`text-text-secondary mb-1 block text-sm font-semibold ${labelClassName ?? ""}`}>
             {label}
-            <span className="text-red-500">{required && " *"}</span>
+            <span className="text-red">{required && " *"}</span>
         </label>
         <Input
             type={type}
@@ -39,7 +37,7 @@ const Field = ({
             required={required}
             {...rest}
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <p className="text-red mt-1 text-sm">{error}</p>}
     </div>
 );
 

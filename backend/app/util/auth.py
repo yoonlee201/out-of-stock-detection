@@ -8,16 +8,20 @@ EMPLOYEE_ROLES = ('associate', 'supervisor', 'manager')
 ALLOWED_ROLES = ('customer', 'associate', 'supervisor', 'manager')
 
 def _get_current_user():
-    """Extract and validate the auth token from cookies, return user or None."""
+    """Extract and validate the auth token from cookies or Bearer header."""
     token = request.cookies.get('authToken')
+    if not token:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
     if not token:
         return None
     return get_user_by_token(token)
 
 
 def _active_employee_check(user):
-    """Return a 403 response if the user's employee record is not active, else None."""
-    if not user.employee or user.employee.status != 'active':
+    """Return a 403 response if the user has no employee record or is pending, else None."""
+    if not user.employee or user.employee.status not in ('active', 'inactive'):
         return jsonify({'success': False, 'message': 'Employee account is not active'}), 403
     return None
 

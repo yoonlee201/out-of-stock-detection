@@ -1,35 +1,145 @@
-import { useMemo, useState, type ChangeEvent } from "react";
-import Sidebar from "../_components/Sidebar";
-import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
-import { useAuth } from "../hooks/useAuth";
-import { apiMakeOutOfStockAlert } from "../api/query/alert";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+    apiAnalyzeShelf,
+    apiGetAnalysisHistory,
+    type ShelfAnalysisResponse,
+    type ShelfDetection,
+} from "../api/query/shelfAnalysis";
+import { mockAnalysisResults } from "../assets/data/mockData";
+import { PlusIcon } from "../_components/Icons";
+import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
+
+interface HistoryEntry {
+    id: number;
+    fileName: string;
+    result: ShelfAnalysisResponse;
+    analyzedAt: Date;
+}
+
+// TODO: Remove if mock data is no longer needed
+const toHistoryEntries = (
+    results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>,
+): HistoryEntry[] => results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
 
 const Dashboard = () => {
-    const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const log_id = searchParams.get("log_id");
+
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
-    const [analysisProgress, setAnalysisProgress] = useState("");
+    const [progressPhase, setProgressPhase] = useState<"uploading" | "analyzing" | "idle">("idle");
+    const [progressValue, setProgressValue] = useState(0);
     const [analysisError, setAnalysisError] = useState("");
-    const [analysisResults, setAnalysisResults] = useState<Array<{ fileName: string; result: ShelfAnalysisResponse }>>([]);
-    const [activeResultIndex, setActiveResultIndex] = useState(0);
-    const analysisResult = analysisResults[activeResultIndex]?.result ?? null;
-    const issueDetections = useMemo(() => {
-        if (!analysisResult) {
-            return [];
-        }
+    const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [imageDialogOpen, setImageDialogOpen] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-        return analysisResult.detections.filter((detection) =>
-            detection.audit_status === "missing" || detection.audit_status === "misplaced"
-        );
+    // Sync the selection to ?log_id= once history has loaded.
+    useEffect(() => {
+        if (!log_id) return;
+        const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
+        if (index !== -1) setSelectedIndex(index);
+    }, [log_id, history]);
+
+    const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
+    const analysisResult = selectedEntry?.result ?? null;
+
+    const issueDetections = useMemo(() => {
+        if (!analysisResult) return [];
+        return analysisResult.detections.filter((d) => d.audit_status === "missing" || d.audit_status === "misplaced");
     }, [analysisResult]);
+
+    // Load history from backend; fall back to mock data in dev if unavailable
+    useEffect(() => {
+        let cancelled = false;
+        setHistoryLoading(true);
+        apiGetAnalysisHistory()
+            .then((entries) => {
+                if (cancelled) return;
+                if (entries.length > 0) {
+                    setHistory(
+                        entries.map((e) => ({
+                            id: e.id,
+                            fileName: e.file_name,
+                            result: e.result,
+                            analyzedAt: new Date(e.created_at),
+                        })),
+                    );
+                } else {
+                    setHistory(toHistoryEntries(mockAnalysisResults));
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setHistory(toHistoryEntries(mockAnalysisResults));
+            })
+            .finally(() => {
+                if (!cancelled) setHistoryLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!imageDialogOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setImageDialogOpen(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [imageDialogOpen]);
+
+    useEffect(() => {
+        if (!uploadDialogOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !analysisLoading) {
+                setUploadDialogOpen(false);
+                setSelectedImages([]);
+                setAnalysisError("");
+                setProgressPhase("idle");
+                setProgressValue(0);
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [uploadDialogOpen, analysisLoading]);
+
+    const handleCloseUploadDialog = () => {
+        if (analysisLoading) return;
+        setUploadDialogOpen(false);
+        setSelectedImages([]);
+        setAnalysisError("");
+        setProgressPhase("idle");
+        setProgressValue(0);
+    };
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
         setSelectedImages(files);
-        setAnalysisResults([]);
-        setActiveResultIndex(0);
         setAnalysisError("");
-        setAnalysisProgress("");
+    };
+
+    const stopSim = () => {
+        if (simRef.current) {
+            clearInterval(simRef.current);
+            simRef.current = null;
+        }
+    };
+
+    const startAnalysisSim = () => {
+        setProgressPhase("analyzing");
+        setProgressValue(0);
+        let v = 0;
+        simRef.current = setInterval(() => {
+            v += (90 - v) * 0.06 + 0.4;
+            if (v >= 90) v = 90;
+            setProgressValue(Math.round(v));
+        }, 250);
     };
 
     const handleAnalyzeShelf = async () => {
@@ -37,180 +147,157 @@ const Dashboard = () => {
             setAnalysisError("Please upload at least one shelf image first.");
             return;
         }
-
         try {
             setAnalysisLoading(true);
             setAnalysisError("");
-            setAnalysisProgress("");
-
-            const successfulResults: Array<{ fileName: string; result: ShelfAnalysisResponse }> = [];
+            const newEntries: HistoryEntry[] = [];
             const failedFiles: string[] = [];
-
-            for (let index = 0; index < selectedImages.length; index += 1) {
-                const imageFile = selectedImages[index];
-                setAnalysisProgress(`Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
-
+            for (let i = 0; i < selectedImages.length; i += 1) {
+                const imageFile = selectedImages[i];
+                let analysisStarted = false;
+                setProgressPhase("uploading");
+                setProgressValue(0);
                 try {
-                    const result = await apiAnalyzeShelf(imageFile);
-                    successfulResults.push({ fileName: imageFile.name, result });
+                    const result = await apiAnalyzeShelf(imageFile, (percent) => {
+                        if (!analysisStarted) {
+                            setProgressValue(percent);
+                            if (percent >= 100) {
+                                analysisStarted = true;
+                                startAnalysisSim();
+                            }
+                        }
+                    });
+                    stopSim();
+                    setProgressValue(100);
+                    newEntries.push({ id: -1, fileName: imageFile.name, result, analyzedAt: new Date() });
                 } catch {
+                    stopSim();
                     failedFiles.push(imageFile.name);
                 }
             }
-
-            if (successfulResults.length === 0) {
-                throw new Error("None of the selected images could be analyzed.");
-            }
-
-            setAnalysisResults(successfulResults);
-            setActiveResultIndex(0);
-
-            if (failedFiles.length > 0) {
-                setAnalysisError(
-                    `Processed ${successfulResults.length}/${selectedImages.length} images. Failed: ${failedFiles.join(", ")}`
-                );
-            }
+            if (newEntries.length === 0) throw new Error("None of the selected images could be analyzed.");
+            setHistory((prev) => [...newEntries, ...prev]);
+            setSelectedIndex(0);
+            handleCloseUploadDialog();
         } catch (err) {
-            const message = err instanceof Error ? err.message : "Shelf analysis failed.";
-            setAnalysisError(message);
+            setAnalysisError(err instanceof Error ? err.message : "Shelf analysis failed.");
         } finally {
-            setAnalysisProgress("");
+            stopSim();
+            setProgressPhase("idle");
             setAnalysisLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
-            <Sidebar />
+        <div className="px-8 py-6">
+            <header className="mb-6 flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold">Shelf Detection</h1>
+                    <p className="text-text-muted mt-0.5 text-sm">
+                        {" "}
+                        Upload shelf images to identify out-of-stock and misplaced items
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setUploadDialogOpen(true)}
+                    className="hover:bg-primary-hover bg-primary inline-flex items-center gap-2 rounded-full px-2.5 py-2.5 text-sm font-semibold text-white transition-colors lg:rounded-xl lg:px-4"
+                >
+                    <PlusIcon />
+                    <span className="hidden lg:block">New Analysis</span>
+                </button>
+            </header>
 
-            <div className="flex-1 overflow-y-auto p-8">
-                <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
-                {(user?.role === "manager" || user?.role === "supervisor") && (
-                    <button
-                        className="bg-secondary mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
-                        onClick={async () => {
-                            try {
-                                await apiMakeOutOfStockAlert();
-                            } catch (error) {
-                                console.error("Error sending out of stock alert:", error);
-                            }
-                        }}
-                    >
-                        Send Employees Alert
-                    </button>
-                )}
-
-                <div className="mb-8 rounded-xl bg-white p-6 shadow">
-                    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <h2 className="text-xl font-semibold">Shelf Analyzer</h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Upload one or more shelf images to compare them against the planogram, mark empty slots, and flag misplaced items.
-                            </p>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                {/* ── History sidebar ── */}
+                <div className="bg-surface w-full rounded-xl p-6 shadow lg:sticky lg:top-6 lg:w-80 lg:shrink-0 xl:w-96">
+                    <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
+                    {historyLoading ? (
+                        <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
+                            <p className="text-text-muted text-sm">Loading history...</p>
                         </div>
-                    </div>
-
-                    <div className="grid gap-6 xl:grid-cols-[minmax(320px,360px),minmax(0,1fr)]">
-                        <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                            <h3 className="text-lg font-semibold text-slate-800">Upload</h3>
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/jpeg,image/jpg,image/png,image/webp"
-                                onChange={handleFileChange}
-                                className="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-secondary/12 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-secondary"
-                            />
-
-                            {selectedImages.length > 0 && (
-                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                                    {selectedImages.length} image{selectedImages.length === 1 ? "" : "s"} selected
-                                </p>
-                            )}
-
-                            <button
-                                type="button"
-                                onClick={handleAnalyzeShelf}
-                                disabled={selectedImages.length === 0 || analysisLoading}
-                                className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active w-full rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
-                            >
-                                {analysisLoading ? "Analyzing..." : "Analyze Shelf Images"}
-                            </button>
-
-                            {analysisProgress && (
-                                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
-                                    {analysisProgress}
-                                </div>
-                            )}
-
-                            {analysisError && (
-                                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                                    {analysisError}
-                                </div>
-                            )}
-
-                            {analysisResult?.compliance_report && (
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Planogram Visibility</div>
-                                    <div className="mt-2 text-sm font-semibold text-slate-700">
-                                        Rows visible in image: {analysisResult.compliance_report.visible_rows.length} of{" "}
-                                        {analysisResult.compliance_report.total_planogram_rows} | Compliance:{" "}
-                                        {analysisResult.compliance_report.compliance_score}%
-                                    </div>
-                                </div>
-                            )}
+                    ) : history.length === 0 ? (
+                        <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed text-center">
+                            <div>
+                                <p className="font-semibold">No analyses yet</p>
+                                <p className="text-text-muted mt-1 text-sm">Click "+ New Analysis" to get started.</p>
+                            </div>
                         </div>
+                    ) : (
+                        <div className="no-scrollbar max-h-[60vh] space-y-2 overflow-y-auto lg:max-h-[calc(100vh-14rem)]">
+                            {history.map((entry, index) => (
+                                <HistoryCard
+                                    key={`${entry.fileName}-${entry.analyzedAt.getTime()}`}
+                                    entry={entry}
+                                    selected={selectedIndex === index}
+                                    onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                        <div className="space-y-4">
-                            {analysisResults.length > 1 && (
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                                    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Showing Result For</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {analysisResults.map((entry, index) => (
-                                            <button
-                                                key={`${entry.fileName}-${index}`}
-                                                type="button"
-                                                onClick={() => setActiveResultIndex(index)}
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                                    activeResultIndex === index
-                                                        ? "bg-slate-900 text-white"
-                                                        : "bg-slate-100 text-slate-700"
-                                                }`}
-                                            >
-                                                {entry.fileName}
-                                            </button>
-                                        ))}
-                                    </div>
+                {/* ── Detail panel ── */}
+                <div className="min-w-0 flex-1">
+                    {selectedEntry ? (
+                        <div className="bg-surface rounded-xl p-6 shadow">
+                            <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-xl font-semibold">{selectedEntry.fileName}</h2>
+                                    <p className="text-text-muted mt-1 text-sm">
+                                        Analyzed at{" "}
+                                        {selectedEntry.analyzedAt.toLocaleString([], {
+                                            dateStyle: "medium",
+                                            timeStyle: "short",
+                                        })}
+                                    </p>
                                 </div>
-                            )}
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedIndex(null)}
+                                    className="text-text-muted hover:text-text text-sm font-semibold"
+                                >
+                                    Close ✕
+                                </button>
+                            </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                {analysisResult ? (
+                            <div className="space-y-4">
+                                {/* Annotated image */}
+                                <div className="bg-surface border-border rounded-2xl border p-4">
                                     <div className="space-y-4">
-                                        <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                            <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700">M = Missing item</span>
-                                            <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">W = Wrong product</span>
+                                        <div className="flex flex-wrap gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
+                                            <span className="bg-status-missing-bg text-status-missing-text rounded-full px-3 py-1">
+                                                M = Missing item
+                                            </span>
+                                            <span className="bg-status-misplaced-bg text-status-misplaced-text rounded-full px-3 py-1">
+                                                W = Wrong product
+                                            </span>
                                         </div>
-
                                         <img
-                                            src={analysisResult.annotated_image}
+                                            src={analysisResult!.annotated_image}
                                             alt="Shelf analysis result"
-                                            className="w-full rounded-2xl border border-slate-200 bg-white object-contain"
+                                            onClick={() => setImageDialogOpen(true)}
+                                            className="bg-surface border-border w-full cursor-zoom-in rounded-2xl border object-contain"
                                         />
                                     </div>
-                                ) : (
-                                    <div className="flex min-h-[340px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center text-slate-500">
-                                        <div className="max-w-md px-6">
-                                            <p className="text-lg font-semibold text-slate-700">No analysis yet</p>
-                                            <p className="mt-2 text-sm leading-6">
-                                                The annotated shelf image will appear here after you upload and analyze a shelf photo.
-                                            </p>
+                                </div>
+
+                                {/* Compliance summary */}
+                                {analysisResult!.compliance_report && (
+                                    <div className="bg-surface border-border rounded-2xl border px-4 py-4">
+                                        <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
+                                            Planogram Visibility
+                                        </div>
+                                        <div className="text-secondary mt-2 text-sm font-semibold">
+                                            Rows visible: {analysisResult!.compliance_report.visible_rows.length} of{" "}
+                                            {analysisResult!.compliance_report.total_planogram_rows} | Compliance:{" "}
+                                            {analysisResult!.compliance_report.compliance_score}%
                                         </div>
                                     </div>
                                 )}
-                            </div>
 
-                            {analysisResult && (
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                {/* Issue cards + table */}
+                                <div className="bg-surface border-border rounded-2xl border p-4 shadow-sm">
                                     <h3 className="mb-4 text-lg font-semibold">What Needs Attention</h3>
                                     {issueDetections.length > 0 ? (
                                         <div className="space-y-3">
@@ -222,22 +309,22 @@ const Dashboard = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-medium text-emerald-700">
+                                        <div className="border-status-success-bg bg-status-success-bg text-status-success-text rounded-2xl border px-4 py-4 text-sm font-medium">
                                             No missing or misplaced items were flagged in this audit.
                                         </div>
                                     )}
 
                                     <div className="mt-6 overflow-x-auto">
-                                        <table className="w-full min-w-[900px] text-left text-sm">
+                                        <table className="w-full min-w-225 text-left text-sm">
                                             <thead>
-                                                <tr className="border-b text-slate-500">
-                                                    <th className="py-3">Marker</th>
-                                                    <th className="py-3">Slot</th>
-                                                    <th className="py-3">Status</th>
-                                                    <th className="py-3">Observed</th>
-                                                    <th className="py-3">Expected</th>
-                                                    <th className="py-3">Assignment</th>
-                                                    <th className="py-3">Match Score</th>
+                                                <tr className="border-border text-text-muted border-b">
+                                                    <th className="p-3 text-center">Marker</th>
+                                                    <th className="p-3">Slot</th>
+                                                    <th className="p-3">Status</th>
+                                                    <th className="p-3">Observed</th>
+                                                    <th className="p-3">Expected</th>
+                                                    <th className="p-3">Assignment</th>
+                                                    <th className="p-3">Match Score</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -251,34 +338,192 @@ const Dashboard = () => {
                                         </table>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-surface flex min-h-64 items-center justify-center rounded-xl p-6 shadow">
+                            <div className="text-center">
+                                <p className="text-text-secondary font-semibold">No analysis selected</p>
+                                <p className="text-text-muted mt-1 text-sm">
+                                    Choose an entry from the history to view its results.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {uploadDialogOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                    onClick={handleCloseUploadDialog}
+                >
+                    <div
+                        className="bg-surface w-full max-w-md rounded-2xl p-6 shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="mb-5 flex items-center justify-between">
+                            <h2 className="text-xl font-semibold">New Shelf Analysis</h2>
+                            <button
+                                onClick={handleCloseUploadDialog}
+                                disabled={analysisLoading}
+                                className="text-text-muted hover:text-text disabled:opacity-40"
+                                aria-label="Close"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-text-muted text-sm">
+                                Upload one or more shelf images to compare against the planogram, mark empty slots, and
+                                flag misplaced items.
+                            </p>
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                onChange={handleFileChange}
+                                disabled={analysisLoading}
+                                className="file:bg-primary/12 file:text-primary bg-surface-muted border-border text-text-muted block w-full rounded-2xl border px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-sm file:font-semibold disabled:opacity-50"
+                            />
+                            {selectedImages.length > 0 && (
+                                <p className="text-text-muted text-xs font-medium tracking-[0.14em] uppercase">
+                                    {selectedImages.length} image{selectedImages.length === 1 ? "" : "s"} selected
+                                </p>
                             )}
+                            {progressPhase !== "idle" && <ProgressBar phase={progressPhase} value={progressValue} />}
+                            {analysisError && (
+                                <div className="border-status-missing-bg bg-status-missing-bg text-status-missing-text rounded-2xl border px-4 py-3 text-sm font-medium">
+                                    {analysisError}
+                                </div>
+                            )}
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseUploadDialog}
+                                    disabled={analysisLoading}
+                                    className="bg-surface-muted text-text-secondary flex-1 rounded-2xl px-4 py-3 font-semibold transition disabled:opacity-40"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAnalyzeShelf}
+                                    disabled={selectedImages.length === 0 || analysisLoading}
+                                    className="bg-primary flex-1 rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
+                                >
+                                    {analysisLoading ? "Analyzing..." : "Analyze"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {imageDialogOpen && analysisResult && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+                    onClick={() => setImageDialogOpen(false)}
+                >
+                    <div className="relative max-h-full max-w-full" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setImageDialogOpen(false)}
+                            className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-gray-100"
+                            aria-label="Close"
+                        >
+                            ✕
+                        </button>
+                        <img
+                            src={analysisResult.annotated_image}
+                            alt="Shelf analysis result (full size)"
+                            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
+    );
+};
+
+const ProgressBar = ({ phase, value }: { phase: "uploading" | "analyzing"; value: number }) => (
+    <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-semibold">
+            <span className="text-text-secondary capitalize">{phase === "uploading" ? "Uploading" : "Analyzing"}</span>
+            <span className="text-text-muted">{value}%</span>
+        </div>
+        <div className="bg-surface-muted h-2 w-full overflow-hidden rounded-full">
+            <div
+                className={`h-full rounded-full transition-all duration-200 ease-out ${phase === "uploading" ? "bg-status-info-text" : "bg-primary"}`}
+                style={{ width: `${value}%` }}
+            />
+        </div>
+        <p className="text-text-muted text-xs">
+            {phase === "uploading" ? "Sending image to server..." : "Server is analyzing the shelf..."}
+        </p>
+    </div>
+);
+
+const complianceTextClass = (score: number) =>
+    score >= 90 ? "text-status-success-text" : score >= 70 ? "text-status-misplaced-text" : "text-status-missing-text";
+
+const HistoryCard = ({ entry, selected, onClick }: { entry: HistoryEntry; selected: boolean; onClick: () => void }) => {
+    const { result, analyzedAt } = entry;
+    const issueCount = (result.summary.missing_count ?? 0) + (result.summary.misplaced_count ?? 0);
+    const compliance = result.compliance_report?.compliance_score;
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`hover:bg-surface-muted w-full rounded-2xl border px-5 py-4 text-left transition ${
+                selected ? "bg-surface-muted border-text" : "border-border"
+            }`}
+        >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold">{entry.fileName}</span>
+                    {selected && (
+                        <span className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
+                            Viewing
+                        </span>
+                    )}
+                </div>
+                <div className="text-text-muted flex flex-wrap items-center gap-4 text-xs font-semibold">
+                    {compliance !== undefined && (
+                        <span className={complianceTextClass(compliance)}>{compliance}% compliance</span>
+                    )}
+                    {issueCount > 0 ? (
+                        <span className="text-status-missing-text">
+                            {issueCount} issue{issueCount === 1 ? "" : "s"}
+                        </span>
+                    ) : (
+                        <span className="text-status-success-text">No issues</span>
+                    )}
+                    <span>{analyzedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+                </div>
+            </div>
+        </button>
     );
 };
 
 const formatSkuLine = (sku: ShelfDetection["sku"] | ShelfDetection["expected_sku"]) =>
     [sku?.brand, sku?.product_name, sku?.variant].filter(Boolean).join(" ");
 
-const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_method"]) => {
-    if (!assignmentMethod) {
-        return "-";
+const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_method"]) =>
+    assignmentMethod ? assignmentMethod.replace("_", " ") : "-";
+
+const detectionRowBg = (status: string) => {
+    switch (status) {
+        case "missing":
+            return "bg-status-missing-bg";
+        case "misplaced":
+            return "bg-status-misplaced-bg";
+        case "unverified":
+            return "bg-status-info-bg";
+        default:
+            return "";
     }
-
-    return assignmentMethod.replace("_", " ");
 };
-
-const statusTone = (status: string) =>
-    status === "missing"
-        ? "bg-rose-50"
-        : status === "misplaced"
-          ? "bg-amber-50"
-          : status === "unverified"
-            ? "bg-blue-50"
-            : "hover:bg-gray-50";
 
 const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
     const status = detection.audit_status || (detection.type === "empty_space" ? "missing" : "correct");
@@ -288,14 +533,14 @@ const DetectionRow = ({ detection }: { detection: ShelfDetection }) => {
     const matchScore = (detection as ShelfDetection & { match_score?: number }).match_score;
 
     return (
-        <tr className={`border-b ${statusTone(status)}`}>
-            <td className="py-3 font-semibold text-slate-700">{detection.issue_marker || "-"}</td>
-            <td className="py-3 font-medium text-slate-700">{detection.slot_id || "-"}</td>
-            <td className="py-3 font-medium capitalize text-slate-700">{status.replace("_", " ")}</td>
-            <td className="py-3 text-slate-600">{observed || "-"}</td>
-            <td className="py-3 text-slate-600">{expected || "-"}</td>
-            <td className="py-3 text-slate-600 capitalize">{assignmentMethod}</td>
-            <td className="py-3 text-slate-600">
+        <tr className={`border-border border-b ${detectionRowBg(status)}`}>
+            <td className="text-text-secondary py-3 text-center">{detection.issue_marker || "-"}</td>
+            <td className="text-text-secondary p-3 font-medium">{detection.slot_id || "-"}</td>
+            <td className="text-text-secondary p-3 font-medium capitalize">{status.replace("_", " ")}</td>
+            <td className="text-text-muted p-3">{observed || "-"}</td>
+            <td className="text-text-muted p-3">{expected || "-"}</td>
+            <td className="text-text-muted p-3 capitalize">{assignmentMethod}</td>
+            <td className="text-text-muted py-3 text-center">
                 {typeof matchScore === "number" ? matchScore.toFixed(2) : "-"}
             </td>
         </tr>
@@ -308,38 +553,43 @@ const IssueCard = ({ detection, reviewOnly = false }: { detection: ShelfDetectio
     const expected = formatSkuLine(detection.expected_sku);
     const marker = detection.issue_marker || (reviewOnly ? "CHECK" : "ISSUE");
     const assignmentMethod = formatAssignmentMethod(detection.assignment_method);
-    const badgeTone =
-        status === "missing"
-            ? "bg-rose-100 text-rose-700"
-            : status === "misplaced"
-              ? "bg-amber-100 text-amber-700"
-              : "bg-blue-100 text-blue-700";
+
+    const badgeClass =
+        status === "missing" || status === "misplaced"
+            ? shelfStatusClass(status)
+            : "bg-status-info-bg text-status-info-text";
 
     return (
-        <div className={`rounded-2xl border border-slate-200 px-4 py-4 ${statusTone(status)}`}>
+        <div className={`border-border rounded-2xl border px-4 py-4 ${detectionRowBg(status)}`}>
             <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold tracking-[0.18em] text-white">
+                <span className="bg-text text-background rounded-full px-3 py-1 text-xs font-bold tracking-[0.18em]">
                     {marker}
                 </span>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${badgeTone}`}>
-                    {status.replace("_", " ")}
+                <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeClass}`}
+                >
+                    {SHELF_STATUS_LABEL[status as keyof typeof SHELF_STATUS_LABEL] ?? status.replace("_", " ")}
                 </span>
-                <span className="text-sm font-semibold text-slate-700">{detection.slot_id || "Unknown slot"}</span>
+                <span className="text-text-secondary text-sm font-semibold">{detection.slot_id || "Unknown slot"}</span>
             </div>
 
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl bg-white/80 px-4 py-3">
-                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Observed</div>
-                    <div className="mt-1 text-sm font-medium text-slate-700">{observed || "No confirmed product"}</div>
+                <div className="bg-surface-muted rounded-2xl px-4 py-3">
+                    <div className="text-text-muted text-xs font-semibold tracking-[0.16em] uppercase">Observed</div>
+                    <div className="text-text-secondary mt-1 text-sm font-medium">
+                        {observed || "No confirmed product"}
+                    </div>
                 </div>
-                <div className="rounded-2xl bg-white/80 px-4 py-3">
-                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Expected</div>
-                    <div className="mt-1 text-sm font-medium text-slate-700">{expected || "No expected product"}</div>
+                <div className="bg-surface-muted rounded-2xl px-4 py-3">
+                    <div className="text-text-muted text-xs font-semibold tracking-[0.16em] uppercase">Expected</div>
+                    <div className="text-text-secondary mt-1 text-sm font-medium">
+                        {expected || "No expected product"}
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Assignment Method: <span className="text-slate-700">{assignmentMethod}</span>
+            <div className="text-text-muted mt-3 text-xs font-semibold tracking-[0.16em] uppercase">
+                Assignment Method: <span className="text-text-secondary">{assignmentMethod}</span>
             </div>
         </div>
     );

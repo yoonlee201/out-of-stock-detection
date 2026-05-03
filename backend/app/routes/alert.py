@@ -1,58 +1,35 @@
-from flask import Blueprint, request, jsonify
-from app.services.user_services import get_all_active_employees
-from app.services.alert_services import send_out_of_stock_sms
-from app.services.reorder_services import create_mock_reorders
+from flask import Blueprint, jsonify
+from app.models import Alerts
+from app.util.auth import session
 
 
-alert_blueprint = Blueprint('alert', __name__)
-
-@alert_blueprint.route('/')
-@alert_blueprint.route('')
-def index():
-    employees = get_all_active_employees()
-    return jsonify({
-        "active_employees": [{
-            "user_id": user.user_id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "joined_at": employee.joined_at.isoformat(),
-            "status": employee.status
-        } for user, employee in employees]
-    })
+alert_blueprint = Blueprint("alert", __name__)
 
 
-@alert_blueprint.route('/send_out_of_stock', methods=['POST', 'OPTIONS'])
-def send_out_of_stock_alert():
-    if request.method == 'OPTIONS':
-        return '', 204
-
+@alert_blueprint.route("/", methods=["GET"])
+@alert_blueprint.route("", methods=["GET"])
+@session
+def alert_history(session):
+    """Return the 100 most recent alerts, newest first."""
     try:
-        send_out_of_stock_sms()
-        return jsonify({
-            'success': True,
-            'message': 'Out of stock alerts sent'
-        })
+        alerts = (
+            Alerts.query
+            .filter(Alerts.user_id == session.user_id)
+            .order_by(Alerts.sent_time.desc())
+            .limit(100)
+            .all()
+        )
+        return jsonify([
+            {
+                "id": a.id,
+                "user_id": a.user_id,
+                "shelf_analysis_log_id": a.shelf_analysis_log_id,
+                "alert_type": a.alert_type,
+                "missing": a.missing,
+                "misplaced": a.misplaced,
+                "sent_time": a.sent_time.isoformat() if a.sent_time else None,
+            }
+            for a in alerts
+        ]), 200
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-    
-@alert_blueprint.route('/create_reorders', methods=['POST', 'OPTIONS'])
-def create_reorders():
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    try:
-        reorders = create_mock_reorders()
-        return jsonify({
-            'success': True,
-            'message': 'Mock reorders created',
-            'reorders': reorders
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500

@@ -4,11 +4,13 @@ import Button from "../_components/Button";
 import Field from "../_components/Field";
 import { LockIcon, UserIcon } from "../_components/Icons";
 import { apiCompleteInvitation, apiVerifyInvitation } from "../api/query/user";
+import { CARRIER_OPTIONS } from "../utils/carriers";
+import Select from "../_components/Select";
 
 type VerifyResponse = {
     invited_role: "associate" | "manager";
     is_new: boolean;
-    user: { first_name: string; last_name: string; email: string; phone?: string };
+    user: { first_name: string; last_name: string; email: string; phone?: string; carrier?: string };
 };
 
 type Form = {
@@ -18,6 +20,7 @@ type Form = {
     lastName: string;
     email: string;
     phone: string;
+    carrier: string;
     password: string;
 };
 
@@ -54,6 +57,7 @@ const Invitation = () => {
                     lastName: data.user.last_name,
                     email: data.user.email,
                     phone: data.user.phone ?? "",
+                    carrier: data.user.carrier ?? "",
                     password: "",
                 });
             })
@@ -69,6 +73,10 @@ const Invitation = () => {
 
         if (!form.phone.trim()) {
             setError("Phone number is required.");
+            return;
+        }
+        if (!form.carrier) {
+            setError("Carrier is required.");
             return;
         }
         if (form.isNew) {
@@ -91,7 +99,7 @@ const Invitation = () => {
             await apiCompleteInvitation({
                 token,
                 phone: form.phone.trim(),
-                isNew: form.isNew,
+                carrier: form.carrier,
                 ...(form.isNew && {
                     firstName: form.firstName.trim(),
                     lastName: form.lastName.trim(),
@@ -108,8 +116,8 @@ const Invitation = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 px-4 py-12">
-            <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="bg-background flex min-h-screen w-full items-center justify-center px-4 py-12">
+            <div className="border-border bg-background w-full max-w-lg rounded-xl border p-6 shadow-sm">
                 <h1 className="text-primary text-2xl font-bold">Continue Invitation</h1>
 
                 {loading && <p className="mt-4 text-sm text-gray-500">Checking your invitation link...</p>}
@@ -133,22 +141,24 @@ const Invitation = () => {
                         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                             {form.isNew && (
                                 <div className="flex gap-3">
-                                    <Field
-                                        label="First Name"
-                                        icon={<UserIcon />}
-                                        required
-                                        value={form.firstName}
-                                        onChange={set("firstName")}
-                                        className="flex-1"
-                                    />
-                                    <Field
-                                        label="Last Name"
-                                        icon={<UserIcon />}
-                                        required
-                                        value={form.lastName}
-                                        onChange={set("lastName")}
-                                        className="flex-1"
-                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <Field
+                                            label="First Name"
+                                            icon={<UserIcon />}
+                                            required
+                                            value={form.firstName}
+                                            onChange={set("firstName")}
+                                        />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <Field
+                                            label="Last Name"
+                                            icon={<UserIcon />}
+                                            required
+                                            value={form.lastName}
+                                            onChange={set("lastName")}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -161,13 +171,26 @@ const Invitation = () => {
                                 inputClassName="opacity-60 cursor-not-allowed"
                             />
 
-                            <Field
-                                label="Phone Number"
-                                icon={<UserIcon />}
-                                required
-                                value={form.phone}
-                                onChange={set("phone")}
-                            />
+                            <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                    <Field
+                                        label="Phone Number"
+                                        icon={<UserIcon />}
+                                        required
+                                        value={form.phone}
+                                        onChange={set("phone")}
+                                    />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <Select
+                                        label="Carrier"
+                                        required
+                                        options={[...CARRIER_OPTIONS]}
+                                        value={form.carrier}
+                                        onChange={(e) => setForm((f) => f && { ...f, carrier: e.target.value })}
+                                    />
+                                </div>
+                            </div>
 
                             {form.isNew && (
                                 <Field
@@ -183,7 +206,7 @@ const Invitation = () => {
                             <Button
                                 type="submit"
                                 disabled={submitting}
-                                className="bg-secondary hover:bg-secondary-hover active:bg-secondary-active w-full text-white disabled:opacity-60"
+                                className="hover:bg-primary-hover active:bg-primary-active bg-primary w-full text-white disabled:opacity-60"
                             >
                                 {submitting ? "Saving..." : form.isNew ? "Create Account" : "Continue"}
                             </Button>

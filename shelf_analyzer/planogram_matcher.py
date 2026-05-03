@@ -17,12 +17,12 @@ SMALL_SIZE_RATIO = 0.6
 BOUNDARY_ZONE_RATIO = 0.15
 BOUNDARY_MATCH_THRESHOLD = 0.5
 MISPLACED_CONFIDENCE_THRESHOLD = 0.9
-MISPLACED_MATCH_SCORE_THRESHOLD = 0.3
+misplacedATCH_SCORE_THRESHOLD = 0.3
 MISPLACED_CONTENT_CONFIDENCE_THRESHOLD = 0.75
 ROW_SKIP_PLANOGRAM_PENALTY = 6.0
 ROW_SKIP_DETECTED_PENALTY = 18.0
 SLOT_SKIP_PRODUCT_PENALTY = 0.55
-SLOT_MISSING_NO_GAP_PENALTY = 1.8
+SLOT_missingO_GAP_PENALTY = 1.8
 SLOT_MISSING_PARTIAL_GAP_REWARD = 0.8
 SLOT_MISSING_FULL_GAP_REWARD = 1.5
 SLOT_POSITION_JUMP_PENALTY = 1.35
@@ -339,7 +339,7 @@ def _slot_missing_score(slot_gaps: list[dict[str, Any]]) -> float:
         return SLOT_MISSING_FULL_GAP_REWARD
     if any(gap.get("gap_type") == "partial" for gap in slot_gaps):
         return SLOT_MISSING_PARTIAL_GAP_REWARD
-    return -SLOT_MISSING_NO_GAP_PENALTY
+    return -SLOT_missingO_GAP_PENALTY
 
 
 def _slot_alignment_score(
@@ -1016,7 +1016,7 @@ def audit_planogram(
                 and sku_visibility == "full"
             ):
                 audit_status = "misplaced"
-            elif sku_confidence < MISPLACED_CONFIDENCE_THRESHOLD or sku_visibility != "full" or match_score > MISPLACED_MATCH_SCORE_THRESHOLD:
+            elif sku_confidence < MISPLACED_CONFIDENCE_THRESHOLD or sku_visibility != "full" or match_score > misplacedATCH_SCORE_THRESHOLD:
                 audit_status = "unverified"
             else:
                 audit_status = "misplaced"

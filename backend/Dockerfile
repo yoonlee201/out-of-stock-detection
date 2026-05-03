@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11-slim
+ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION} AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -19,25 +19,30 @@ RUN adduser \
     appuser
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     postgresql-client \
-    curl && \
+    curl \
+    libgl1 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
+ARG TORCH_VARIANT=cpu
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 
-COPY . .
+COPY backend/ .
+COPY shelf_analyzer/ ./shelf_analyzer/
+
+RUN mkdir -p weights && mkdir -p .cache/huggingface
 
 RUN chown -R appuser /usr/src/app
 
 USER appuser
 
-EXPOSE ${BACKEND_PORT}
-
-
 ENV PYTHONPATH=/usr/src/app
 
-# Default command: start the app
+EXPOSE ${BACKEND_PORT}
+
 CMD ["python", "-m", "app.main"]

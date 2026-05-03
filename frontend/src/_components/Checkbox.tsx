@@ -12,7 +12,7 @@ const Checkbox = ({ checked, indeterminate, onChange }: CheckboxProps) => {
             type="button"
             onClick={onChange}
             className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-150 ${
-                active ? "border-tertiary bg-tertiary" : "border-tertiary hover:bg-tertiary/10 bg-white"
+                active ? "border-secondary bg-secondary" : "border-secondary hover:bg-secondary/10 bg-white"
             }`}
         >
             {indeterminate && !checked ? (

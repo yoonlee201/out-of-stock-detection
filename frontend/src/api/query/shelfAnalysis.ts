@@ -53,16 +53,28 @@ export interface ShelfAnalysisResponse {
     annotated_image: string;
 }
 
-export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisResponse> => {
+const DIRECT_URL = import.meta.env.VITE_DIRECT_BACKEND_URL;
+
+export const apiAnalyzeShelf = async (
+    image: File,
+    onUploadProgress?: (percent: number) => void,
+): Promise<ShelfAnalysisResponse> => {
     const formData = new FormData();
     formData.append("image", image);
 
+    const endpoint = DIRECT_URL ? `${DIRECT_URL}/shelf-analysis/analyze` : "/shelf-analysis/analyze";
+
     try {
-        const { data } = await axiosAuth.post<ShelfAnalysisResponse>("/shelf-analysis/analyze", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
+        const { data } = await axiosAuth.post<ShelfAnalysisResponse>(endpoint, formData, {
             timeout: 1800000,
+            headers: { "Content-Type": "multipart/form-data" },
+            onUploadProgress: onUploadProgress
+                ? (event) => {
+                      if (event.total) {
+                          onUploadProgress(Math.round((event.loaded / event.total) * 100));
+                      }
+                  }
+                : undefined,
         });
 
         return data;
@@ -70,13 +82,13 @@ export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisRespons
         if (isAxiosError(error)) {
             if (error.code === "ECONNABORTED") {
                 throw new Error(
-                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again."
+                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again.",
                 );
             }
 
             if (!error.response) {
                 throw new Error(
-                    "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open."
+                    "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open.",
                 );
             }
 
@@ -93,5 +105,24 @@ export const apiAnalyzeShelf = async (image: File): Promise<ShelfAnalysisRespons
 
         logger.error("Unexpected shelf analysis error:", error);
         throw new Error("An unexpected error occurred while analyzing the shelf image.");
+    }
+};
+
+export interface AnalysisHistoryEntry {
+    id: number;
+    file_name: string;
+    created_at: string;
+    result: ShelfAnalysisResponse;
+}
+
+export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
+    try {
+        const { data } = await axiosAuth.get<AnalysisHistoryEntry[]>("/shelf-analysis");
+        return data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to load analysis history.");
+        }
+        throw new Error("Failed to load analysis history.");
     }
 };
