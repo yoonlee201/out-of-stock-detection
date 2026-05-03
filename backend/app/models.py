@@ -61,6 +61,9 @@ class Products(db.Model):
     type = db.Column(db.String(50), nullable=False)
     qrcode = db.Column(db.String(100), unique=True, nullable=False)
     quantity_in_store = db.Column(db.Integer, nullable=False)
+    # Baseline (planogram capacity). Used as the denominator for low/out-of-stock
+    # percentage thresholds. Never overwritten by scans.
+    original_quantity = db.Column(db.Integer, nullable=False, server_default='0')
     shelf = db.Column(db.String(50), nullable=False)
     aisle = db.Column(db.String(50), nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)

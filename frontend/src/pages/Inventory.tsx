@@ -30,10 +30,11 @@ type SortField =
     | "shelfStatus"
     | "lastChecked"
     | "availability";
-type GroupField = "none" | "category" | "quantityStatus" | "shelfStatus" | "availability";
+type GroupField = "none" | "product" | "category" | "quantityStatus" | "shelfStatus" | "availability";
 
 const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
     { value: "none", label: "No grouping" },
+    { value: "product", label: "Product" },
     { value: "category", label: "Category" },
     { value: "quantityStatus", label: "Quantity Status" },
     { value: "shelfStatus", label: "Shelf Status" },
@@ -53,7 +54,7 @@ const sortValue = (item: InventoryItem, field: SortField): string | number => {
         case "stock":
             return item.stockCount;
         case "quantityStatus":
-            return deriveStatus(item.stockCount);
+            return deriveStatus(item.stockCount, item.originalStock);
         case "shelfStatus":
             return item.shelfStatus;
         case "lastChecked":
@@ -65,10 +66,12 @@ const sortValue = (item: InventoryItem, field: SortField): string | number => {
 
 const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
     switch (field) {
+        case "product":
+            return `${item.brand} ${item.productName}`.trim() || "Unknown";
         case "category":
             return item.category || "Uncategorized";
         case "quantityStatus":
-            return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount)];
+            return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount, item.originalStock)];
         case "shelfStatus":
             return SHELF_STATUS_LABEL[item.shelfStatus];
         case "availability":
@@ -157,7 +160,7 @@ const Inventory = () => {
     }, [user]);
 
     const summary = useMemo(() => {
-        const statuses = inventory.map((i) => deriveStatus(i.stockCount));
+        const statuses = inventory.map((i) => deriveStatus(i.stockCount, i.originalStock));
         return {
             total: inventory.length,
             inStock: statuses.filter((s) => s === "in_stock").length,
@@ -228,7 +231,7 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
     const [sortField, setSortField] = useState<SortField>("product");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-    const [groupBy, setGroupBy] = useState<GroupField>("none");
+    const [groupBy, setGroupBy] = useState<GroupField>("product");
     const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
     const [reorderTarget, setReorderTarget] = useState<InventoryItem | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null);
@@ -244,7 +247,7 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 item.size.toLowerCase().includes(q);
             const matchCategory = categoryFilter === "All" || item.category === categoryFilter;
             const matchStatus =
-                view === "customer" || statusFilter === "all" || deriveStatus(item.stockCount) === statusFilter;
+                view === "customer" || statusFilter === "all" || deriveStatus(item.stockCount, item.originalStock) === statusFilter;
             return matchSearch && matchCategory && matchStatus;
         });
     }, [inventory, search, categoryFilter, statusFilter, view]);
@@ -315,13 +318,13 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                     <EmployeeRow
                         key={item.id}
                         item={item}
-                        status={deriveStatus(item.stockCount)}
+                        status={deriveStatus(item.stockCount, item.originalStock)}
                         onEdit={() => setEditTarget(item)}
                         onReorder={() => setReorderTarget(item)}
                         onDelete={() => setDeleteTarget(item)}
                     />
                 ) : (
-                    <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
+                    <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount, item.originalStock)} />
                 ),
             );
         });

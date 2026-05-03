@@ -10,6 +10,7 @@ interface RawProduct {
     size: string;
     type: string;
     quantity_in_store: number;
+    original_quantity?: number;
     aisle: string;
     shelf: string;
     shelf_status: string;
@@ -24,6 +25,7 @@ const toInventoryItem = (p: RawProduct): InventoryItem => ({
     size: p.size,
     category: p.type,
     stockCount: p.quantity_in_store,
+    originalStock: p.original_quantity ?? p.quantity_in_store,
     aisle: p.aisle,
     shelf: p.shelf,
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",

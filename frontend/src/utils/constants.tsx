@@ -30,14 +30,16 @@ export const STATUS_DOT: Record<EmployeeStatus, string> = {
 };
 
 // ── Quantity status ────────────────────────────────────────────────────────────
-// Keep these aligned with the backend thresholds in
-// backend/app/services/alert_services.py::update_shelf_status_from_detections.
-export const OUT_OF_STOCK_THRESHOLD = 5;
-export const LOW_STOCK_THRESHOLD = 10;
+// Percentage of original (planogram) capacity. Keep aligned with the backend
+// thresholds in backend/app/services/alert_services.py.
+export const OUT_OF_STOCK_RATIO = 0.05;
+export const LOW_STOCK_RATIO = 0.15;
 
-export const deriveStatus = (qty: number): InventoryStatus => {
-    if (qty < OUT_OF_STOCK_THRESHOLD) return "out_of_stock";
-    if (qty < LOW_STOCK_THRESHOLD) return "low_stock";
+export const deriveStatus = (qty: number, original?: number): InventoryStatus => {
+    const baseline = original && original > 0 ? original : qty || 1;
+    const ratio = qty / baseline;
+    if (ratio < OUT_OF_STOCK_RATIO) return "out_of_stock";
+    if (ratio < LOW_STOCK_RATIO) return "low_stock";
     return "in_stock";
 };
 

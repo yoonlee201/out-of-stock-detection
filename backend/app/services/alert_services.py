@@ -187,9 +187,11 @@ def update_shelf_status_from_detections(detections):
             product.quantity_in_store = max(0, (product.quantity_in_store or 0) - lost)
 
         remaining = product.quantity_in_store or 0
-        if remaining < 5:
+        baseline = product.original_quantity or remaining or 1
+        ratio = remaining / baseline if baseline > 0 else 0
+        if ratio < 0.05:
             product.shelf_status = "out_of_stock"
-        elif remaining < 10:
+        elif ratio < 0.15:
             product.shelf_status = "low_stock"
         elif product_id in misplaced_seen and lost == 0:
             product.shelf_status = "misplaced"

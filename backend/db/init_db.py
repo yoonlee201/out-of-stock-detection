@@ -67,28 +67,28 @@ def _seed(app):
         # scanner overwrites it via update_shelf_status_from_detections.
         product_rows = [
             # name                       brand            variant         size       type      qrcode             qty  shelf aisle  supplier
-            ("Chex",                     "General Mills", "Blueberry",    "14 oz",   "cereal", "QR-CHEX-BLUE",      8,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Chex",                     "General Mills", "Cinnamon",     "14 oz",   "cereal", "QR-CHEX-CINN",     10,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Chex",                     "General Mills", "Honey Nut",    "14 oz",   "cereal", "QR-CHEX-HONY",     24,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Chex",                     "General Mills", "Original",     "14 oz",   "cereal", "QR-CHEX-ORIG",     15,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Chex",                     "General Mills", "Wheat",        "14 oz",   "cereal", "QR-CHEX-WHET",     18,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Crispix",                  "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-CRSP-ORIG",     22,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Wheaties",                 "General Mills", "Original",     "15.6 oz", "cereal", "QR-WHTY-ORIG",     14,  "1",  "5",  s["kehe@distributors.net"].id),
-            ("Rice Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-RICE-ORIG",     20,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Rice Squares",             "Great Value",   "Original",     "14 oz",   "cereal", "QR-RSQR-ORIG",     14,  "2",  "5",  s["cswholesale@supplyco.com"].id),
-            ("Corn Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-CORN-ORIG",     59,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Cheerios",                 "General Mills", "Oat Crunch",   "14 oz",   "cereal", "QR-CHRO-OATC",     86,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Cheerios",                 "General Mills", "Original",     "12 oz",   "cereal", "QR-CHRO-ORIG",     34,  "4",  "5",  s["kehe@distributors.net"].id),
-            ("Maple Cheerios",           "General Mills", "Maple",        "12 oz",   "cereal", "QR-MAPL-ORIG",     16,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     24,  "2",  "5",  s["cswholesale@supplyco.com"].id),
-            ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     28,  "3",  "5",  s["kehe@distributors.net"].id),
-            ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",     18,  "3",  "5",  s["kehe@distributors.net"].id),
-            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     52,  "3",  "5",  s["unfi@naturalfoods.com"].id),
-            ("Life",                     "Quaker",        "Original",     "13 oz",   "cereal", "QR-LIFE-ORIG",     75,  "4",  "5",  s["unfi@naturalfoods.com"].id),
+            ("Chex",                     "General Mills", "Blueberry",    "14 oz",   "cereal", "QR-CHEX-BLUE",      6,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Cinnamon",     "14 oz",   "cereal", "QR-CHEX-CINN",      8,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Honey Nut",    "14 oz",   "cereal", "QR-CHEX-HONY",     12,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Original",     "14 oz",   "cereal", "QR-CHEX-ORIG",      9,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Wheat",        "14 oz",   "cereal", "QR-CHEX-WHET",     11,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Crispix",                  "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-CRSP-ORIG",     12,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Wheaties",                 "General Mills", "Original",     "15.6 oz", "cereal", "QR-WHTY-ORIG",      8,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Rice Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-RICE-ORIG",     11,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Rice Squares",             "Great Value",   "Original",     "14 oz",   "cereal", "QR-RSQR-ORIG",      7,  "2",  "5",  s["cswholesale@supplyco.com"].id),
+            ("Corn Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-CORN-ORIG",     14,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Oat Crunch",   "14 oz",   "cereal", "QR-CHRO-OATC",     16,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Original",     "12 oz",   "cereal", "QR-CHRO-ORIG",     13,  "4",  "5",  s["kehe@distributors.net"].id),
+            ("Maple Cheerios",           "General Mills", "Maple",        "12 oz",   "cereal", "QR-MAPL-ORIG",      9,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     10,  "2",  "5",  s["cswholesale@supplyco.com"].id),
+            ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     12,  "3",  "5",  s["kehe@distributors.net"].id),
+            ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",      8,  "3",  "5",  s["kehe@distributors.net"].id),
+            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     14,  "3",  "5",  s["unfi@naturalfoods.com"].id),
+            ("Life",                     "Quaker",        "Original",     "13 oz",   "cereal", "QR-LIFE-ORIG",     17,  "4",  "5",  s["unfi@naturalfoods.com"].id),
         ]
         products = [
             Products(name=n, brand=brand, variant=variant, size=size,
-                     type=t, qrcode=qr, quantity_in_store=qty,
+                     type=t, qrcode=qr, quantity_in_store=qty, original_quantity=qty,
                      shelf=shelf, aisle=aisle, supplier_id=sid)
             for n, brand, variant, size, t, qr, qty, shelf, aisle, sid in product_rows
         ]
