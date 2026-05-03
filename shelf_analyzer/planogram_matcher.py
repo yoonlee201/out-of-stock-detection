@@ -49,6 +49,7 @@ def _slot_to_sku(slot: dict[str, Any]) -> dict[str, Any]:
         "product_name": slot.get("product", "unknown"),
         "variant": slot.get("variant", "unknown"),
         "size": slot.get("size", "unknown"),
+        "quantity": slot.get("quantity"),
         "confidence": 1.0,
     }
 

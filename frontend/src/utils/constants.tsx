@@ -30,10 +30,13 @@ export const STATUS_DOT: Record<EmployeeStatus, string> = {
 };
 
 // ── Quantity status ────────────────────────────────────────────────────────────
+// Keep these aligned with the backend thresholds in
+// backend/app/services/alert_services.py::update_shelf_status_from_detections.
+export const OUT_OF_STOCK_THRESHOLD = 5;
 export const LOW_STOCK_THRESHOLD = 10;
 
 export const deriveStatus = (qty: number): InventoryStatus => {
-    if (qty <= 0) return "out_of_stock";
+    if (qty < OUT_OF_STOCK_THRESHOLD) return "out_of_stock";
     if (qty < LOW_STOCK_THRESHOLD) return "low_stock";
     return "in_stock";
 };
