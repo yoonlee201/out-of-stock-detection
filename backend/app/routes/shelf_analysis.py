@@ -12,7 +12,7 @@ from PIL import Image
 
 from app.core.db import db
 from app.models import ShelfAnalysisLog
-from app.services.alert_services import send_out_of_stock_alerts
+from app.services.alert_services import send_out_of_stock_alerts, update_shelf_status_from_detections
 from app.util.auth import _get_current_user
 
 
@@ -173,6 +173,12 @@ def analyze_shelf():
             db.session.add(log)
             db.session.commit()
             log_id = log.id
+        except Exception:
+            db.session.rollback()
+            traceback.print_exc()
+
+        try:
+            update_shelf_status_from_detections(detections)
         except Exception:
             db.session.rollback()
             traceback.print_exc()

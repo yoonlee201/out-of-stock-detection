@@ -1,36 +1,22 @@
 # OS / Editor
 .DS_Store
 Thumbs.db
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
+.vscode/
 .idea/
 
-# Secrets / local env files — never commit these
+# Secrets / local env files
 .env
 .env.*
 !.env.example
-
-# SSH / TLS key material — keep out of version control unconditionally
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-id_rsa
-id_ed25519
-*.pub
-
-# ops/ contains deployment scripts that may reference key paths;
-# only the SQL and doc files are committed — everything else is ignored.
-ops/secrets/
-ops/*.pem
-ops/*.key
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *.so
 *.egg-info/
 .pytest_cache/
@@ -41,6 +27,9 @@ __pycache__/
 .venv/
 venv/
 env/
+backend/.venv/
+backend/venv/
+shelf_analyzer/.venv/
 
 # Node / Vite
 frontend/node_modules/
@@ -56,9 +45,11 @@ frontend/dist/
 *.pth
 *.onnx
 runs/
+weights/*.pt
 
 # Generated outputs / caches
 **/output/
+**/data/
 .cache/
 hf_cache/
 pip-cache/

@@ -138,6 +138,72 @@ def _build_email(
     return plain, render_email(content)
 
 
+def update_shelf_status_from_detections(detections):
+    """Flip Products.shelf_status based on the latest scan results so the
+    out-of-stock / low-stock views can read it directly from the DB.
+    """
+    if not detections:
+        return
+
+    now = datetime.now()
+    # Per product: total expected facings across all its slots, and how many of
+    # those facings the scan reported as missing. remaining = expected - missing.
+    expected_by_product: dict[int, int] = {}
+    missing_by_product: dict[int, int] = {}
+    misplaced_seen: set[int] = set()
+    products_by_id: dict[int, Products] = {}
+
+    for item in detections:
+        if not isinstance(item, dict):
+            continue
+        audit_status = item.get("audit_status")
+        if audit_status not in ("correct", "missing", "misplaced", "unverified"):
+            continue
+
+        product = _resolve_product(item)
+        if product is None:
+            continue
+
+        products_by_id[product.product_id] = product
+        slot_qty = (item.get("expected_sku") or {}).get("quantity")
+        slot_qty = int(slot_qty) if slot_qty is not None else 0
+
+        if audit_status in ("correct", "missing"):
+            expected_by_product[product.product_id] = expected_by_product.get(product.product_id, 0) + slot_qty
+        if audit_status == "missing":
+            # The camera only sees the front face. gap_type hints at how deep
+            # the hole is: a "full" gap means the whole stack is empty;
+            # "partial" means front is gone but something is still behind it.
+            gap_type = item.get("gap_type")
+            if gap_type == "partial":
+                lost = max(1, slot_qty // 2)
+            else:
+                # "full" or "inferred_slot" — assume the depth is depleted.
+                lost = slot_qty
+            missing_by_product[product.product_id] = missing_by_product.get(product.product_id, 0) + lost
+        if audit_status == "misplaced":
+            misplaced_seen.add(product.product_id)
+
+    for product_id, product in products_by_id.items():
+        expected = expected_by_product.get(product_id, 0)
+        missing = missing_by_product.get(product_id, 0)
+        remaining = max(0, expected - missing)
+        product.quantity_in_store = remaining
+
+        if remaining < 5:
+            product.shelf_status = "out_of_stock"
+        elif remaining < 10:
+            product.shelf_status = "low_stock"
+        elif product_id in misplaced_seen and missing == 0:
+            product.shelf_status = "misplaced"
+        else:
+            product.shelf_status = "on_shelf"
+        product.last_checked = now
+
+    if products_by_id:
+        db.session.commit()
+
+
 def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):
     """Email every active employee with the scan summary and a deep-link to the
     shelf-detection page. Also sends a short SMS for users with a phone/carrier,
