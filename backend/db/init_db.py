@@ -60,26 +60,31 @@ def _seed(app):
         # Products  (fields: name, brand, variant, size, type, qrcode,
         #            quantity_in_store, shelf, aisle, supplier_id)
         # ------------------------------------------------------------------
+        # Names/brands/variants must match planogram slots exactly so that
+        # alert_services._resolve_product can find the row when a scan runs.
+        # See shelf_analyzer/data/planograms/cereal_aisle_main.json.
+        # Initial quantity_in_store = sum of planogram facings for that SKU; the
+        # scanner overwrites it via update_shelf_status_from_detections.
         product_rows = [
-            # name                    brand                variant               size         type             qrcode          qty  shelf aisle  supplier
-            ("Whole Milk",            "Organic Valley",    "Whole",              "1 gal",     "dairy",         "QR-MILK-001",  18,   "3",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Reduced Fat Milk",      "Horizon",           "2% Reduced Fat",     "1 gal",     "dairy",         "QR-MILK-002",  12,   "3",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Ground Beef",           "Local Farm",        "80/20",              "1 lb",      "meat",          "QR-BEEF-001",   8,   "2",  "7",  s["localmeat@regional.com"].id),
-            ("Chicken Breast",        "Tyson",             "Boneless Skinless",  "2 lb",      "meat",          "QR-CHKN-001",  22,   "1",  "7",  s["localmeat@regional.com"].id),
-            ("Bananas",               "Dole",              "Yellow",             "Bunch",     "produce",       "QR-BANA-001",  45,   "1",  "1",  s["freshpoint@produce.com"].id),
-            ("Roma Tomatoes",         "Local Farm",        "Roma",               "1 lb",      "produce",       "QR-TOMA-001",  14,   "2",  "1",  s["freshpoint@produce.com"].id),
-            ("Sourdough Bread",       "Pepperidge Farm",   "Classic",            "24 oz",     "bakery",        "QR-BRED-001",   9,   "5",  "2",  s["usfoods@distro.com"].id),
-            ("Orange Juice",          "Tropicana",         "Original No Pulp",   "64 oz",     "beverage",      "QR-OJ-001",    16,   "4",  "4",  s["performancefood@group.com"].id),
-            ("Pepperoni Pizza",       "DiGiorno",          "Rising Crust",       "28.2 oz",   "frozen",        "QR-PIZA-001",   7,   "2",  "8",  s["performancefood@group.com"].id),
-            ("Potato Chips",          "Lay's",             "Classic",            "8 oz",      "snacks",        "QR-CHIP-001",  31,   "4",  "6",  s["cswholesale@supplyco.com"].id),
-            ("Tomato Soup",           "Campbell's",        "Classic",            "10.75 oz",  "canned",        "QR-SOUP-001",  24,   "6",  "5",  s["kehe@distributors.net"].id),
-            ("Shampoo",               "Head & Shoulders",  "Classic Clean",      "13.5 oz",   "personal care", "QR-SHMP-001",  11,   "1",  "9",  s["unfi@naturalfoods.com"].id),
-            ("Greek Yogurt",          "Chobani",           "Plain",              "32 oz",     "dairy",         "QR-YOGT-001",   5,   "4",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Large Eggs",            "Eggland's Best",    "Grade A",            "12 ct",     "dairy",         "QR-EGGS-001",  19,   "5",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Gala Apples",           "Local Farm",        "Gala",               "3 lb bag",  "produce",       "QR-APPL-001",  28,   "1",  "1",  s["freshpoint@produce.com"].id),
-            ("Cheddar Cheese",        "Tillamook",         "Sharp",              "16 oz",     "dairy",         "QR-CHED-001",   6,   "6",  "3",  s["dairyfarmers@coop.com"].id),
-            ("Pasta Sauce",           "Rao's",             "Marinara",           "24 oz",     "canned",        "QR-SAUCE-001", 17,   "7",  "5",  s["kehe@distributors.net"].id),
-            ("Toilet Paper",          "Charmin",           "Ultra Soft",         "12 rolls",  "personal care", "QR-TP-001",    13,   "3",  "10", s["unfi@naturalfoods.com"].id),
+            # name                       brand            variant         size       type      qrcode             qty  shelf aisle  supplier
+            ("Chex",                     "General Mills", "Blueberry",    "14 oz",   "cereal", "QR-CHEX-BLUE",      8,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Cinnamon",     "14 oz",   "cereal", "QR-CHEX-CINN",     10,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Honey Nut",    "14 oz",   "cereal", "QR-CHEX-HONY",     24,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Original",     "14 oz",   "cereal", "QR-CHEX-ORIG",     15,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Chex",                     "General Mills", "Wheat",        "14 oz",   "cereal", "QR-CHEX-WHET",     18,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Crispix",                  "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-CRSP-ORIG",     22,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Wheaties",                 "General Mills", "Original",     "15.6 oz", "cereal", "QR-WHTY-ORIG",     14,  "1",  "5",  s["kehe@distributors.net"].id),
+            ("Rice Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-RICE-ORIG",     20,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Rice Squares",             "Great Value",   "Original",     "14 oz",   "cereal", "QR-RSQR-ORIG",     14,  "2",  "5",  s["cswholesale@supplyco.com"].id),
+            ("Corn Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-CORN-ORIG",     59,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Oat Crunch",   "14 oz",   "cereal", "QR-CHRO-OATC",     86,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Original",     "12 oz",   "cereal", "QR-CHRO-ORIG",     34,  "4",  "5",  s["kehe@distributors.net"].id),
+            ("Maple Cheerios",           "General Mills", "Maple",        "12 oz",   "cereal", "QR-MAPL-ORIG",     16,  "2",  "5",  s["kehe@distributors.net"].id),
+            ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     24,  "2",  "5",  s["cswholesale@supplyco.com"].id),
+            ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     28,  "3",  "5",  s["kehe@distributors.net"].id),
+            ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",     18,  "3",  "5",  s["kehe@distributors.net"].id),
+            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     52,  "3",  "5",  s["unfi@naturalfoods.com"].id),
+            ("Life",                     "Quaker",        "Original",     "13 oz",   "cereal", "QR-LIFE-ORIG",     75,  "4",  "5",  s["unfi@naturalfoods.com"].id),
         ]
         products = [
             Products(name=n, brand=brand, variant=variant, size=size,
