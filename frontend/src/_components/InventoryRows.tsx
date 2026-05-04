@@ -18,15 +18,23 @@ const groupLocationsByShelf = (locations: ProductLocation[]): [string, ProductLo
         .sort(([a], [b]) => (Number(a) || 0) - (Number(b) || 0));
 };
 
-const ShelfLocationsCell = ({ item }: { item: InventoryItem }) => {
+const ShelfCell = ({ item }: { item: InventoryItem }) => {
     if (!item.locations || item.locations.length === 0) {
-        return <span className="text-text-muted">{item.shelf || "—"}</span>;
+        return <span>{item.shelf || "—"}</span>;
     }
+    const shelves = Array.from(new Set(item.locations.map((l) => l.shelf))).sort(
+        (a, b) => (Number(a) || 0) - (Number(b) || 0),
+    );
+    return <span>{shelves.join(", ")}</span>;
+};
+
+const PositionCell = ({ item }: { item: InventoryItem }) => {
+    if (!item.locations || item.locations.length === 0) return <span className="text-text-muted">—</span>;
     return (
-        <div className="space-y-1">
+        <div className="space-y-0.5">
             {groupLocationsByShelf(item.locations).map(([shelf, locs]) => (
                 <div key={shelf} className="flex flex-wrap items-baseline gap-1">
-                    <span className="text-text font-medium">Shelf {shelf}:</span>
+                    <span className="text-text-muted text-[10px]">S{shelf}:</span>
                     <span className="text-text-secondary">{locs.map((l) => `P${l.position}`).join(", ")}</span>
                 </div>
             ))}
@@ -134,7 +142,10 @@ export const EmployeeRow = ({
             <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
             <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
             <td className="text-text-secondary px-5 py-4 text-xs">
-                <ShelfLocationsCell item={item} />
+                <ShelfCell item={item} />
+            </td>
+            <td className="text-text-secondary px-5 py-4 text-xs">
+                <PositionCell item={item} />
             </td>
             <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
             <td className="px-5 py-4">
@@ -223,7 +234,10 @@ export const CustomerRow = ({ item, status }: { item: InventoryItem; status: Inv
         <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
         <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
         <td className="text-text-secondary px-5 py-4 text-xs">
-            <ShelfLocationsCell item={item} />
+            <ShelfCell item={item} />
+        </td>
+        <td className="text-text-secondary px-5 py-4 text-xs">
+            <PositionCell item={item} />
         </td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
