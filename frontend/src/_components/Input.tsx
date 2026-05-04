@@ -24,7 +24,7 @@ const Input = ({ className, icon, type = "text", visible, placeholder, ...props 
             <input
                 type={isPassword ? (show ? "text" : "password") : type}
                 placeholder={placeholder}
-                className="placeholder:text-text-muted bg-transparent text-sm outline-none w-full"
+                className="placeholder:text-text-muted w-full bg-transparent text-sm outline-none"
                 {...props}
             />
 

@@ -10,7 +10,7 @@ export type ProductLocation = {
     planogramQuantity: number;
     shelfStatus: ShelfStatus;
     lastChecked: Date | null;
-}
+};
 
 export type InventoryItem = {
     id: string;
@@ -31,6 +31,6 @@ export type InventoryItem = {
     lastChecked: Date;
     /** Per-slot placements pulled from the planogram. */
     locations?: ProductLocation[];
-}
+};
 
 export type CustomerAvailability = "available" | "limited" | "unavailable";

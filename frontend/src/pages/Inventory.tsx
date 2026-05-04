@@ -249,7 +249,9 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 item.size.toLowerCase().includes(q);
             const matchCategory = categoryFilter === "All" || item.category === categoryFilter;
             const matchStatus =
-                view === "customer" || statusFilter === "all" || deriveStatus(item.stockCount, item.originalStock) === statusFilter;
+                view === "customer" ||
+                statusFilter === "all" ||
+                deriveStatus(item.stockCount, item.originalStock) === statusFilter;
             return matchSearch && matchCategory && matchStatus;
         });
     }, [inventory, search, categoryFilter, statusFilter, view]);

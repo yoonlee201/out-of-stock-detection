@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-    apiGetActiveJobs,
-    apiGetAnalysisHistory,
-    apiSubmitAnalysis,
-} from "../api/query/shelfAnalysis";
+import { apiGetActiveJobs, apiGetAnalysisHistory, apiSubmitAnalysis } from "../api/query/shelfAnalysis";
 import type { JobStatus, ShelfAnalysisResponse, ShelfDetection } from "../types/shelfAnalysis";
 import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
@@ -84,7 +80,9 @@ const Dashboard = () => {
             .finally(() => {
                 if (!cancelled) setHistoryLoading(false);
             });
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     // Poll the shared active-job queue every 2 seconds. The list comes from the backend so any
@@ -153,7 +151,9 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (!imageDialogOpen) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setImageDialogOpen(false); };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setImageDialogOpen(false);
+        };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [imageDialogOpen]);
@@ -253,44 +253,45 @@ const Dashboard = () => {
                     <h2 className="mb-4 text-xl font-semibold">Analysis History</h2>
 
                     {/* Active jobs */}
-                    {activeJobs.length > 0 && (() => {
-                        const runningJobs = activeJobs.filter((j) => j.status === "running");
-                        const queuedJobs = activeJobs.filter((j) => j.status === "queued");
-                        return (
-                            <div className="mb-4 space-y-3">
-                                {queuedJobs.length > 0 && (
-                                    <div>
-                                        <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                                            Waiting
-                                        </p>
-                                        <div className="space-y-2">
-                                            {queuedJobs.map((job) => (
-                                                <ActiveJobCard key={job.jobId} job={job} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {runningJobs.length > 0 && (
-                                    <div>
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
-                                                Processing
+                    {activeJobs.length > 0 &&
+                        (() => {
+                            const runningJobs = activeJobs.filter((j) => j.status === "running");
+                            const queuedJobs = activeJobs.filter((j) => j.status === "queued");
+                            return (
+                                <div className="mb-4 space-y-3">
+                                    {queuedJobs.length > 0 && (
+                                        <div>
+                                            <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                                                Waiting
                                             </p>
-                                            <span className="text-text-muted text-xs font-semibold">
-                                                {runningJobs.length} / 3
-                                            </span>
+                                            <div className="space-y-2">
+                                                {queuedJobs.map((job) => (
+                                                    <ActiveJobCard key={job.jobId} job={job} />
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            {runningJobs.map((job) => (
-                                                <ActiveJobCard key={job.jobId} job={job} />
-                                            ))}
+                                    )}
+                                    {runningJobs.length > 0 && (
+                                        <div>
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <p className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
+                                                    Processing
+                                                </p>
+                                                <span className="text-text-muted text-xs font-semibold">
+                                                    {runningJobs.length} / 3
+                                                </span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {runningJobs.map((job) => (
+                                                    <ActiveJobCard key={job.jobId} job={job} />
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                {history.length > 0 && <div className="border-border mt-1 border-t" />}
-                            </div>
-                        );
-                    })()}
+                                    )}
+                                    {history.length > 0 && <div className="border-border mt-1 border-t" />}
+                                </div>
+                            );
+                        })()}
 
                     {historyLoading ? (
                         <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
@@ -510,10 +511,10 @@ const Dashboard = () => {
                                     className="bg-primary flex-1 rounded-2xl px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400"
                                 >
                                     {analysisLoading
-                                    ? uploadProgress < 100
-                                        ? "Uploading..."
-                                        : "Queuing..."
-                                    : "Analyze"}
+                                        ? uploadProgress < 100
+                                            ? "Uploading..."
+                                            : "Queuing..."
+                                        : "Analyze"}
                                 </button>
                             </div>
                         </div>
@@ -569,9 +570,7 @@ const ActiveJobCard = ({ job }: { job: ActiveJob }) => (
             <div className="mt-2 space-y-1">
                 <div className="flex justify-between text-xs">
                     <span className="text-text-muted">{job.progress}%</span>
-                    {job.etaSeconds != null && (
-                        <span className="text-text-muted">{formatEta(job.etaSeconds)}</span>
-                    )}
+                    {job.etaSeconds != null && <span className="text-text-muted">{formatEta(job.etaSeconds)}</span>}
                 </div>
                 <div className="bg-surface-muted h-1.5 w-full overflow-hidden rounded-full">
                     <div
@@ -642,10 +641,14 @@ const formatAssignmentMethod = (assignmentMethod?: ShelfDetection["assignment_me
 
 const detectionRowBg = (status: string) => {
     switch (status) {
-        case "missing": return "bg-status-missing-bg";
-        case "misplaced": return "bg-status-misplaced-bg";
-        case "unverified": return "bg-status-info-bg";
-        default: return "";
+        case "missing":
+            return "bg-status-missing-bg";
+        case "misplaced":
+            return "bg-status-misplaced-bg";
+        case "unverified":
+            return "bg-status-info-bg";
+        default:
+            return "";
     }
 };
 
@@ -689,7 +692,9 @@ const IssueCard = ({ detection, reviewOnly = false }: { detection: ShelfDetectio
                 <span className="bg-text text-background rounded-full px-3 py-1 text-xs font-bold tracking-[0.18em]">
                     {marker}
                 </span>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeClass}`}>
+                <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase ${badgeClass}`}
+                >
                     {SHELF_STATUS_LABEL[status as keyof typeof SHELF_STATUS_LABEL] ?? status.replace("_", " ")}
                 </span>
                 <span className="text-text-secondary text-sm font-semibold">{detection.slot_id || "Unknown slot"}</span>

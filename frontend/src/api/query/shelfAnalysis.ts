@@ -1,18 +1,12 @@
 import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
-import type {
-    ActiveJobInfo,
-    AnalysisHistoryEntry,
-    JobStatus,
-    JobSubmitResponse,
-} from "../../types/shelfAnalysis";
+import type { ActiveJobInfo, AnalysisHistoryEntry, JobStatus, JobSubmitResponse } from "../../types/shelfAnalysis";
 
 const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
     ? `${import.meta.env.VITE_BACKEND_BASE_URL}${import.meta.env.VITE_BACKEND_URL}`
     : import.meta.env.VITE_BACKEND_URL;
 
-const resolveEndpoint = (path: string) =>
-    DIRECT_URL ? `${DIRECT_URL}${path}` : path;
+const resolveEndpoint = (path: string) => (DIRECT_URL ? `${DIRECT_URL}${path}` : path);
 
 export const apiSubmitAnalysis = async (
     image: File,
@@ -22,28 +16,22 @@ export const apiSubmitAnalysis = async (
     formData.append("image", image);
 
     try {
-        const { data } = await axiosAuth.post<JobSubmitResponse>(
-            resolveEndpoint("/shelf-analysis/analyze"),
-            formData,
-            {
-                timeout: 120000,
-                headers: { "Content-Type": "multipart/form-data" },
-                onUploadProgress: onUploadProgress
-                    ? (event) => {
-                          if (event.total) {
-                              onUploadProgress(Math.round((event.loaded / event.total) * 100));
-                          }
+        const { data } = await axiosAuth.post<JobSubmitResponse>(resolveEndpoint("/shelf-analysis/analyze"), formData, {
+            timeout: 120000,
+            headers: { "Content-Type": "multipart/form-data" },
+            onUploadProgress: onUploadProgress
+                ? (event) => {
+                      if (event.total) {
+                          onUploadProgress(Math.round((event.loaded / event.total) * 100));
                       }
-                    : undefined,
-            },
-        );
+                  }
+                : undefined,
+        });
         return data;
     } catch (error: unknown) {
         if (isAxiosError(error)) {
             if (!error.response) {
-                throw new Error(
-                    "Could not reach the shelf analysis server. Make sure the backend is running.",
-                );
+                throw new Error("Could not reach the shelf analysis server. Make sure the backend is running.");
             }
             const msg =
                 (error.response.data as { message?: string })?.message ||
@@ -60,9 +48,7 @@ export const apiGetActiveJobs = async (): Promise<ActiveJobInfo[]> => {
         return data;
     } catch (error: unknown) {
         if (isAxiosError(error)) {
-            const msg =
-                (error.response?.data as { message?: string })?.message ||
-                "Failed to load active jobs.";
+            const msg = (error.response?.data as { message?: string })?.message || "Failed to load active jobs.";
             throw new Error(msg);
         }
         throw new Error("Failed to load active jobs.");

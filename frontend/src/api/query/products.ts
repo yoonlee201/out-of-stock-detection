@@ -2,16 +2,16 @@ import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
 import type { InventoryItem, ShelfStatus } from "../../types/inventory";
 
-type RawLocation =  {
+type RawLocation = {
     slot_id: string;
     shelf: string;
     position: number;
     planogram_quantity: number;
     shelf_status: string;
     last_checked: string | null;
-}
+};
 
-type RawProduct =  {
+type RawProduct = {
     product_id: number;
     name: string;
     brand: string;
@@ -25,7 +25,7 @@ type RawProduct =  {
     shelf_status: string;
     last_checked: string | null;
     locations?: RawLocation[];
-}
+};
 
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
     id: String(p.product_id),
