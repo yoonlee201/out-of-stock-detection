@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.core.db import db
-from app.models import Products, Suppliers
+from app.models import ProductLocations, Products, Suppliers
 from app.util.auth import require_active_employee
 
 products_blueprint = Blueprint("products", __name__)
@@ -89,6 +89,24 @@ def create_product(session):
     )
 
     db.session.add(product)
+    db.session.flush()  # assign product_id before creating locations
+
+    raw_positions = body.get("positions", [])
+    if isinstance(raw_positions, list):
+        positions = [int(p) for p in raw_positions if str(p).strip().isdigit()]
+        shelves = [s.strip() for s in product.shelf.split(",") if s.strip()]
+        for shelf_val in shelves:
+            for pos in positions:
+                slot_id = f"R{shelf_val}-P{pos}"
+                if not ProductLocations.query.filter_by(slot_id=slot_id).first():
+                    db.session.add(ProductLocations(
+                        product_id=product.product_id,
+                        slot_id=slot_id,
+                        shelf=shelf_val,
+                        position=pos,
+                        planogram_quantity=1,
+                    ))
+
     db.session.commit()
     return jsonify({"message": "Product created", "product": _serialize(product)}), 201
 
