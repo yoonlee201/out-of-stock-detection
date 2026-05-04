@@ -282,7 +282,8 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
         }
     };
 
-    const colSpan = view === "employee" ? 9 : 8;
+    const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
+    const colSpan = columns.length;
 
     const renderRows = (page: number, pageSize: number) => {
         const items = sorted.slice((page - 1) * pageSize, page * pageSize);
@@ -333,7 +334,6 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
         return out;
     };
 
-    const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
     const groupOptions =
         view === "customer"
             ? GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability")

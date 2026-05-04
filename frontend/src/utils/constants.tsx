@@ -32,8 +32,8 @@ export const STATUS_DOT: Record<EmployeeStatus, string> = {
 // ── Quantity status ────────────────────────────────────────────────────────────
 // Percentage of original (planogram) capacity. Keep aligned with the backend
 // thresholds in backend/app/services/alert_services.py.
-export const OUT_OF_STOCK_RATIO = 0.05;
-export const LOW_STOCK_RATIO = 0.15;
+export const OUT_OF_STOCK_RATIO = 0.1;
+export const LOW_STOCK_RATIO = 0.5;
 
 export const deriveStatus = (qty: number, original?: number): InventoryStatus => {
     const baseline = original && original > 0 ? original : qty || 1;

@@ -227,9 +227,9 @@ def update_shelf_status_from_detections(detections):
         # Misplaced wins over stock-level statuses for the summary column.
         if misplaced_by_product.get(product_id, 0) > 0:
             product.shelf_status = "misplaced"
-        elif ratio < 0.05:
+        elif ratio < 0.1:
             product.shelf_status = "out_of_stock"
-        elif ratio < 0.15:
+        elif ratio < 0.5:
             product.shelf_status = "low_stock"
         else:
             product.shelf_status = "on_shelf"
