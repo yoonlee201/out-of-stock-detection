@@ -1,9 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 
-interface DropdownOption {
+type DropdownOption = {
     value: string;
     label: string;
-}
+};
 
 interface DropdownProps {
     label: string;

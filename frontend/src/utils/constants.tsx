@@ -30,11 +30,16 @@ export const STATUS_DOT: Record<EmployeeStatus, string> = {
 };
 
 // ── Quantity status ────────────────────────────────────────────────────────────
-export const LOW_STOCK_THRESHOLD = 10;
+// Percentage of original (planogram) capacity. Keep aligned with the backend
+// thresholds in backend/app/services/alert_services.py.
+export const OUT_OF_STOCK_RATIO = 0.1;
+export const LOW_STOCK_RATIO = 0.5;
 
-export const deriveStatus = (qty: number): InventoryStatus => {
-    if (qty <= 0) return "out_of_stock";
-    if (qty < LOW_STOCK_THRESHOLD) return "low_stock";
+export const deriveStatus = (qty: number, original?: number): InventoryStatus => {
+    const baseline = original && original > 0 ? original : qty || 1;
+    const ratio = qty / baseline;
+    if (ratio < OUT_OF_STOCK_RATIO) return "out_of_stock";
+    if (ratio < LOW_STOCK_RATIO) return "low_stock";
     return "in_stock";
 };
 
@@ -60,12 +65,21 @@ export const SHELF_STATUS_LABEL: Record<ShelfStatus, string> = {
     on_shelf: "On Shelf",
     missing: "Missing",
     misplaced: "Misplaced",
+    low_stock: "Low Stock",
+    out_of_stock: "Out of Stock",
+    unknown: "Unknown",
 };
 
 export const shelfStatusClass = (status: ShelfStatus): string => {
     switch (status) {
         case "on_shelf":
             return "bg-status-success-bg text-status-success-text";
+        case "low_stock":
+            return "border border-status-misplaced-text text-status-misplaced-text";
+        case "out_of_stock":
+            return "border border-status-missing-text text-status-missing-text";
+        case "unknown":
+            return "bg-surface-muted text-text-muted";
         case "missing":
             return "bg-status-missing-bg text-status-missing-text";
         case "misplaced":
@@ -77,8 +91,9 @@ export const shelfStatusClass = (status: ShelfStatus): string => {
 // Only reflects quantity — shelf placement is shown separately as a plain note.
 
 export const deriveCustomerAvailability = (item: InventoryItem): CustomerAvailability => {
-    if (item.stockCount <= 0) return "unavailable";
-    if (item.stockCount < LOW_STOCK_THRESHOLD) return "limited";
+    const status = deriveStatus(item.stockCount, item.originalStock);
+    if (status === "out_of_stock") return "unavailable";
+    if (status === "low_stock") return "limited";
     return "available";
 };
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Callable
 
 from PIL import Image
 import torch
@@ -145,12 +146,22 @@ def _run_planogram_audit(
     return selected, audit_results
 
 
-def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
-    processed_image_path = preprocess_shelf_image(image_path)
+def analyze_shelf_debug(
+    image_path: str,
+    progress_callback: Callable[[int, float | None], None] | None = None,
+    preprocessed_output_path: str | None = None,
+) -> dict[str, Any]:
+    def report(pct: int, eta: float | None = None) -> None:
+        if progress_callback:
+            progress_callback(pct, eta)
+
+    processed_image_path = preprocess_shelf_image(image_path, output_path=preprocessed_output_path)
+    report(5)
     model = load_yolo_model()
     image = Image.open(processed_image_path).convert("RGB")
     image_width, image_height = image.size
     results = model(processed_image_path, conf=0.25)
+    report(10)
 
     product_boxes: list[list[int]] = []
     product_candidates: list[dict[str, Any]] = []
@@ -213,6 +224,7 @@ def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
     indices_to_identify = sorted(identified_indices)
     chunk_size = _sku_identification_chunk_size()
 
+    sku_phase_start = time.time()
     if indices_to_identify:
         total_to_identify = len(indices_to_identify)
         for chunk_start in range(0, total_to_identify, chunk_size):
@@ -226,6 +238,13 @@ def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
                 crop = image.crop((x1, y1, x2, y2))
                 sku_results[index] = identify_sku(crop)
 
+            done = chunk_start + len(chunk)
+            pct = int(10 + (done / total_to_identify) * 75)
+            elapsed = time.time() - sku_phase_start
+            eta: float | None = (elapsed / done) * (total_to_identify - done) if done > 0 and elapsed > 0 else None
+            report(pct, eta)
+
+    report(88)
     outputs = _build_outputs(product_candidates, sku_results)
     selected, audit_results = _run_planogram_audit(
         processed_image_path=processed_image_path,
@@ -260,6 +279,7 @@ def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
             retry_indices.add(index)
 
     if not retry_indices:
+        report(98)
         return {
             "processed_image_path": processed_image_path,
             "raw_detections": outputs,
@@ -268,11 +288,17 @@ def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
             "audit_results": audit_results,
         }
 
-    for index in sorted(retry_indices):
+    report(90)
+    retry_list = sorted(retry_indices)
+    retry_total = len(retry_list)
+    for i, index in enumerate(retry_list):
         x1, y1, x2, y2 = product_candidates[index]["bbox"]
         crop = image.crop((x1, y1, x2, y2))
         sku_results[index] = identify_sku(crop, merged_box=True)
+        pct = int(90 + ((i + 1) / retry_total) * 6)  # 90→96%
+        report(pct)
 
+    report(96)
     outputs = _build_outputs(product_candidates, sku_results)
     selected, audit_results = _run_planogram_audit(
         processed_image_path=processed_image_path,
@@ -280,6 +306,7 @@ def analyze_shelf_debug(image_path: str) -> dict[str, Any]:
         empty_spaces=empty_spaces,
         outputs=outputs,
     )
+    report(98)
     return {
         "processed_image_path": processed_image_path,
         "raw_detections": outputs,

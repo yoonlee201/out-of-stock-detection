@@ -9,11 +9,11 @@ import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import type { UserRole } from "../types/db";
 
-interface Route {
+type Route = {
     path: string;
     label: string;
     element?: React.ReactNode;
-}
+};
 
 type Routes = {
     [label: string]: Route;
@@ -38,7 +38,7 @@ const useRouter = (role: UserRole | null) => {
 
     const authRoutes: Route[] = [allRoutes.login, allRoutes.register, allRoutes.verify_email, allRoutes.invitation];
 
-    const employeeRoutes: Route[] = [allRoutes.dashboard, allRoutes.employee_management];
+    const employeeRoutes: Route[] = [allRoutes.dashboard, allRoutes.employee_management, allRoutes.demo];
 
     const isEmployee = role !== null && role !== "customer";
 
@@ -46,7 +46,6 @@ const useRouter = (role: UserRole | null) => {
         allRoutes.inventory,
         ...(isEmployee ? employeeRoutes : []),
         allRoutes.notifications,
-        allRoutes.demo,
     ];
 
     return { authRoutes, dashboardRoutes };

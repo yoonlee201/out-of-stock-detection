@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { apiGetAlertHistory, type AlertHistoryItem, type AlertType } from "../api/query/alert";
-import { apiGetReorders, type ReorderResult } from "../api/query/reorders";
+import { apiGetAlertHistory } from "../api/query/alert";
+import { apiGetReorders } from "../api/query/reorders";
+import type { AlertHistoryItem, AlertType } from "../types/alerts";
+import type { ReorderResult } from "../types/reorders";
 import { NavLink } from "react-router-dom";
+import Loading from "../_components/Loading";
 
 const ALERT_TYPE_LABEL: Record<AlertType, string> = {
     restock: "Restock",
@@ -20,12 +23,6 @@ const alertTypeClass = (alertType: AlertType): string => {
 const EmptyState = ({ message }: { message: string }) => (
     <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
         <p className="text-text-muted text-sm">{message}</p>
-    </div>
-);
-
-const LoadingState = () => (
-    <div className="border-border flex min-h-40 items-center justify-center rounded-2xl border border-dashed">
-        <p className="text-text-muted text-sm">Loading...</p>
     </div>
 );
 
@@ -65,7 +62,7 @@ const Notifications = () => {
                     </div>
 
                     {alertLoading ? (
-                        <LoadingState />
+                        <Loading fullscreen={false} />
                     ) : alertHistory.length === 0 ? (
                         <EmptyState message="No alerts have been sent yet." />
                     ) : (
@@ -121,7 +118,7 @@ const Notifications = () => {
                     </div>
 
                     {reorderLoading ? (
-                        <LoadingState />
+                        <Loading fullscreen={false} />
                     ) : reorders.length === 0 ? (
                         <EmptyState message="No reorders have been placed yet." />
                     ) : (

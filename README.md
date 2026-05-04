@@ -313,14 +313,14 @@ Downloads a sample image, runs YOLO + Qwen, and writes output to `/tmp/test_outp
 ## ARC CPU Workflow (Virginia Tech)
 
 ```bash
-ssh <pid>@owl2.arc.vt.edu
-interact -A cp-spring2026-iac --partition=normal_q --cpus-per-task=8 --mem=32G --time=4:00:00
+ssh stutishah9@owl2.arc.vt.edu
+interact -A cp-spring2026-iac --partition=normal_q --cpus-per-task=8 --mem=32G --time=1:00:00
 
 module reset
 module load Miniconda3/24.7.1-0
 source activate $HOME/.conda/envs/oos_arc
 
-cd ~/out_of_stock_detection
+# cd ~/out_of_stock_detection
 pip install --upgrade pip
 pip install -r backend/requirements.txt
 
@@ -336,7 +336,7 @@ cd backend && python -m app.main
 Open a tunnel from your local machine:
 
 ```bash
-ssh -N -L 8000:<compute-node>:8000 <pid>@owl2.arc.vt.edu
+ssh -N -L 8000:owl042:8000 stutishah9@owl2.arc.vt.edu
 ```
 
 Then start the frontend locally:
@@ -349,10 +349,32 @@ cd frontend && npm run dev
 
 ```bash
 # ARC → local
-rsync -avh --progress <pid>@owl2.arc.vt.edu:~/out_of_stock_detection/ ./
+rsync -avh --progress \
+  --exclude '.git/' \
+  --exclude '.venv/' \
+  --exclude 'backend/.venv/' \
+  --exclude 'frontend/node_modules/' \
+  --exclude 'frontend/dist/' \
+  --exclude '__pycache__/' \
+  --exclude '*.pyc' \
+  --exclude '.pytest_cache/' \
+  --exclude '.mypy_cache/' \
+  --exclude '.DS_Store' \
+  stutishah9@owl2.arc.vt.edu:~/out-of-stock-detection-2/ ./
 
 # local → ARC
-rsync -avh --progress ./ <pid>@owl2.arc.vt.edu:~/out_of_stock_detection
+rsync -avh --progress \
+  --exclude '.git/' \
+  --exclude '.venv/' \
+  --exclude 'backend/.venv/' \
+  --exclude 'frontend/node_modules/' \
+  --exclude 'frontend/dist/' \
+  --exclude '__pycache__/' \
+  --exclude '*.pyc' \
+  --exclude '.pytest_cache/' \
+  --exclude '.mypy_cache/' \
+  --exclude '.DS_Store' \
+  ./ stutishah9@owl2.arc.vt.edu:~/out-of-stock-detection-2
 ```
 
 ---

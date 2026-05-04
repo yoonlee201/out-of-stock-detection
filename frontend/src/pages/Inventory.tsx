@@ -19,6 +19,7 @@ import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
 import Select from "../_components/Select";
+import CheckboxDropdown from "../_components/CheckboxDropdown";
 
 type SortField =
     | "product"
@@ -30,10 +31,11 @@ type SortField =
     | "shelfStatus"
     | "lastChecked"
     | "availability";
-type GroupField = "none" | "category" | "quantityStatus" | "shelfStatus" | "availability";
+type GroupField = "none" | "product" | "category" | "quantityStatus" | "shelfStatus" | "availability";
 
 const GROUP_OPTIONS: { value: GroupField; label: string }[] = [
     { value: "none", label: "No grouping" },
+    { value: "product", label: "Product" },
     { value: "category", label: "Category" },
     { value: "quantityStatus", label: "Quantity Status" },
     { value: "shelfStatus", label: "Shelf Status" },
@@ -53,7 +55,7 @@ const sortValue = (item: InventoryItem, field: SortField): string | number => {
         case "stock":
             return item.stockCount;
         case "quantityStatus":
-            return deriveStatus(item.stockCount);
+            return deriveStatus(item.stockCount, item.originalStock);
         case "shelfStatus":
             return item.shelfStatus;
         case "lastChecked":
@@ -65,10 +67,12 @@ const sortValue = (item: InventoryItem, field: SortField): string | number => {
 
 const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
     switch (field) {
+        case "product":
+            return `${item.brand} ${item.productName}`.trim() || "Unknown";
         case "category":
             return item.category || "Uncategorized";
         case "quantityStatus":
-            return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount)];
+            return QUANTITY_STATUS_LABEL[deriveStatus(item.stockCount, item.originalStock)];
         case "shelfStatus":
             return SHELF_STATUS_LABEL[item.shelfStatus];
         case "availability":
@@ -81,8 +85,9 @@ const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
 // ======================Constants========================
 // TODO: fetch categories from backend instead of hardcoding
 // const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
-const AISLES = ["Aisle 1", "Aisle 2", "Aisle 3", "Aisle 4", "Aisle 5", "Aisle 6", "Aisle 7", "Aisle 8", "Aisle 9"];
-const SHELVES = ["Shelf 1", "Shelf 2", "Shelf 3", "Shelf 4", "Shelf 5", "Shelf 6", "Shelf 7", "Freezer 1", "Freezer 2"];
+const AISLES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const SHELVES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const POSITIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: true },
@@ -111,7 +116,7 @@ const QUANTITY_STATUS_OPTIONS = QUANTITY_STATUS_FILTERS.map((f) => ({ value: f.v
 
 // ======================Types========================
 
-interface EditForm {
+type EditForm = {
     brand: string;
     productName: string;
     variant: string;
@@ -120,7 +125,7 @@ interface EditForm {
     aisle: string;
     shelf: string;
     stockCount: string;
-}
+};
 
 const itemToForm = (item: InventoryItem): EditForm => ({
     brand: item.brand,
@@ -159,7 +164,7 @@ const Inventory = () => {
     }, [user]);
 
     const summary = useMemo(() => {
-        const statuses = inventory.map((i) => deriveStatus(i.stockCount));
+        const statuses = inventory.map((i) => deriveStatus(i.stockCount, i.originalStock));
         return {
             total: inventory.length,
             inStock: statuses.filter((s) => s === "in_stock").length,
@@ -170,25 +175,8 @@ const Inventory = () => {
 
     const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
-    const handleCsvUpload = async (file: File) => {
-        setCsvUploading(true);
-        setInventoryError(null);
-
-        try {
-            const result = await apiUploadProductsCsv(file);
-            const refreshed = await apiGetProducts();
-            setInventory(refreshed ?? []);
-            alert(`CSV uploaded successfully. Added ${result.added_count} products.`);
-        } catch (e) {
-            alert(e instanceof Error ? e.message : "CSV upload failed.");
-        } finally {
-            setCsvUploading(false);
-            if (csvInputRef.current) csvInputRef.current.value = "";
-        }
-    };
-
-    if (loading || !user) return <Loading message="Checking authentication..." />;
-    if (inventoryLoading) return <Loading message="Loading inventory..." />;
+    if (loading || !user) return <Loading message="Checking authentication..." fullscreen={false} />;
+    if (inventoryLoading) return <Loading message="Loading inventory..." fullscreen={false} />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
 
     return (
@@ -285,7 +273,9 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                 item.size.toLowerCase().includes(q);
             const matchCategory = categoryFilter === "All" || item.category === categoryFilter;
             const matchStatus =
-                view === "customer" || statusFilter === "all" || deriveStatus(item.stockCount) === statusFilter;
+                view === "customer" ||
+                statusFilter === "all" ||
+                deriveStatus(item.stockCount, item.originalStock) === statusFilter;
             return matchSearch && matchCategory && matchStatus;
         });
     }, [inventory, search, categoryFilter, statusFilter, view]);
@@ -318,7 +308,8 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
         }
     };
 
-    const colSpan = view === "employee" ? 9 : 8;
+    const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
+    const colSpan = columns.length;
 
     const renderRows = (page: number, pageSize: number) => {
         const items = sorted.slice((page - 1) * pageSize, page * pageSize);
@@ -356,24 +347,23 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
                     <EmployeeRow
                         key={item.id}
                         item={item}
-                        status={deriveStatus(item.stockCount)}
+                        status={deriveStatus(item.stockCount, item.originalStock)}
                         onEdit={() => setEditTarget(item)}
                         onReorder={() => setReorderTarget(item)}
                         onDelete={() => setDeleteTarget(item)}
                     />
                 ) : (
-                    <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount)} />
+                    <CustomerRow key={item.id} item={item} status={deriveStatus(item.stockCount, item.originalStock)} />
                 ),
             );
         });
         return out;
     };
 
-    const columns = view === "employee" ? INVENTORY_COLUMNS_EMPLOYEE : INVENTORY_COLUMNS_CUSTOMER;
     const groupOptions =
         view === "customer"
             ? GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability")
-            : GROUP_OPTIONS.filter((o) => o.value !== "availability");
+            : GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability");
 
     return (
         <>
@@ -537,7 +527,7 @@ const CategoryDropdown = ({
         </div>
     );
 };
-// ======================Dialogs========================
+
 
 type EditProductDialogProps = {
     target: InventoryItem | null;
@@ -634,19 +624,29 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         options={categories.map((c) => ({ value: c, label: c }))}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <Select
-                            label="Aisle"
-                            value={form.aisle}
-                            onChange={(e) => setField("aisle", e.target.value)}
-                            options={AISLES.map((a) => ({ value: a, label: a }))}
-                        />
-                        <Select
+                        <Field label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} />
+                        <CheckboxDropdown
                             label="Shelf"
-                            value={form.shelf}
-                            onChange={(e) => setField("shelf", e.target.value)}
-                            options={SHELVES.map((s) => ({ value: s, label: s }))}
+                            options={SHELVES}
+                            selected={form.shelf
+                                .split(",")
+                                .map((x: string) => x.trim())
+                                .filter(Boolean)}
+                            onChange={(next) => setField("shelf", next.join(", "))}
+                            disabled={!!(target.locations && target.locations.length > 0)}
+                            formatOption={(s) => `S${s}`}
                         />
                     </div>
+                    {target.locations && target.locations.length > 0 && (
+                        <CheckboxDropdown
+                            label="Position"
+                            options={POSITIONS}
+                            selected={(target.locations ?? []).map((l) => String(l.position))}
+                            onChange={() => {}}
+                            disabled={true}
+                            formatOption={(s) => `P${s}`}
+                        />
+                    )}
                     <Field
                         label="Stock Count"
                         type="number"
@@ -889,7 +889,7 @@ type AddProductDialogProps = {
     onCreated: (item: InventoryItem) => void;
 };
 
-interface AddForm {
+type AddForm = {
     brand: string;
     productName: string;
     variant: string;
@@ -898,7 +898,8 @@ interface AddForm {
     stockCount: string;
     aisle: string;
     shelf: string;
-}
+    positions: string;
+};
 
 const emptyAddForm: AddForm = {
     brand: "",
@@ -908,7 +909,8 @@ const emptyAddForm: AddForm = {
     category: "",
     stockCount: "0",
     aisle: AISLES[0],
-    shelf: SHELVES[0],
+    shelf: "",
+    positions: "",
 };
 
 const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDialogProps) => {
@@ -934,6 +936,10 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
         setSaveLoading(true);
         setSaveError(null);
         try {
+            const positions = form.positions
+                .split(",")
+                .map((s) => parseInt(s.trim(), 10))
+                .filter((n) => !isNaN(n));
             const created = await apiCreateProduct({
                 name: form.productName.trim(),
                 brand: form.brand.trim(),
@@ -943,6 +949,7 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                 quantity_in_store: qty,
                 aisle: form.aisle.trim(),
                 shelf: form.shelf.trim(),
+                positions,
             });
             onCreated(created);
             onClose();
@@ -982,12 +989,25 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         onChange={(e) => setField("aisle", e.target.value)}
                         options={AISLES.map((a) => ({ value: a, label: a }))}
                     />
-                    <Select
+                    <CheckboxDropdown
                         label="Shelf"
-                        required
-                        value={form.shelf}
-                        onChange={(e) => setField("shelf", e.target.value)}
-                        options={SHELVES.map((s) => ({ value: s, label: s }))}
+                        options={SHELVES}
+                        selected={form.shelf
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
+                        onChange={(next) => setField("shelf", next.join(", "))}
+                        formatOption={(s) => `Shelf ${s}`}
+                    />
+                    <CheckboxDropdown
+                        label="Position"
+                        options={POSITIONS}
+                        selected={form.positions
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
+                        onChange={(next) => setField("positions", next.join(", "))}
+                        formatOption={(s) => `Position ${s}`}
                     />
                 </div>
                 <Field

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from statistics import median
 
 import cv2
@@ -7,7 +8,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 
-PREPROCESSED_IMAGE_PATH = "/tmp/shelf_preprocessed.jpg"
+_PREPROCESSED_SUFFIX = "_pre.jpg"
 MAX_IMAGE_WIDTH = 1600
 ROW_BAND_ALPHA = 51
 ROW_BAND_COLORS = [
@@ -197,7 +198,7 @@ def _apply_perspective_correction(image: np.ndarray) -> tuple[np.ndarray, bool]:
     return image, False
 
 
-def preprocess_shelf_image(image_path: str) -> str:
+def preprocess_shelf_image(image_path: str, output_path: str | None = None) -> str:
     image = cv2.imread(image_path)
     if image is None:
         raise FileNotFoundError(f"Could not read image from `{image_path}`.")
@@ -215,13 +216,16 @@ def preprocess_shelf_image(image_path: str) -> str:
     enhanced = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
     enhanced = cv2.convertScaleAbs(enhanced, alpha=1.08, beta=2)
 
-    cv2.imwrite(PREPROCESSED_IMAGE_PATH, enhanced)
+    if output_path is None:
+        base, _ = os.path.splitext(image_path)
+        output_path = base + _PREPROCESSED_SUFFIX
+    cv2.imwrite(output_path, enhanced)
     print(
         "Preprocessing shelf image: "
         f"{'perspective correction applied' if homography_applied else 'perspective correction skipped'}, "
         "contrast enhanced"
     )
-    return PREPROCESSED_IMAGE_PATH
+    return output_path
 
 
 def filter_real_rows(image_path: str, detected_row_bands, boxes=None) -> list:

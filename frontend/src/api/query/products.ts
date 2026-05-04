@@ -2,7 +2,16 @@ import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
 import type { InventoryItem, ShelfStatus } from "../../types/inventory";
 
-interface RawProduct {
+type RawLocation = {
+    slot_id: string;
+    shelf: string;
+    position: number;
+    planogram_quantity: number;
+    shelf_status: string;
+    last_checked: string | null;
+};
+
+type RawProduct = {
     product_id: number;
     name: string;
     brand: string;
@@ -10,11 +19,13 @@ interface RawProduct {
     size: string;
     type: string;
     quantity_in_store: number;
+    original_quantity?: number;
     aisle: string;
     shelf: string;
     shelf_status: string;
     last_checked: string | null;
-}
+    locations?: RawLocation[];
+};
 
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
     id: String(p.product_id),
@@ -24,10 +35,19 @@ const toInventoryItem = (p: RawProduct): InventoryItem => ({
     size: p.size,
     category: p.type,
     stockCount: p.quantity_in_store,
+    originalStock: p.original_quantity ?? p.quantity_in_store,
     aisle: p.aisle,
     shelf: p.shelf,
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
+    locations: (p.locations ?? []).map((loc) => ({
+        slotId: loc.slot_id,
+        shelf: loc.shelf,
+        position: loc.position,
+        planogramQuantity: loc.planogram_quantity,
+        shelfStatus: (loc.shelf_status as ShelfStatus) || "unknown",
+        lastChecked: loc.last_checked ? new Date(loc.last_checked) : null,
+    })),
 });
 
 export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> => {
@@ -52,6 +72,7 @@ export const apiCreateProduct = async (product: {
     quantity_in_store: number;
     aisle?: string;
     shelf?: string;
+    positions?: number[];
 }): Promise<InventoryItem> => {
     try {
         const { data } = await axiosAuth.post<{ product: RawProduct }>("/products/", product);

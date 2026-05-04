@@ -1,72 +1,23 @@
 import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
-import logger from "../../utils/log";
+import type { ActiveJobInfo, AnalysisHistoryEntry, JobStatus, JobSubmitResponse, ShelfAnalysisResponse } from "../../types/shelfAnalysis";
 
-export interface ShelfSkuDetails {
-    brand: string;
-    product_name: string;
-    variant: string;
-    size: string;
-    confidence: number;
-    visibility?: "full" | "partial" | "side_only" | string;
-}
+const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
+    ? `${import.meta.env.VITE_BACKEND_BASE_URL}${import.meta.env.VITE_BACKEND_URL}`
+    : import.meta.env.VITE_BACKEND_URL;
 
-export interface ShelfDetection {
-    bbox: [number, number, number, number];
-    type: "product" | "empty_space";
-    sku: ShelfSkuDetails | null;
-    expected_sku?: ShelfSkuDetails | null;
-    match_score?: number;
-    audit_status?: "correct" | "missing" | "misplaced" | "unverified" | string;
-    issue_marker?: string | null;
-    slot_id?: string;
-    row?: number;
-    position?: number;
-    detection_quality?: "merged_box" | string | null;
-    assignment_method?: "position" | "content" | "boundary_resolved" | string | null;
-    tall_box?: boolean;
-    size_class?: "tall" | "normal" | "small" | string;
-}
+const resolveEndpoint = (path: string) => (DIRECT_URL ? `${DIRECT_URL}${path}` : path);
 
-export interface ShelfAnalysisResponse {
-    message: string;
-    summary: {
-        product_count: number;
-        empty_space_count: number;
-        unique_sku_count: number;
-        correct_count?: number;
-        missing_count?: number;
-        misplaced_count?: number;
-        unverified_count?: number;
-    };
-    compliance_report?: {
-        visible_rows: number[];
-        not_visible_rows: number[];
-        visibility_note: string;
-        visible_slot_count: number;
-        correct_slot_count: number;
-        compliance_score: number;
-        total_planogram_rows: number;
-    };
-    detections: ShelfDetection[];
-    compliance_notes?: string[];
-    annotated_image: string;
-}
-
-const DIRECT_URL = import.meta.env.VITE_DIRECT_BACKEND_URL;
-
-export const apiAnalyzeShelf = async (
+export const apiSubmitAnalysis = async (
     image: File,
     onUploadProgress?: (percent: number) => void,
-): Promise<ShelfAnalysisResponse> => {
+): Promise<JobSubmitResponse> => {
     const formData = new FormData();
     formData.append("image", image);
 
-    const endpoint = DIRECT_URL ? `${DIRECT_URL}/shelf-analysis/analyze` : "/shelf-analysis/analyze";
-
     try {
-        const { data } = await axiosAuth.post<ShelfAnalysisResponse>(endpoint, formData, {
-            timeout: 1800000,
+        const { data } = await axiosAuth.post<JobSubmitResponse>(resolveEndpoint("/shelf-analysis/analyze"), formData, {
+            timeout: 120000,
             headers: { "Content-Type": "multipart/form-data" },
             onUploadProgress: onUploadProgress
                 ? (event) => {
@@ -76,44 +27,59 @@ export const apiAnalyzeShelf = async (
                   }
                 : undefined,
         });
-
         return data;
     } catch (error: unknown) {
         if (isAxiosError(error)) {
-            if (error.code === "ECONNABORTED") {
-                throw new Error(
-                    "Shelf analysis is taking too long on the current server. Try a simpler shelf image or wait for the model to finish loading, then try again.",
-                );
-            }
-
             if (!error.response) {
-                throw new Error(
-                    "Could not reach the shelf analysis server. Make sure the ARC backend is still running and your SSH tunnel to port 8000 is still open.",
-                );
+                throw new Error("Could not reach the shelf analysis server. Make sure the backend is running.");
             }
-
-            const responseData = error.response.data;
-            const backendMessage =
-                typeof responseData === "object" && responseData !== null
-                    ? (responseData as { message?: string }).message
-                    : undefined;
-            const fallbackHttpMessage = `Shelf analysis request failed with status ${error.response.status}.`;
-            const message = backendMessage || fallbackHttpMessage;
-            logger.error("Shelf analysis error:", backendMessage || fallbackHttpMessage);
-            throw new Error(message);
+            const msg =
+                (error.response.data as { message?: string })?.message ||
+                `Submission failed with status ${error.response.status}.`;
+            throw new Error(msg);
         }
-
-        logger.error("Unexpected shelf analysis error:", error);
-        throw new Error("An unexpected error occurred while analyzing the shelf image.");
+        throw new Error("An unexpected error occurred while submitting the image.");
     }
 };
 
-export interface AnalysisHistoryEntry {
-    id: number;
-    file_name: string;
-    created_at: string;
-    result: ShelfAnalysisResponse;
-}
+export const apiGetActiveJobs = async (): Promise<ActiveJobInfo[]> => {
+    try {
+        const { data } = await axiosAuth.get<ActiveJobInfo[]>(resolveEndpoint("/shelf-analysis/jobs"));
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const msg = (error.response?.data as { message?: string })?.message || "Failed to load active jobs.";
+            throw new Error(msg);
+        }
+        throw new Error("Failed to load active jobs.");
+    }
+};
+
+export const apiGetJobStatus = async (jobId: string): Promise<JobStatus> => {
+    try {
+        const { data } = await axiosAuth.get<JobStatus>(resolveEndpoint(`/shelf-analysis/job/${jobId}`));
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const msg =
+                (error.response?.data as { message?: string })?.message ||
+                `Failed to get job status (${error.response?.status ?? "network error"}).`;
+            throw new Error(msg);
+        }
+        throw new Error("Failed to get job status.");
+    }
+};
+
+export const apiDeleteAnalysis = async (id: number): Promise<void> => {
+    try {
+        await axiosAuth.delete(`/shelf-analysis/${id}`);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to delete analysis.");
+        }
+        throw new Error("Failed to delete analysis.");
+    }
+};
 
 export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
     try {
@@ -124,5 +90,17 @@ export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> =
             throw new Error(error.response?.data?.message || "Failed to load analysis history.");
         }
         throw new Error("Failed to load analysis history.");
+    }
+};
+
+export const apiGetAnalysisDetail = async (id: number): Promise<ShelfAnalysisResponse> => {
+    try {
+        const { data } = await axiosAuth.get<ShelfAnalysisResponse>(`/shelf-analysis/${id}`);
+        return data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to load analysis detail.");
+        }
+        throw new Error("Failed to load analysis detail.");
     }
 };

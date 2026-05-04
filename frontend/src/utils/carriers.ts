@@ -2,10 +2,10 @@
 // backend/app/util/send.py — that dict is the source of truth for which
 // carrier strings the email-to-SMS sender accepts.
 
-export interface CarrierOption {
+export type CarrierOption = {
     value: string;
     label: string;
-}
+};
 
 export const CARRIER_OPTIONS: readonly CarrierOption[] = [
     { value: "att", label: "AT&T" },

@@ -2,33 +2,46 @@ from html import escape
 
 from app.core.config import config
 from app.core.db import db
-from app.models import Alerts, Products
+from app.models import Alerts, ProductLocations, Products
 from app.services.user_services import get_all_active_employees
 from app.util.send import render_email, send_email, send_sms
 from datetime import datetime
 
 
-def _resolve_product(item):
-    """Try to match a detection's expected/actual SKU to a row in Products.
-    Returns (Products row | None). Used to enrich alert emails with shelf/aisle.
-    """
-    if not isinstance(item, dict):
+def _useful(value):
+    # Blanks and the planogram's "unknown" placeholder mean "no filter".
+    return value and str(value).strip().lower() not in ("", "unknown")
+
+
+def _resolve_product_by_sku(sku):
+    if not isinstance(sku, dict):
         return None
-    sku = item.get("expected_sku") or item.get("sku") or {}
     name = sku.get("product_name") or sku.get("name")
-    if not name:
+    if not _useful(name):
         return None
     query = Products.query.filter(Products.name == name)
     brand = sku.get("brand")
-    if brand:
+    if _useful(brand):
         query = query.filter(Products.brand == brand)
     variant = sku.get("variant")
-    if variant:
+    if _useful(variant):
         query = query.filter(Products.variant == variant)
     size = sku.get("size")
-    if size:
+    if _useful(size):
         query = query.filter(Products.size == size)
     return query.first()
+
+
+def _resolve_product(item):
+    """Resolve the Products row this detection is *about*.
+    Always the slot's expected SKU: for missing/misplaced/correct, the row we
+    care about is the one the planogram says belongs in that slot. The actual
+    detected SKU (item['sku']) is only used as a fallback if there's no
+    expected SKU on the entry.
+    """
+    if not isinstance(item, dict):
+        return None
+    return _resolve_product_by_sku(item.get("expected_sku") or item.get("sku"))
 
 
 def _describe_sku(sku: dict | None) -> str:
@@ -136,6 +149,102 @@ def _build_email(
         f"<a href='{escape(link)}' style='color:#6b7280;'>{escape(link)}</a></p>"
     )
     return plain, render_email(content)
+
+
+def update_shelf_status_from_detections(detections):
+    """Flip Products.shelf_status based on the latest scan results so the
+    out-of-stock / low-stock views can read it directly from the DB.
+    """
+    if not detections:
+        return
+
+    now = datetime.now()
+    # Subtractive: scans only decrement quantity_in_store. Per-slot status
+    # (ProductLocations.shelf_status) is set fresh from each scan; the Products
+    # row gets the worst status across its locations as a summary.
+    missing_by_product: dict[int, int] = {}
+    misplaced_by_product: dict[int, int] = {}
+    products_by_id: dict[int, Products] = {}
+    unresolved_skus: list[str] = []
+
+    # Pre-load locations indexed by slot_id so we update by exact slot, not name.
+    locations_by_slot = {loc.slot_id: loc for loc in ProductLocations.query.all()}
+
+    for item in detections:
+        if not isinstance(item, dict):
+            continue
+        audit_status = item.get("audit_status")
+        if audit_status not in ("correct", "missing", "misplaced", "unverified"):
+            continue
+
+        slot_id = item.get("slot_id")
+        location = locations_by_slot.get(slot_id) if slot_id else None
+        product = location.product if location else _resolve_product(item)
+        if product is None:
+            sku = item.get("expected_sku") or item.get("sku") or {}
+            unresolved_skus.append(
+                f"{slot_id or '?'} {sku.get('brand', '?')}/{sku.get('product_name') or sku.get('name', '?')}/{sku.get('variant', '?')}"
+            )
+            continue
+
+        products_by_id[product.product_id] = product
+
+        if audit_status == "missing":
+            slot_qty = (
+                location.planogram_quantity if location else (item.get("expected_sku") or {}).get("quantity") or 0
+            )
+            slot_qty = int(slot_qty)
+            gap_type = item.get("gap_type")
+            if gap_type == "partial":
+                lost = max(1, slot_qty // 2)
+            else:
+                lost = slot_qty if slot_qty > 0 else 1
+            missing_by_product[product.product_id] = missing_by_product.get(product.product_id, 0) + lost
+
+        if audit_status == "misplaced":
+            misplaced_by_product[product.product_id] = misplaced_by_product.get(product.product_id, 0) + 1
+
+        # Per-slot status update (only when we have a location row).
+        if location is not None:
+            if audit_status == "missing":
+                location.shelf_status = "missing"
+            elif audit_status == "misplaced":
+                location.shelf_status = "misplaced"
+            elif audit_status == "correct":
+                location.shelf_status = "on_shelf"
+            else:
+                location.shelf_status = "unknown"
+            location.last_checked = now
+
+    for product_id, product in products_by_id.items():
+        lost = missing_by_product.get(product_id, 0)
+        if lost > 0:
+            product.quantity_in_store = max(0, (product.quantity_in_store or 0) - lost)
+
+        remaining = product.quantity_in_store or 0
+        baseline = product.original_quantity or remaining or 1
+        ratio = remaining / baseline if baseline > 0 else 0
+        # Misplaced wins over stock-level statuses for the summary column.
+        if misplaced_by_product.get(product_id, 0) > 0:
+            product.shelf_status = "misplaced"
+        elif ratio < 0.1:
+            product.shelf_status = "out_of_stock"
+        elif ratio < 0.5:
+            product.shelf_status = "low_stock"
+        else:
+            product.shelf_status = "on_shelf"
+        product.last_checked = now
+
+    if products_by_id:
+        db.session.commit()
+
+    print(
+        f"[shelf_status] resolved={len(products_by_id)} "
+        f"decremented={sum(1 for q in missing_by_product.values() if q > 0)} "
+        f"unresolved={len(unresolved_skus)}"
+    )
+    if unresolved_skus:
+        print(f"[shelf_status] unresolved (first 10): {unresolved_skus[:10]}")
 
 
 def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):

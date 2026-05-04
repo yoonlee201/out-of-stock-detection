@@ -7,7 +7,7 @@ export const UserRole = Object.freeze({
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export interface User {
+export type User = {
     id?: string;
     firstName: string;
     lastName: string;
@@ -18,7 +18,7 @@ export interface User {
     password?: string;
     role: UserRole;
     createdAt: string;
-}
+};
 
 export function getUserRole(value: string): UserRole {
     const valid = Object.values(UserRole) as string[];
@@ -28,7 +28,7 @@ export function getUserRole(value: string): UserRole {
 
 export type EmployeeStatus = "active" | "inactive" | "pending";
 
-export interface Employee extends User {
+export type Employee = User & {
     status: EmployeeStatus;
     joinedAt: string;
-}
+};

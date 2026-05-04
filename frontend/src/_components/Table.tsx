@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { ChevronIcon } from "./Icons";
 import Select from "./Select";
 
-export interface Column<T extends string = string> {
+export type Column<T extends string = string> = {
     field: T;
     label: string;
     sortable?: boolean;
     className?: string;
-}
+};
 
 export interface DataTableProps<SortField extends string = string> {
     columns: Column<SortField>[];
