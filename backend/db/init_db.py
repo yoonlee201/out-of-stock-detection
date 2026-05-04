@@ -23,7 +23,14 @@ from pathlib import Path
 import bcrypt
 
 # Allow running directly from the repo root as well as inside the container
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+def _find_repo_root(start: Path) -> Path:
+    for parent in start.parents:
+        if (parent / "shelf_analyzer").exists():
+            return parent
+    return start.parents[1]
+
+
+_REPO_ROOT = _find_repo_root(Path(__file__).resolve())
 sys.path.insert(0, str(_REPO_ROOT))
 
 from app import create_app
