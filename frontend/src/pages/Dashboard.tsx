@@ -188,6 +188,15 @@ const Dashboard = () => {
         setAnalysisError("");
     };
 
+    const handleDeleteSelected = async () => {
+        if (selectedIndex === null || !selectedEntry) return;
+        if (selectedEntry.id > 0) {
+            try { await apiDeleteAnalysis(selectedEntry.id); } catch { return; }
+        }
+        setHistory((prev) => prev.filter((_, i) => i !== selectedIndex));
+        setSelectedIndex(null);
+    };
+
     const handleAnalyzeShelf = async () => {
         if (selectedImages.length === 0) {
             setAnalysisError("Please upload at least one shelf image first.");
@@ -325,15 +334,6 @@ const Dashboard = () => {
                                     entry={entry}
                                     selected={selectedIndex === index}
                                     onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
-                                    onDelete={async () => {
-                                        if (entry.id > 0) {
-                                            try { await apiDeleteAnalysis(entry.id); } catch { return; }
-                                        }
-                                        setHistory((prev: HistoryEntry[]) => prev.filter((_: HistoryEntry, i: number) => i !== index));
-                                        if (selectedIndex === index) setSelectedIndex(null);
-                                        else if (selectedIndex !== null && selectedIndex > index)
-                                            setSelectedIndex(selectedIndex - 1);
-                                    }}
                                 />
                             ))}
                         </div>
@@ -355,13 +355,22 @@ const Dashboard = () => {
                                         })}
                                     </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedIndex(null)}
-                                    className="text-text-muted hover:text-text text-sm font-semibold"
-                                >
-                                    Close ✕
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteSelected}
+                                        className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIndex(null)}
+                                        className="text-text-muted hover:text-text text-sm font-semibold"
+                                    >
+                                        Close ✕
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-4">
@@ -619,60 +628,45 @@ const HistoryCard = ({
     entry,
     selected,
     onClick,
-    onDelete,
 }: {
     entry: HistoryEntry;
     selected: boolean;
     onClick: () => void;
-    onDelete: () => Promise<void>;
 }) => {
     const { result, analyzedAt } = entry;
     const issueCount = (result.summary.missing_count ?? 0) + (result.summary.misplaced_count ?? 0);
     const compliance = result.compliance_report?.compliance_score;
 
     return (
-        <div
-            className={`border rounded-2xl transition ${selected ? "bg-surface-muted border-text" : "border-border"}`}
+        <button
+            type="button"
+            onClick={onClick}
+            className={`hover:bg-surface-muted w-full rounded-2xl border px-5 py-4 text-left transition ${selected ? "bg-surface-muted border-text" : "border-border"}`}
         >
-            <button
-                type="button"
-                onClick={onClick}
-                className="hover:bg-surface-muted w-full rounded-2xl px-5 py-4 text-left"
-            >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold">{entry.fileName}</span>
-                        {selected && (
-                            <span className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
-                                Viewing
-                            </span>
-                        )}
-                    </div>
-                    <div className="text-text-muted flex flex-wrap items-center gap-4 text-xs font-semibold">
-                        {compliance !== undefined && (
-                            <span className={complianceTextClass(compliance)}>{compliance}% compliance</span>
-                        )}
-                        {issueCount > 0 ? (
-                            <span className="text-status-missing-text">
-                                {issueCount} issue{issueCount === 1 ? "" : "s"}
-                            </span>
-                        ) : (
-                            <span className="text-status-success-text">No issues</span>
-                        )}
-                        <span>{analyzedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
-                    </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold">{entry.fileName}</span>
+                    {selected && (
+                        <span className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
+                            Viewing
+                        </span>
+                    )}
                 </div>
-            </button>
-            <div className="border-border flex justify-end border-t px-4 py-2">
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                    className="text-status-missing-text hover:bg-status-missing-bg rounded-lg px-3 py-1 text-xs font-semibold transition"
-                >
-                    Delete
-                </button>
+                <div className="text-text-muted flex flex-wrap items-center gap-4 text-xs font-semibold">
+                    {compliance !== undefined && (
+                        <span className={complianceTextClass(compliance)}>{compliance}% compliance</span>
+                    )}
+                    {issueCount > 0 ? (
+                        <span className="text-status-missing-text">
+                            {issueCount} issue{issueCount === 1 ? "" : "s"}
+                        </span>
+                    ) : (
+                        <span className="text-status-success-text">No issues</span>
+                    )}
+                    <span>{analyzedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+                </div>
             </div>
-        </div>
+        </button>
     );
 };
 
