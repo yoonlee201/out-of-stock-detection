@@ -72,6 +72,7 @@ export const apiCreateProduct = async (product: {
     quantity_in_store: number;
     aisle?: string;
     shelf?: string;
+    positions?: number[];
 }): Promise<InventoryItem> => {
     try {
         const { data } = await axiosAuth.post<{ product: RawProduct }>("/products/", product);

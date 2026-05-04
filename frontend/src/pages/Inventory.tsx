@@ -19,7 +19,7 @@ import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
 import Select from "../_components/Select";
-import Checkbox from "../_components/Checkbox";
+import CheckboxDropdown from "../_components/CheckboxDropdown";
 
 type SortField =
     | "product"
@@ -87,6 +87,7 @@ const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
 // const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
 const AISLES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SHELVES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const POSITIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: true },
@@ -504,7 +505,7 @@ const CategoryDropdown = ({
         </div>
     );
 };
-// ======================Dialogs========================
+
 
 type EditProductDialogProps = {
     target: InventoryItem | null;
@@ -606,62 +607,25 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                             value={form.aisle}
                             onChange={(e) => setField("aisle", e.target.value)}
                         />
-                        <div>
-                            <p className="text-text-secondary mb-2 block text-sm font-semibold">Shelf</p>
-                            <div className="border-border bg-surface-muted max-h-36 overflow-y-auto rounded-xl border">
-                                {SHELVES.map((s) => {
-                                    const checked = form.shelf.split(",").map((x: string) => x.trim()).includes(s);
-                                    const hasLocs = !!(target.locations && target.locations.length > 0);
-                                    return (
-                                        <label
-                                            key={s}
-                                            className={`flex items-center gap-2.5 px-3 py-2 text-sm select-none border-b border-border last:border-b-0 ${hasLocs ? "text-text-muted cursor-default" : "text-text-secondary cursor-pointer hover:bg-surface"}`}
-                                        >
-                                            <Checkbox
-                                                checked={checked}
-                                                onChange={hasLocs ? () => { } : () => {
-                                                    const current = form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean);
-                                                    const next = current.includes(s)
-                                                        ? current.filter((x: string) => x !== s)
-                                                        : [...current, s].sort((a, b) => parseInt(a) - parseInt(b));
-                                                    setField("shelf", next.join(", "));
-                                                }}
-                                            />
-                                            Shelf {s}
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                            {target.locations && target.locations.length > 0 && (
-                                <p className="text-text-muted mt-1 text-xs">Managed by planogram</p>
-                            )}
-                        </div>
+                        <CheckboxDropdown
+                            label="Shelf"
+                            options={SHELVES}
+                            selected={form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean)}
+                            onChange={(next) => setField("shelf", next.join(", "))}
+                            disabled={!!(target.locations && target.locations.length > 0)}
+                            formatOption={(s) => `Shelf ${s}`}
+                        />
                     </div>
-                    {target.locations && target.locations.length > 0 && (() => {
-                        const maxPos = Math.max(...target.locations!.map((l) => l.position));
-                        const positionRange = Array.from({ length: maxPos }, (_, i) => i + 1);
-                        const checkedPositions = new Set(target.locations!.map((l) => l.position));
-                        return (
-                            <div>
-                                <p className="text-text-secondary mb-2 block text-sm font-semibold">Position</p>
-                                <div className="border-border bg-surface-muted max-h-36 overflow-y-auto rounded-xl border">
-                                    {positionRange.map((pos) => (
-                                        <label
-                                            key={pos}
-                                            className="text-text-muted flex cursor-default items-center gap-2.5 border-b border-border px-3 py-2 text-sm select-none last:border-b-0"
-                                        >
-                                            <Checkbox
-                                                checked={checkedPositions.has(pos)}
-                                                onChange={() => { }}
-                                            />
-                                            Position {pos}
-                                        </label>
-                                    ))}
-                                </div>
-                                <p className="text-text-muted mt-1 text-xs">Managed by planogram</p>
-                            </div>
-                        );
-                    })()}
+                    {target.locations && target.locations.length > 0 && (
+                        <CheckboxDropdown
+                            label="Position"
+                            options={POSITIONS}
+                            selected={(target.locations ?? []).map((l) => String(l.position))}
+                            onChange={() => {}}
+                            disabled={true}
+                            formatOption={(s) => `Position ${s}`}
+                        />
+                    )}
                     <Field
                         label="Stock Count"
                         type="number"
@@ -913,6 +877,7 @@ type AddForm = {
     stockCount: string;
     aisle: string;
     shelf: string;
+    positions: string;
 };
 
 const emptyAddForm: AddForm = {
@@ -923,7 +888,8 @@ const emptyAddForm: AddForm = {
     category: "",
     stockCount: "0",
     aisle: AISLES[0],
-    shelf: SHELVES[0],
+    shelf: "",
+    positions: "",
 };
 
 const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDialogProps) => {
@@ -949,6 +915,10 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
         setSaveLoading(true);
         setSaveError(null);
         try {
+            const positions = form.positions
+                .split(",")
+                .map((s) => parseInt(s.trim(), 10))
+                .filter((n) => !isNaN(n));
             const created = await apiCreateProduct({
                 name: form.productName.trim(),
                 brand: form.brand.trim(),
@@ -958,6 +928,7 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                 quantity_in_store: qty,
                 aisle: form.aisle.trim(),
                 shelf: form.shelf.trim(),
+                positions,
             });
             onCreated(created);
             onClose();
@@ -997,12 +968,19 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         onChange={(e) => setField("aisle", e.target.value)}
                         options={AISLES.map((a) => ({ value: a, label: a }))}
                     />
-                    <Select
+                    <CheckboxDropdown
                         label="Shelf"
-                        required
-                        value={form.shelf}
-                        onChange={(e) => setField("shelf", e.target.value)}
-                        options={SHELVES.map((s) => ({ value: s, label: s }))}
+                        options={SHELVES}
+                        selected={form.shelf.split(",").map((s) => s.trim()).filter(Boolean)}
+                        onChange={(next) => setField("shelf", next.join(", "))}
+                        formatOption={(s) => `Shelf ${s}`}
+                    />
+                    <CheckboxDropdown
+                        label="Position"
+                        options={POSITIONS}
+                        selected={form.positions.split(",").map((s) => s.trim()).filter(Boolean)}
+                        onChange={(next) => setField("positions", next.join(", "))}
+                        formatOption={(s) => `Position ${s}`}
                     />
                 </div>
                 <Field
