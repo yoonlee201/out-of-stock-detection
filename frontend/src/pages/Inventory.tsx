@@ -506,7 +506,6 @@ const CategoryDropdown = ({
     );
 };
 
-
 type EditProductDialogProps = {
     target: InventoryItem | null;
     setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
@@ -602,18 +601,17 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         options={categories.map((c) => ({ value: c, label: c }))}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <Field
-                            label="Aisle"
-                            value={form.aisle}
-                            onChange={(e) => setField("aisle", e.target.value)}
-                        />
+                        <Field label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} />
                         <CheckboxDropdown
                             label="Shelf"
                             options={SHELVES}
-                            selected={form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean)}
+                            selected={form.shelf
+                                .split(",")
+                                .map((x: string) => x.trim())
+                                .filter(Boolean)}
                             onChange={(next) => setField("shelf", next.join(", "))}
                             disabled={!!(target.locations && target.locations.length > 0)}
-                            formatOption={(s) => `Shelf ${s}`}
+                            formatOption={(s) => `S${s}`}
                         />
                     </div>
                     {target.locations && target.locations.length > 0 && (
@@ -623,7 +621,7 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                             selected={(target.locations ?? []).map((l) => String(l.position))}
                             onChange={() => {}}
                             disabled={true}
-                            formatOption={(s) => `Position ${s}`}
+                            formatOption={(s) => `P${s}`}
                         />
                     )}
                     <Field
@@ -971,14 +969,20 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                     <CheckboxDropdown
                         label="Shelf"
                         options={SHELVES}
-                        selected={form.shelf.split(",").map((s) => s.trim()).filter(Boolean)}
+                        selected={form.shelf
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
                         onChange={(next) => setField("shelf", next.join(", "))}
                         formatOption={(s) => `Shelf ${s}`}
                     />
                     <CheckboxDropdown
                         label="Position"
                         options={POSITIONS}
-                        selected={form.positions.split(",").map((s) => s.trim()).filter(Boolean)}
+                        selected={form.positions
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
                         onChange={(next) => setField("positions", next.join(", "))}
                         formatOption={(s) => `Position ${s}`}
                     />

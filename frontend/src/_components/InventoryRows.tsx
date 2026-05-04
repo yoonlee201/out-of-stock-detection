@@ -18,16 +18,6 @@ const groupLocationsByShelf = (locations: ProductLocation[]): [string, ProductLo
         .sort(([a], [b]) => (Number(a) || 0) - (Number(b) || 0));
 };
 
-const ShelfCell = ({ item }: { item: InventoryItem }) => {
-    if (!item.locations || item.locations.length === 0) {
-        return <span>{item.shelf || "—"}</span>;
-    }
-    const shelves = Array.from(new Set(item.locations.map((l) => l.shelf))).sort(
-        (a, b) => (Number(a) || 0) - (Number(b) || 0),
-    );
-    return <span>{shelves.join(", ")}</span>;
-};
-
 const PositionCell = ({ item }: { item: InventoryItem }) => {
     if (!item.locations || item.locations.length === 0) return <span className="text-text-muted">—</span>;
     return (
@@ -134,9 +124,6 @@ export const EmployeeRow = ({
             <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
             <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
             <td className="text-text-secondary px-5 py-4 text-xs">
-                <ShelfCell item={item} />
-            </td>
-            <td className="text-text-secondary px-5 py-4 text-xs">
                 <PositionCell item={item} />
             </td>
             <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
@@ -213,35 +200,46 @@ export const EmployeeRow = ({
     );
 };
 
-export const CustomerRow = ({ item, status }: { item: InventoryItem; status: InventoryStatus }) => (
-    <tr className="border-border hover:bg-surface-muted border-b transition-colors">
-        <td className="px-5 py-4">
-            <p className="text-text font-semibold">
-                {item.brand} {item.productName}
-            </p>
-            <p className="text-text-muted mt-0.5 text-xs">
-                {item.variant} · {item.size}
-            </p>
-        </td>
-        <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
-        <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
-        <td className="text-text-secondary px-5 py-4 text-xs">
-            <ShelfCell item={item} />
-        </td>
-        <td className="text-text-secondary px-5 py-4 text-xs">
-            <PositionCell item={item} />
-        </td>
-        <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
-        <td className="px-5 py-4">
-            <span
-                className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${quantityStatusClass(status)}`}
-            >
-                {QUANTITY_STATUS_LABEL[status]}
-            </span>
-        </td>
-        <td className="text-text-muted px-5 py-4 text-xs">
-            {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-        </td>
-        <td className="px-5 py-4" />
-    </tr>
-);
+export const CustomerRow = ({ item, status }: { item: InventoryItem; status: InventoryStatus }) => {
+    const hasOnShelf = item.locations?.some((loc) => loc.shelfStatus === "on_shelf") ?? false;
+    const needsAssistance =
+        (!hasOnShelf &&
+            item.locations?.every((loc) => loc.shelfStatus === "missing" || loc.shelfStatus === "misplaced")) ??
+        false;
+    return (
+        <tr className="border-border hover:bg-surface-muted border-b transition-colors">
+            <td className="px-5 py-4">
+                <p className="text-text font-semibold">
+                    {item.brand} {item.productName}
+                </p>
+                <p className="text-text-muted mt-0.5 text-xs">
+                    {item.variant} · {item.size}
+                </p>
+            </td>
+            <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
+            <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
+            <td className="text-text-secondary px-5 py-4 text-xs">
+                <PositionCell item={item} />
+            </td>
+            <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
+            <td className="px-5 py-4">
+                <span
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${quantityStatusClass(status)}`}
+                >
+                    {QUANTITY_STATUS_LABEL[status]}
+                </span>
+            </td>
+            <td className="text-text-muted px-5 py-4 text-xs">
+                {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+            </td>
+            <td className="px-5 py-4">
+                {" "}
+                {needsAssistance && (
+                    <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold whitespace-nowrap text-yellow-800">
+                        Ask for help
+                    </span>
+                )}
+            </td>
+        </tr>
+    );
+};

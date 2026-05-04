@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiDeleteAnalysis, apiGetActiveJobs, apiGetAnalysisHistory, apiSubmitAnalysis } from "../api/query/shelfAnalysis";
+import {
+    apiDeleteAnalysis,
+    apiGetActiveJobs,
+    apiGetAnalysisHistory,
+    apiSubmitAnalysis,
+} from "../api/query/shelfAnalysis";
 import type { JobStatus, ShelfAnalysisResponse, ShelfDetection } from "../types/shelfAnalysis";
 import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
@@ -67,11 +72,11 @@ const Dashboard = () => {
                 setHistory(
                     entries.length > 0
                         ? entries.map((e) => ({
-                            id: e.id,
-                            fileName: e.file_name,
-                            result: e.result,
-                            analyzedAt: new Date(e.created_at),
-                        }))
+                              id: e.id,
+                              fileName: e.file_name,
+                              result: e.result,
+                              analyzedAt: new Date(e.created_at),
+                          }))
                         : toHistoryEntries(mockAnalysisResults),
                 );
             })
@@ -191,7 +196,11 @@ const Dashboard = () => {
     const handleDeleteSelected = async () => {
         if (selectedIndex === null || !selectedEntry) return;
         if (selectedEntry.id > 0) {
-            try { await apiDeleteAnalysis(selectedEntry.id); } catch { return; }
+            try {
+                await apiDeleteAnalysis(selectedEntry.id);
+            } catch {
+                return;
+            }
         }
         setHistory((prev) => prev.filter((_, i) => i !== selectedIndex));
         setSelectedIndex(null);
@@ -624,15 +633,7 @@ const ActiveJobCard = ({ job }: { job: ActiveJob }) => (
 const complianceTextClass = (score: number) =>
     score >= 90 ? "text-status-success-text" : score >= 70 ? "text-status-misplaced-text" : "text-status-missing-text";
 
-const HistoryCard = ({
-    entry,
-    selected,
-    onClick,
-}: {
-    entry: HistoryEntry;
-    selected: boolean;
-    onClick: () => void;
-}) => {
+const HistoryCard = ({ entry, selected, onClick }: { entry: HistoryEntry; selected: boolean; onClick: () => void }) => {
     const { result, analyzedAt } = entry;
     const issueCount = (result.summary.missing_count ?? 0) + (result.summary.misplaced_count ?? 0);
     const compliance = result.compliance_report?.compliance_score;
