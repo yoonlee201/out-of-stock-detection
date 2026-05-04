@@ -19,6 +19,7 @@ import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
 import Select from "../_components/Select";
+import Checkbox from "../_components/Checkbox";
 
 type SortField =
     | "product"
@@ -600,19 +601,67 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         options={categories.map((c) => ({ value: c, label: c }))}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <Select
+                        <Field
                             label="Aisle"
                             value={form.aisle}
                             onChange={(e) => setField("aisle", e.target.value)}
-                            options={AISLES.map((a) => ({ value: a, label: a }))}
                         />
-                        <Select
-                            label="Shelf"
-                            value={form.shelf}
-                            onChange={(e) => setField("shelf", e.target.value)}
-                            options={SHELVES.map((s) => ({ value: s, label: s }))}
-                        />
+                        <div>
+                            <p className="text-text-secondary mb-2 block text-sm font-semibold">Shelf</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                {SHELVES.map((s) => {
+                                    const checked = form.shelf.split(",").map((x: string) => x.trim()).includes(s);
+                                    const hasLocs = !!(target.locations && target.locations.length > 0);
+                                    return (
+                                        <label
+                                            key={s}
+                                            className={`flex items-center gap-1.5 text-sm select-none ${hasLocs ? "text-text-muted cursor-default" : "text-text-secondary cursor-pointer"}`}
+                                        >
+                                            <Checkbox
+                                                checked={checked}
+                                                onChange={hasLocs ? () => { } : () => {
+                                                    const current = form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean);
+                                                    const next = current.includes(s)
+                                                        ? current.filter((x: string) => x !== s)
+                                                        : [...current, s].sort((a, b) => parseInt(a) - parseInt(b));
+                                                    setField("shelf", next.join(", "));
+                                                }}
+                                            />
+                                            {s}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            {target.locations && target.locations.length > 0 && (
+                                <p className="text-text-muted mt-1 text-xs">Managed by planogram</p>
+                            )}
+                        </div>
                     </div>
+                    {target.locations && target.locations.length > 0 && (() => {
+                        const maxPos = Math.max(...target.locations!.map((l) => l.position));
+                        const positionRange = Array.from({ length: maxPos }, (_, i) => i + 1);
+                        const checkedPositions = new Set(target.locations!.map((l) => l.position));
+                        return (
+                            <div>
+                                <p className="text-text-secondary mb-2 block text-sm font-semibold">Position</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                    {positionRange.map((pos) => (
+                                        <label
+                                            key={pos}
+                                            className="text-text-muted flex cursor-default items-center gap-1.5 text-sm select-none"
+                                        >
+                                            <Checkbox
+                                                checked={checkedPositions.has(pos)}
+                                                onChange={() => { }}
+                                            />
+                                            {pos}
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-text-muted mt-1 text-xs">Managed by planogram</p>
+                            </div>
+                        );
+                    })()}
                     <Field
                         label="Stock Count"
                         type="number"

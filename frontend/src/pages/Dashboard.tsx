@@ -67,11 +67,11 @@ const Dashboard = () => {
                 setHistory(
                     entries.length > 0
                         ? entries.map((e) => ({
-                              id: e.id,
-                              fileName: e.file_name,
-                              result: e.result,
-                              analyzedAt: new Date(e.created_at),
-                          }))
+                            id: e.id,
+                            fileName: e.file_name,
+                            result: e.result,
+                            analyzedAt: new Date(e.created_at),
+                        }))
                         : toHistoryEntries(mockAnalysisResults),
                 );
             })
@@ -667,7 +667,7 @@ const HistoryCard = ({
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                    className="text-text-muted hover:text-status-missing-text text-xs font-semibold transition"
+                    className="text-status-missing-text hover:bg-status-missing-bg rounded-lg px-3 py-1 text-xs font-semibold transition"
                 >
                     Delete
                 </button>
