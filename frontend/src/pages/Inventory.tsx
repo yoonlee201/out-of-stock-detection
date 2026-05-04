@@ -94,7 +94,6 @@ const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "category", label: "Category", sortable: true },
     { field: "aisle", label: "Aisle", sortable: true },
     { field: "shelf", label: "Shelf", sortable: true },
-    { field: "position", label: "Position", sortable: false },
     { field: "stock", label: "Stock", sortable: true },
     { field: "quantityStatus", label: "Quantity Status", sortable: true },
     { field: "shelfStatus", label: "Shelf Status", sortable: true },
@@ -107,7 +106,6 @@ const INVENTORY_COLUMNS_CUSTOMER = [
     { field: "category", label: "Category", sortable: true },
     { field: "aisle", label: "Aisle", sortable: true },
     { field: "shelf", label: "Shelf", sortable: true },
-    { field: "position", label: "Position", sortable: false },
     { field: "stock", label: "Stock", sortable: true },
     { field: "quantityStatus", label: "Quantity Status", sortable: true },
     { field: "lastChecked", label: "Last Checked", sortable: true },
@@ -175,8 +173,8 @@ const Inventory = () => {
 
     const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
-    if (loading || !user) return <Loading message="Checking authentication..." />;
-    if (inventoryLoading) return <Loading message="Loading inventory..." />;
+    if (loading || !user) return <Loading message="Checking authentication..." fullscreen={false} />;
+    if (inventoryLoading) return <Loading message="Loading inventory..." fullscreen={false} />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
 
     return (
@@ -507,74 +505,6 @@ const CategoryDropdown = ({
 };
 
 
-const CheckboxMenuField = ({
-    label,
-    options,
-    checked,
-    onToggle,
-    note,
-}: {
-    label: string;
-    options: string[];
-    checked: Set<string>;
-    onToggle?: (val: string) => void;
-    note?: string;
-}) => {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [open]);
-
-    const display = options.filter((o) => checked.has(o)).join(", ") || "None selected";
-    const disabled = !onToggle;
-
-    return (
-        <div>
-            <p className="text-text-secondary mb-1 block text-sm font-semibold">{label}</p>
-            <div ref={ref} className="relative">
-                <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => !disabled && setOpen((o) => !o)}
-                    className={`bg-surface border-border-input flex w-full items-center justify-between rounded border-2 py-2.5 pr-3 pl-3 text-sm transition-colors ${disabled ? "cursor-default opacity-70" : "focus-within:border-primary"}`}
-                >
-                    <span className={checked.size > 0 ? "text-text" : "text-text-muted"}>{display}</span>
-                    {!disabled && (
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className={`text-text-muted ml-2 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}>
-                            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    )}
-                </button>
-                {open && (
-                    <div className="bg-surface border-border absolute top-full left-0 z-50 mt-1.5 w-full rounded-xl border shadow-xl">
-                        <div className="max-h-48 overflow-y-auto p-1.5">
-                            {options.map((opt) => (
-                                <button
-                                    key={opt}
-                                    type="button"
-                                    onClick={() => onToggle?.(opt)}
-                                    className="hover:bg-surface-muted flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition"
-                                >
-                                    <Checkbox checked={checked.has(opt)} onChange={() => {}} />
-                                    <span className="text-text-secondary">{opt}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-            {note && <p className="text-text-muted mt-1 text-xs">{note}</p>}
-        </div>
-    );
-};
-
 type EditProductDialogProps = {
     target: InventoryItem | null;
     setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
@@ -670,18 +600,17 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         options={categories.map((c) => ({ value: c, label: c }))}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <Field
-                            label="Aisle"
-                            value={form.aisle}
-                            onChange={(e) => setField("aisle", e.target.value)}
-                        />
+                        <Field label="Aisle" value={form.aisle} onChange={(e) => setField("aisle", e.target.value)} />
                         <CheckboxDropdown
                             label="Shelf"
                             options={SHELVES}
-                            selected={form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean)}
+                            selected={form.shelf
+                                .split(",")
+                                .map((x: string) => x.trim())
+                                .filter(Boolean)}
                             onChange={(next) => setField("shelf", next.join(", "))}
                             disabled={!!(target.locations && target.locations.length > 0)}
-                            formatOption={(s) => `Shelf ${s}`}
+                            formatOption={(s) => `S${s}`}
                         />
                     </div>
                     {target.locations && target.locations.length > 0 && (
@@ -691,7 +620,7 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                             selected={(target.locations ?? []).map((l) => String(l.position))}
                             onChange={() => {}}
                             disabled={true}
-                            formatOption={(s) => `Position ${s}`}
+                            formatOption={(s) => `P${s}`}
                         />
                     )}
                     <Field
@@ -1039,14 +968,20 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                     <CheckboxDropdown
                         label="Shelf"
                         options={SHELVES}
-                        selected={form.shelf.split(",").map((s) => s.trim()).filter(Boolean)}
+                        selected={form.shelf
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
                         onChange={(next) => setField("shelf", next.join(", "))}
                         formatOption={(s) => `Shelf ${s}`}
                     />
                     <CheckboxDropdown
                         label="Position"
                         options={POSITIONS}
-                        selected={form.positions.split(",").map((s) => s.trim()).filter(Boolean)}
+                        selected={form.positions
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)}
                         onChange={(next) => setField("positions", next.join(", "))}
                         formatOption={(s) => `Position ${s}`}
                     />

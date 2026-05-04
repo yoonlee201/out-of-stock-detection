@@ -77,5 +77,7 @@ export type AnalysisHistoryEntry = {
     id: number;
     file_name: string;
     created_at: string;
-    result: ShelfAnalysisResponse;
+    missing_count: number;
+    misplaced_count: number;
+    compliance_score?: number | null;
 };

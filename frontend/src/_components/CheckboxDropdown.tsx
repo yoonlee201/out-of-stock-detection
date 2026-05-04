@@ -32,8 +32,8 @@ const CheckboxDropdown = ({
         selected.length === 0
             ? "None selected"
             : selected.length === options.length
-                ? "All"
-                : selected.map((s) => (formatOption ? formatOption(s) : s)).join(", ");
+              ? "All"
+              : selected.map((s) => (formatOption ? formatOption(s) : s)).join(", ");
 
     return (
         <div ref={containerRef} className="relative">
@@ -41,21 +41,23 @@ const CheckboxDropdown = ({
             <button
                 type="button"
                 disabled={disabled}
-                onClick={() => { if (!disabled) setOpen((o) => !o); }}
+                onClick={() => {
+                    if (!disabled) setOpen((o) => !o);
+                }}
                 className={`border-border bg-surface flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition ${disabled ? "cursor-default opacity-60" : "hover:bg-surface-muted cursor-pointer"}`}
             >
                 <span className={selected.length === 0 ? "text-text-muted" : "text-text-secondary"}>{summary}</span>
                 {!disabled && <span className="text-text-muted ml-2 text-xs">{open ? "▴" : "▾"}</span>}
             </button>
             {open && (
-                <div className="border-border bg-surface absolute left-0 right-0 z-50 mt-1 max-h-44 overflow-y-auto rounded-xl border shadow-lg">
+                <div className="border-border bg-surface absolute right-0 left-0 z-50 mt-1 max-h-44 overflow-y-auto rounded-xl border shadow-lg">
                     {options.map((opt) => {
                         const checked = selected.includes(opt);
                         const display = formatOption ? formatOption(opt) : opt;
                         return (
                             <label
                                 key={opt}
-                                className="flex cursor-pointer items-center gap-2.5 border-b border-border px-3 py-2 text-sm text-text-secondary last:border-b-0 hover:bg-surface-muted select-none"
+                                className="border-border text-text-secondary hover:bg-surface-muted flex cursor-pointer items-center gap-2.5 border-b px-3 py-2 text-sm select-none last:border-b-0"
                             >
                                 <Checkbox
                                     checked={checked}

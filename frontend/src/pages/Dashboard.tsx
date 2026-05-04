@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiDeleteAnalysis, apiGetActiveJobs, apiGetAnalysisHistory, apiSubmitAnalysis } from "../api/query/shelfAnalysis";
+import {
+    apiDeleteAnalysis,
+    apiGetActiveJobs,
+    apiGetAnalysisDetail,
+    apiGetAnalysisHistory,
+    apiSubmitAnalysis,
+} from "../api/query/shelfAnalysis";
 import type { JobStatus, ShelfAnalysisResponse, ShelfDetection } from "../types/shelfAnalysis";
 import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
@@ -9,8 +15,11 @@ import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
 type HistoryEntry = {
     id: number;
     fileName: string;
-    result: ShelfAnalysisResponse;
     analyzedAt: Date;
+    missingCount: number;
+    misplacedCount: number;
+    complianceScore?: number | null;
+    result: ShelfAnalysisResponse | null;
 };
 
 type ActiveJob = {
@@ -25,7 +34,16 @@ type ActiveJob = {
 
 const toHistoryEntries = (
     results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>,
-): HistoryEntry[] => results.map((r, i) => ({ ...r, analyzedAt: new Date(Date.now() - i * 5 * 60_000) }));
+): HistoryEntry[] =>
+    results.map((r, i) => ({
+        id: r.id,
+        fileName: r.fileName,
+        analyzedAt: new Date(Date.now() - i * 5 * 60_000),
+        missingCount: r.result.summary.missing_count ?? 0,
+        misplacedCount: r.result.summary.misplaced_count ?? 0,
+        complianceScore: r.result.compliance_report?.compliance_score,
+        result: r.result,
+    }));
 
 const Dashboard = () => {
     const [searchParams] = useSearchParams();
@@ -41,6 +59,7 @@ const Dashboard = () => {
     const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const tickRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -67,11 +86,14 @@ const Dashboard = () => {
                 setHistory(
                     entries.length > 0
                         ? entries.map((e) => ({
-                            id: e.id,
-                            fileName: e.file_name,
-                            result: e.result,
-                            analyzedAt: new Date(e.created_at),
-                        }))
+                              id: e.id,
+                              fileName: e.file_name,
+                              analyzedAt: new Date(e.created_at),
+                              missingCount: e.missing_count,
+                              misplacedCount: e.misplaced_count,
+                              complianceScore: e.compliance_score,
+                              result: null,
+                          }))
                         : toHistoryEntries(mockAnalysisResults),
                 );
             })
@@ -134,8 +156,11 @@ const Dashboard = () => {
                     entries.map((e) => ({
                         id: e.id,
                         fileName: e.file_name,
-                        result: e.result,
                         analyzedAt: new Date(e.created_at),
+                        missingCount: e.missing_count,
+                        misplacedCount: e.misplaced_count,
+                        complianceScore: e.compliance_score,
+                        result: null,
                     })),
                 );
                 setSelectedIndex(0);
@@ -145,6 +170,8 @@ const Dashboard = () => {
         };
 
         tickRef.current = tick;
+        tick();
+        pollingRef.current = setInterval(tick, 2000);
 
         return () => {
             cancelled = true;
@@ -191,10 +218,33 @@ const Dashboard = () => {
     const handleDeleteSelected = async () => {
         if (selectedIndex === null || !selectedEntry) return;
         if (selectedEntry.id > 0) {
-            try { await apiDeleteAnalysis(selectedEntry.id); } catch { return; }
+            try {
+                await apiDeleteAnalysis(selectedEntry.id);
+            } catch {
+                return;
+            }
         }
         setHistory((prev) => prev.filter((_, i) => i !== selectedIndex));
         setSelectedIndex(null);
+    };
+
+    const handleSelectEntry = async (index: number) => {
+        if (selectedIndex === index) {
+            setSelectedIndex(null);
+            return;
+        }
+        setSelectedIndex(index);
+        const entry = history[index];
+        if (!entry || entry.result !== null) return;
+        setDetailLoading(true);
+        try {
+            const result = await apiGetAnalysisDetail(entry.id);
+            setHistory((prev) => prev.map((e, i) => (i === index ? { ...e, result } : e)));
+        } catch {
+            // detail panel will show "failed to load"
+        } finally {
+            setDetailLoading(false);
+        }
     };
 
     const handleAnalyzeShelf = async () => {
@@ -333,7 +383,7 @@ const Dashboard = () => {
                                     key={`${entry.fileName}-${entry.analyzedAt.getTime()}`}
                                     entry={entry}
                                     selected={selectedIndex === index}
-                                    onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
+                                    onClick={() => handleSelectEntry(index)}
                                 />
                             ))}
                         </div>
@@ -373,6 +423,13 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
+                            {detailLoading || !analysisResult ? (
+                                <div className="border-border flex min-h-64 items-center justify-center rounded-2xl border border-dashed">
+                                    <p className="text-text-muted text-sm">
+                                        {detailLoading ? "Loading analysis..." : "Failed to load analysis."}
+                                    </p>
+                                </div>
+                            ) : (
                             <div className="space-y-4">
                                 <div className="bg-surface border-border rounded-2xl border p-4">
                                     <div className="space-y-4">
@@ -385,7 +442,7 @@ const Dashboard = () => {
                                             </span>
                                         </div>
                                         <img
-                                            src={analysisResult!.annotated_image}
+                                            src={analysisResult.annotated_image}
                                             alt="Shelf analysis result"
                                             onClick={() => setImageDialogOpen(true)}
                                             className="bg-surface border-border w-full cursor-zoom-in rounded-2xl border object-contain"
@@ -393,15 +450,15 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                {analysisResult!.compliance_report && (
+                                {analysisResult.compliance_report && (
                                     <div className="bg-surface border-border rounded-2xl border px-4 py-4">
                                         <div className="text-text-muted text-xs font-semibold tracking-[0.18em] uppercase">
                                             Planogram Visibility
                                         </div>
                                         <div className="text-secondary mt-2 text-sm font-semibold">
-                                            Rows visible: {analysisResult!.compliance_report.visible_rows.length} of{" "}
-                                            {analysisResult!.compliance_report.total_planogram_rows} | Compliance:{" "}
-                                            {analysisResult!.compliance_report.compliance_score}%
+                                            Rows visible: {analysisResult.compliance_report.visible_rows.length} of{" "}
+                                            {analysisResult.compliance_report.total_planogram_rows} | Compliance:{" "}
+                                            {analysisResult.compliance_report.compliance_score}%
                                         </div>
                                     </div>
                                 )}
@@ -448,6 +505,7 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
                         </div>
                     ) : (
                         <div className="bg-surface flex min-h-64 items-center justify-center rounded-xl p-6 shadow">
@@ -624,18 +682,10 @@ const ActiveJobCard = ({ job }: { job: ActiveJob }) => (
 const complianceTextClass = (score: number) =>
     score >= 90 ? "text-status-success-text" : score >= 70 ? "text-status-misplaced-text" : "text-status-missing-text";
 
-const HistoryCard = ({
-    entry,
-    selected,
-    onClick,
-}: {
-    entry: HistoryEntry;
-    selected: boolean;
-    onClick: () => void;
-}) => {
-    const { result, analyzedAt } = entry;
-    const issueCount = (result.summary.missing_count ?? 0) + (result.summary.misplaced_count ?? 0);
-    const compliance = result.compliance_report?.compliance_score;
+const HistoryCard = ({ entry, selected, onClick }: { entry: HistoryEntry; selected: boolean; onClick: () => void }) => {
+    const { analyzedAt, missingCount, misplacedCount, complianceScore } = entry;
+    const issueCount = missingCount + misplacedCount;
+    const compliance = complianceScore ?? undefined;
 
     return (
         <button

@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
-import type { ActiveJobInfo, AnalysisHistoryEntry, JobStatus, JobSubmitResponse } from "../../types/shelfAnalysis";
+import type { ActiveJobInfo, AnalysisHistoryEntry, JobStatus, JobSubmitResponse, ShelfAnalysisResponse } from "../../types/shelfAnalysis";
 
 const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
     ? `${import.meta.env.VITE_BACKEND_BASE_URL}${import.meta.env.VITE_BACKEND_URL}`
@@ -90,5 +90,17 @@ export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> =
             throw new Error(error.response?.data?.message || "Failed to load analysis history.");
         }
         throw new Error("Failed to load analysis history.");
+    }
+};
+
+export const apiGetAnalysisDetail = async (id: number): Promise<ShelfAnalysisResponse> => {
+    try {
+        const { data } = await axiosAuth.get<ShelfAnalysisResponse>(`/shelf-analysis/${id}`);
+        return data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to load analysis detail.");
+        }
+        throw new Error("Failed to load analysis detail.");
     }
 };
