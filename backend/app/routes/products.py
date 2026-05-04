@@ -110,6 +110,68 @@ def create_product(session):
     db.session.commit()
     return jsonify({"message": "Product created", "product": _serialize(product)}), 201
 
+@products_blueprint.route("/upload-csv", methods=["POST", "OPTIONS"])
+@require_active_employee
+def upload_products_csv(session):
+    if request.method == "OPTIONS":
+        return "", 204
+
+    if "file" not in request.files:
+        return jsonify({"error": "CSV file is required"}), 400
+
+    file = request.files["file"]
+
+    if not file.filename.lower().endswith(".csv"):
+        return jsonify({"error": "Only CSV files are allowed"}), 400
+
+    first_supplier = Suppliers.query.order_by(Suppliers.id.asc()).first()
+    if not first_supplier:
+        return jsonify({"error": "No supplier exists — create one first"}), 400
+
+    import csv, io
+
+    stream = io.StringIO(file.stream.read().decode("utf-8-sig"))
+    reader = csv.DictReader(stream)
+
+    added = 0
+
+    for row in reader:
+        name = (row.get("name") or "").strip()
+        if not name:
+            continue
+
+        try:
+            quantity = int(row.get("quantity_in_store") or row.get("stock") or 0)
+        except:
+            continue
+
+        base = f"QR-{name.upper().replace(' ', '-')[:16]}"
+        qrcode = base
+        i = 1
+        while Products.query.filter_by(qrcode=qrcode).first():
+            qrcode = f"{base}-{i}"
+            i += 1
+
+        product = Products(
+            name=name,
+            brand=(row.get("brand") or "").strip(),
+            variant=(row.get("variant") or "").strip(),
+            size=(row.get("size") or "").strip(),
+            type=(row.get("type") or row.get("category") or "general").strip(),
+            qrcode=qrcode,
+            quantity_in_store=quantity,
+            aisle=(row.get("aisle") or "A1").strip(),
+            shelf=(row.get("shelf") or "S11").strip(),
+            supplier_id=first_supplier.id,
+        )
+
+        db.session.add(product)
+        added += 1
+
+    db.session.commit()
+
+    return jsonify({"added_count": added}), 201
+
 
 @products_blueprint.route("/", methods=["GET"])
 def get_products():
