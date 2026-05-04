@@ -3,7 +3,7 @@ export type InventoryStatus = "in_stock" | "low_stock" | "out_of_stock";
 /** Whether the product is physically present on the shelf. Set by shelf detection (Dashboard). */
 export type ShelfStatus = "on_shelf" | "missing" | "misplaced" | "low_stock" | "out_of_stock" | "unknown";
 
-export interface ProductLocation {
+export type ProductLocation = {
     slotId: string;
     shelf: string;
     position: number;
@@ -12,7 +12,7 @@ export interface ProductLocation {
     lastChecked: Date | null;
 }
 
-export interface InventoryItem {
+export type InventoryItem = {
     id: string;
     brand: string;
     productName: string;

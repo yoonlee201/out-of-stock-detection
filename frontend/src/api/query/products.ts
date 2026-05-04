@@ -2,7 +2,7 @@ import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
 import type { InventoryItem, ShelfStatus } from "../../types/inventory";
 
-interface RawLocation {
+type RawLocation =  {
     slot_id: string;
     shelf: string;
     position: number;
@@ -11,7 +11,7 @@ interface RawLocation {
     last_checked: string | null;
 }
 
-interface RawProduct {
+type RawProduct =  {
     product_id: number;
     name: string;
     brand: string;

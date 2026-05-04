@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { apiGetAlertHistory, type AlertHistoryItem, type AlertType } from "../api/query/alert";
-import { apiGetReorders, type ReorderResult } from "../api/query/reorders";
+import { apiGetAlertHistory } from "../api/query/alert";
+import { apiGetReorders } from "../api/query/reorders";
+import type { AlertHistoryItem, AlertType } from "../types/alerts";
+import type { ReorderResult } from "../types/reorders";
 import { NavLink } from "react-router-dom";
 
 const ALERT_TYPE_LABEL: Record<AlertType, string> = {
