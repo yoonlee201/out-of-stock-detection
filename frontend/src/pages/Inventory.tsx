@@ -173,8 +173,8 @@ const Inventory = () => {
 
     const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
-    if (loading || !user) return <Loading message="Checking authentication..." />;
-    if (inventoryLoading) return <Loading message="Loading inventory..." />;
+    if (loading || !user) return <Loading message="Checking authentication..." fullscreen={false} />;
+    if (inventoryLoading) return <Loading message="Loading inventory..." fullscreen={false} />;
     if (inventoryError) return <p className="text-red text-sm">{inventoryError}</p>;
 
     return (

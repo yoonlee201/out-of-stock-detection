@@ -2,7 +2,7 @@ const Loading = ({ fullscreen = true, message = "Loading..." }: { fullscreen?: b
     return (
         <div
             className={`bg-background flex flex-col items-center justify-center gap-4 ${
-                fullscreen ? "h-screen w-screen" : "h-full w-full"
+                fullscreen ? "h-screen w-screen" : "h-screen w-full"
             }`}
         >
             {/* Spinner */}
