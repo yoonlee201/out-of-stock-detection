@@ -1,56 +1,11 @@
 import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
-
-export interface ShelfSkuDetails {
-    brand: string;
-    product_name: string;
-    variant: string;
-    size: string;
-    confidence: number;
-    visibility?: "full" | "partial" | "side_only" | string;
-}
-
-export interface ShelfDetection {
-    bbox: [number, number, number, number];
-    type: "product" | "empty_space";
-    sku: ShelfSkuDetails | null;
-    expected_sku?: ShelfSkuDetails | null;
-    match_score?: number;
-    audit_status?: "correct" | "missing" | "misplaced" | "unverified" | string;
-    issue_marker?: string | null;
-    slot_id?: string;
-    row?: number;
-    position?: number;
-    detection_quality?: "merged_box" | string | null;
-    assignment_method?: "position" | "content" | "boundary_resolved" | string | null;
-    tall_box?: boolean;
-    size_class?: "tall" | "normal" | "small" | string;
-}
-
-export interface ShelfAnalysisResponse {
-    message: string;
-    summary: {
-        product_count: number;
-        empty_space_count: number;
-        unique_sku_count: number;
-        correct_count?: number;
-        missing_count?: number;
-        misplaced_count?: number;
-        unverified_count?: number;
-    };
-    compliance_report?: {
-        visible_rows: number[];
-        not_visible_rows: number[];
-        visibility_note: string;
-        visible_slot_count: number;
-        correct_slot_count: number;
-        compliance_score: number;
-        total_planogram_rows: number;
-    };
-    detections: ShelfDetection[];
-    compliance_notes?: string[];
-    annotated_image: string;
-}
+import type {
+    ActiveJobInfo,
+    AnalysisHistoryEntry,
+    JobStatus,
+    JobSubmitResponse,
+} from "../../types/shelfAnalysis";
 
 const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
     ? `${import.meta.env.VITE_BACKEND_BASE_URL}${import.meta.env.VITE_BACKEND_URL}`
@@ -58,20 +13,6 @@ const DIRECT_URL = import.meta.env.VITE_BACKEND_BASE_URL
 
 const resolveEndpoint = (path: string) =>
     DIRECT_URL ? `${DIRECT_URL}${path}` : path;
-
-export interface JobSubmitResponse {
-    job_id: string;
-    queue_position: number | null;
-}
-
-export interface JobStatus {
-    status: "queued" | "running" | "done" | "failed";
-    progress: number;
-    eta_seconds: number | null;
-    queue_position: number | null;
-    result: ShelfAnalysisResponse | null;
-    error: string | null;
-}
 
 export const apiSubmitAnalysis = async (
     image: File,
@@ -113,6 +54,21 @@ export const apiSubmitAnalysis = async (
     }
 };
 
+export const apiGetActiveJobs = async (): Promise<ActiveJobInfo[]> => {
+    try {
+        const { data } = await axiosAuth.get<ActiveJobInfo[]>(resolveEndpoint("/shelf-analysis/jobs"));
+        return data;
+    } catch (error: unknown) {
+        if (isAxiosError(error)) {
+            const msg =
+                (error.response?.data as { message?: string })?.message ||
+                "Failed to load active jobs.";
+            throw new Error(msg);
+        }
+        throw new Error("Failed to load active jobs.");
+    }
+};
+
 export const apiGetJobStatus = async (jobId: string): Promise<JobStatus> => {
     try {
         const { data } = await axiosAuth.get<JobStatus>(resolveEndpoint(`/shelf-analysis/job/${jobId}`));
@@ -127,13 +83,6 @@ export const apiGetJobStatus = async (jobId: string): Promise<JobStatus> => {
         throw new Error("Failed to get job status.");
     }
 };
-
-export interface AnalysisHistoryEntry {
-    id: number;
-    file_name: string;
-    created_at: string;
-    result: ShelfAnalysisResponse;
-}
 
 export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
     try {

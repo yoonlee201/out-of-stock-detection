@@ -1,9 +1,9 @@
 export const Role = { user: "user", system: "system" };
 
-export interface ChatMessage {
+export type ChatMessage = {
     role: (typeof Role)[keyof typeof Role];
     content: string;
-}
+};
 
 export const TabsOverview = Object.freeze({
     gptSuggestions: "GPT Suggestions",

@@ -3,7 +3,7 @@ export type InventoryStatus = "in_stock" | "low_stock" | "out_of_stock";
 /** Whether the product is physically present on the shelf. Set by shelf detection (Dashboard). */
 export type ShelfStatus = "on_shelf" | "missing" | "misplaced";
 
-export interface InventoryItem {
+export type InventoryItem = {
     id: string;
     brand: string;
     productName: string;
@@ -18,6 +18,6 @@ export interface InventoryItem {
     /** Set by shelf detection — read-only in Inventory. */
     shelfStatus: ShelfStatus;
     lastChecked: Date;
-}
+};
 
 export type CustomerAvailability = "available" | "limited" | "unavailable";

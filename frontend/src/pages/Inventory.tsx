@@ -111,7 +111,7 @@ const QUANTITY_STATUS_OPTIONS = QUANTITY_STATUS_FILTERS.map((f) => ({ value: f.v
 
 // ======================Types========================
 
-interface EditForm {
+type EditForm = {
     brand: string;
     productName: string;
     variant: string;
@@ -120,7 +120,7 @@ interface EditForm {
     aisle: string;
     shelf: string;
     stockCount: string;
-}
+};
 
 const itemToForm = (item: InventoryItem): EditForm => ({
     brand: item.brand,
@@ -848,7 +848,7 @@ type AddProductDialogProps = {
     onCreated: (item: InventoryItem) => void;
 };
 
-interface AddForm {
+type AddForm = {
     brand: string;
     productName: string;
     variant: string;
@@ -857,7 +857,7 @@ interface AddForm {
     stockCount: string;
     aisle: string;
     shelf: string;
-}
+};
 
 const emptyAddForm: AddForm = {
     brand: "",

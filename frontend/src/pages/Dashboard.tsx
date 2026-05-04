@@ -1,25 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
+    apiGetActiveJobs,
     apiGetAnalysisHistory,
-    apiGetJobStatus,
     apiSubmitAnalysis,
-    type JobStatus,
-    type ShelfAnalysisResponse,
-    type ShelfDetection,
 } from "../api/query/shelfAnalysis";
+import type { JobStatus, ShelfAnalysisResponse, ShelfDetection } from "../types/shelfAnalysis";
 import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
 import { shelfStatusClass, SHELF_STATUS_LABEL } from "../utils/constants";
 
-interface HistoryEntry {
+type HistoryEntry = {
     id: number;
     fileName: string;
     result: ShelfAnalysisResponse;
     analyzedAt: Date;
-}
+};
 
-interface ActiveJob {
+type ActiveJob = {
     jobId: string;
     fileName: string;
     submittedAt: Date;
@@ -27,7 +25,7 @@ interface ActiveJob {
     progress: number;
     etaSeconds: number | null;
     queuePosition: number | null;
-}
+};
 
 const toHistoryEntries = (
     results: Array<{ id: number; fileName: string; result: ShelfAnalysisResponse }>,
@@ -89,72 +87,69 @@ const Dashboard = () => {
         return () => { cancelled = true; };
     }, []);
 
-    // Poll active jobs every 2 seconds
+    // Poll the shared active-job queue every 2 seconds. The list comes from the backend so any
+    // job in flight (regardless of which page or user submitted it) shows up here.
     useEffect(() => {
-        const pendingJobs = activeJobs.filter((j) => j.status === "queued" || j.status === "running");
-        if (pendingJobs.length === 0) {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-                pollingRef.current = null;
+        let cancelled = false;
+        const knownIds = new Set<string>();
+
+        const tick = async () => {
+            let active;
+            try {
+                active = await apiGetActiveJobs();
+            } catch {
+                return;
             }
-            return;
-        }
+            if (cancelled) return;
 
-        if (pollingRef.current) return; // already polling
+            const seenIds = new Set(active.map((j) => j.job_id));
+            const completedIds = [...knownIds].filter((id) => !seenIds.has(id));
 
-        pollingRef.current = setInterval(async () => {
-            const updates = await Promise.all(
-                pendingJobs.map(async (job) => {
-                    try {
-                        const status = await apiGetJobStatus(job.jobId);
-                        return { jobId: job.jobId, ...status };
-                    } catch {
-                        return null;
-                    }
-                }),
+            knownIds.clear();
+            seenIds.forEach((id) => knownIds.add(id));
+
+            setActiveJobs(
+                active.map((j) => ({
+                    jobId: j.job_id,
+                    fileName: j.file_name,
+                    submittedAt: new Date(j.submitted_at * 1000),
+                    status: j.status,
+                    progress: j.progress,
+                    etaSeconds: j.eta_seconds,
+                    queuePosition: j.queue_position,
+                })),
             );
 
-            const completed: HistoryEntry[] = [];
+            if (completedIds.length === 0) return;
 
-            setActiveJobs((prev) => {
-                const next = prev.map((job) => {
-                    const update = updates.find((u) => u?.jobId === job.jobId);
-                    if (!update) return job;
-                    if (update.status === "done" && update.result) {
-                        completed.push({
-                            id: -1,
-                            fileName: job.fileName,
-                            result: update.result,
-                            analyzedAt: new Date(),
-                        });
-                    }
-                    return {
-                        ...job,
-                        status: update.status,
-                        progress: update.progress,
-                        etaSeconds: update.eta_seconds,
-                        queuePosition: update.queue_position,
-                    };
-                });
-                return next.filter((j) => j.status !== "done" && j.status !== "failed");
-            });
-
-            if (completed.length > 0) {
-                setHistory((prev) => {
-                    const next = [...completed, ...prev];
-                    setSelectedIndex(0);
-                    return next;
-                });
+            // A previously-tracked job is no longer in flight — refresh history to pick up its result.
+            try {
+                const entries = await apiGetAnalysisHistory();
+                if (cancelled) return;
+                setHistory(
+                    entries.map((e) => ({
+                        id: e.id,
+                        fileName: e.file_name,
+                        result: e.result,
+                        analyzedAt: new Date(e.created_at),
+                    })),
+                );
+                setSelectedIndex(0);
+            } catch {
+                // leave history as-is; the next tick will try again
             }
-        }, 2000);
+        };
 
+        tick();
+        pollingRef.current = setInterval(tick, 2000);
         return () => {
+            cancelled = true;
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
                 pollingRef.current = null;
             }
         };
-    }, [activeJobs]);
+    }, []);
 
     useEffect(() => {
         if (!imageDialogOpen) return;
@@ -263,6 +258,18 @@ const Dashboard = () => {
                         const queuedJobs = activeJobs.filter((j) => j.status === "queued");
                         return (
                             <div className="mb-4 space-y-3">
+                                {queuedJobs.length > 0 && (
+                                    <div>
+                                        <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                                            Waiting
+                                        </p>
+                                        <div className="space-y-2">
+                                            {queuedJobs.map((job) => (
+                                                <ActiveJobCard key={job.jobId} job={job} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {runningJobs.length > 0 && (
                                     <div>
                                         <div className="mb-2 flex items-center justify-between">
@@ -275,18 +282,6 @@ const Dashboard = () => {
                                         </div>
                                         <div className="space-y-2">
                                             {runningJobs.map((job) => (
-                                                <ActiveJobCard key={job.jobId} job={job} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {queuedJobs.length > 0 && (
-                                    <div>
-                                        <p className="text-text-muted mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                                            Waiting
-                                        </p>
-                                        <div className="space-y-2">
-                                            {queuedJobs.map((job) => (
                                                 <ActiveJobCard key={job.jobId} job={job} />
                                             ))}
                                         </div>

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiAnalyzeShelf } from "../api/query/shelfAnalysis";
+import { apiSubmitAnalysis } from "../api/query/shelfAnalysis";
 
-interface DemoImage {
+type DemoImage = {
     url: string;
     label: string;
     filename: string;
-}
+};
 
 const DEMO_IMAGES: DemoImage[] = [
     { url: "/images/shelf-sample-1.png", label: "Shelf Sample 1", filename: "shelf-sample-1.png" },
@@ -40,7 +40,7 @@ const Demo = () => {
             setUploadProgress(0);
 
             const file = await urlToFile(selected.url, selected.filename);
-            await apiAnalyzeShelf(file, (percent) => setUploadProgress(percent));
+            await apiSubmitAnalysis(file, (percent) => setUploadProgress(percent));
 
             navigate("/shelf-detection");
         } catch (err) {

@@ -9,11 +9,11 @@ import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import type { UserRole } from "../types/db";
 
-interface Route {
+type Route = {
     path: string;
     label: string;
     element?: React.ReactNode;
-}
+};
 
 type Routes = {
     [label: string]: Route;

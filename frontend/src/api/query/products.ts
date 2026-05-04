@@ -2,7 +2,7 @@ import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
 import type { InventoryItem, ShelfStatus } from "../../types/inventory";
 
-interface RawProduct {
+type RawProduct = {
     product_id: number;
     name: string;
     brand: string;
@@ -14,7 +14,7 @@ interface RawProduct {
     shelf: string;
     shelf_status: string;
     last_checked: string | null;
-}
+};
 
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
     id: String(p.product_id),

@@ -1,4 +1,4 @@
-import type { ShelfAnalysisResponse } from "../../api/query/shelfAnalysis";
+import type { ShelfAnalysisResponse } from "../../types/shelfAnalysis";
 import type { InventoryItem } from "../../types/inventory";
 
 const makeSvgImage = (label: string) => {

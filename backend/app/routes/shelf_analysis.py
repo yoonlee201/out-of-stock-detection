@@ -273,6 +273,27 @@ def analyze_shelf():
     return jsonify({"job_id": job_id, "queue_position": queue_position}), 202
 
 
+@shelf_analysis_blueprint.route("/jobs", methods=["GET"])
+def list_active_jobs():
+    with _jobs_lock:
+        _cleanup_old_jobs()
+        active = []
+        for job_id, job in _jobs.items():
+            if job["status"] not in ("queued", "running"):
+                continue
+            active.append({
+                "job_id": job_id,
+                "file_name": job["file_name"],
+                "status": job["status"],
+                "progress": job["progress"],
+                "eta_seconds": job["eta_seconds"],
+                "queue_position": _get_queue_position(job_id) if job["status"] == "queued" else None,
+                "submitted_at": job["submitted_at"],
+            })
+    active.sort(key=lambda j: j["submitted_at"])
+    return jsonify(active), 200
+
+
 @shelf_analysis_blueprint.route("/job/<job_id>", methods=["GET"])
 def get_job(job_id: str):
     with _jobs_lock:
