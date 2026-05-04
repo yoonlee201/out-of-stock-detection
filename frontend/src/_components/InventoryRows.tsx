@@ -90,21 +90,15 @@ export const EmployeeRow = ({
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Position the portaled menu relative to the trigger button. Done in a
-    // layout effect so the position is set before paint — no flicker.
     useLayoutEffect(() => {
         if (!menuOpen) return;
         const rect = buttonRef.current?.getBoundingClientRect();
         if (!rect) return;
-        // Right-align the menu's right edge to the button's right edge, like
-        // the original `right-0` did inside the cell.
         const left = rect.right - MENU_WIDTH;
         const top = rect.bottom + 4;
         setMenuPos({ top, left });
     }, [menuOpen]);
 
-    // Close on outside click — the menu lives in a portal, so we have to
-    // exempt both the menu and the trigger button from "outside".
     useEffect(() => {
         if (!menuOpen) return;
         const handler = (e: MouseEvent) => {
@@ -116,8 +110,6 @@ export const EmployeeRow = ({
         return () => document.removeEventListener("mousedown", handler);
     }, [menuOpen]);
 
-    // The portal uses fixed positioning relative to the viewport, so any
-    // scroll or resize moves the trigger out from under the menu — close it.
     useEffect(() => {
         if (!menuOpen) return;
         const close = () => setMenuOpen(false);
@@ -178,7 +170,7 @@ export const EmployeeRow = ({
                             <div
                                 ref={menuRef}
                                 style={{ position: "fixed", top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
-                                className="bg-surface border-border z-[100] rounded-2xl border shadow-xl"
+                                className="bg-surface border-border z-100 rounded-2xl border shadow-xl"
                             >
                                 <div className="space-y-0.5 p-1.5">
                                     <button

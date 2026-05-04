@@ -19,7 +19,7 @@ import { apiCreateReorder } from "../api/query/reorders";
 import DataTable, { FilterBar, FilterGroup, SearchInput, SummaryCard } from "../_components/Table";
 import { PlusIcon } from "../_components/Icons";
 import Select from "../_components/Select";
-import Checkbox from "../_components/Checkbox";
+import CheckboxDropdown from "../_components/CheckboxDropdown";
 
 type SortField =
     | "product"
@@ -87,6 +87,7 @@ const groupKeyOf = (item: InventoryItem, field: GroupField): string => {
 // const CATEGORIES = ["Soft Drinks", "Sports Drinks"];
 const AISLES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SHELVES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const POSITIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 const INVENTORY_COLUMNS_EMPLOYEE = [
     { field: "product", label: "Product", sortable: true },
@@ -504,7 +505,7 @@ const CategoryDropdown = ({
         </div>
     );
 };
-// ======================Dialogs========================
+
 
 const CheckboxMenuField = ({
     label,
@@ -674,26 +675,23 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                             value={form.aisle}
                             onChange={(e) => setField("aisle", e.target.value)}
                         />
-                        <CheckboxMenuField
+                        <CheckboxDropdown
                             label="Shelf"
                             options={SHELVES}
-                            checked={new Set<string>(form.shelf.split(",").map((x: string) => x.trim()).filter((x: string) => x !== ""))}
-                            onToggle={target.locations && target.locations.length > 0 ? undefined : (s: string) => {
-                                const current = form.shelf.split(",").map((x: string) => x.trim()).filter((x: string) => x !== "");
-                                const next = current.includes(s)
-                                    ? current.filter((x: string) => x !== s)
-                                    : [...current, s].sort((a, b) => parseInt(a) - parseInt(b));
-                                setField("shelf", next.join(", "));
-                            }}
-                            note={target.locations && target.locations.length > 0 ? "Managed by planogram" : undefined}
+                            selected={form.shelf.split(",").map((x: string) => x.trim()).filter(Boolean)}
+                            onChange={(next) => setField("shelf", next.join(", "))}
+                            disabled={!!(target.locations && target.locations.length > 0)}
+                            formatOption={(s) => `Shelf ${s}`}
                         />
                     </div>
                     {target.locations && target.locations.length > 0 && (
-                        <CheckboxMenuField
+                        <CheckboxDropdown
                             label="Position"
-                            options={Array.from<string>({ length: Math.max(...target.locations.map((l) => l.position)) }).map((_, i) => String(i + 1))}
-                            checked={new Set<string>(target.locations.map((l) => String(l.position)))}
-                            note="Managed by planogram"
+                            options={POSITIONS}
+                            selected={(target.locations ?? []).map((l) => String(l.position))}
+                            onChange={() => {}}
+                            disabled={true}
+                            formatOption={(s) => `Position ${s}`}
                         />
                     )}
                     <Field
@@ -947,6 +945,7 @@ type AddForm = {
     stockCount: string;
     aisle: string;
     shelf: string;
+    positions: string;
 };
 
 const emptyAddForm: AddForm = {
@@ -957,7 +956,8 @@ const emptyAddForm: AddForm = {
     category: "",
     stockCount: "0",
     aisle: AISLES[0],
-    shelf: SHELVES[0],
+    shelf: "",
+    positions: "",
 };
 
 const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDialogProps) => {
@@ -983,6 +983,10 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
         setSaveLoading(true);
         setSaveError(null);
         try {
+            const positions = form.positions
+                .split(",")
+                .map((s) => parseInt(s.trim(), 10))
+                .filter((n) => !isNaN(n));
             const created = await apiCreateProduct({
                 name: form.productName.trim(),
                 brand: form.brand.trim(),
@@ -992,6 +996,7 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                 quantity_in_store: qty,
                 aisle: form.aisle.trim(),
                 shelf: form.shelf.trim(),
+                positions,
             });
             onCreated(created);
             onClose();
@@ -1031,12 +1036,19 @@ const AddProductDialog = ({ categories, open, onClose, onCreated }: AddProductDi
                         onChange={(e) => setField("aisle", e.target.value)}
                         options={AISLES.map((a) => ({ value: a, label: a }))}
                     />
-                    <Select
+                    <CheckboxDropdown
                         label="Shelf"
-                        required
-                        value={form.shelf}
-                        onChange={(e) => setField("shelf", e.target.value)}
-                        options={SHELVES.map((s) => ({ value: s, label: s }))}
+                        options={SHELVES}
+                        selected={form.shelf.split(",").map((s) => s.trim()).filter(Boolean)}
+                        onChange={(next) => setField("shelf", next.join(", "))}
+                        formatOption={(s) => `Shelf ${s}`}
+                    />
+                    <CheckboxDropdown
+                        label="Position"
+                        options={POSITIONS}
+                        selected={form.positions.split(",").map((s) => s.trim()).filter(Boolean)}
+                        onChange={(next) => setField("positions", next.join(", "))}
+                        formatOption={(s) => `Position ${s}`}
                     />
                 </div>
                 <Field
