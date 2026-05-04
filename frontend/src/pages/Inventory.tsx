@@ -608,14 +608,14 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         />
                         <div>
                             <p className="text-text-secondary mb-2 block text-sm font-semibold">Shelf</p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                            <div className="border-border bg-surface-muted max-h-36 overflow-y-auto rounded-xl border">
                                 {SHELVES.map((s) => {
                                     const checked = form.shelf.split(",").map((x: string) => x.trim()).includes(s);
                                     const hasLocs = !!(target.locations && target.locations.length > 0);
                                     return (
                                         <label
                                             key={s}
-                                            className={`flex items-center gap-1.5 text-sm select-none ${hasLocs ? "text-text-muted cursor-default" : "text-text-secondary cursor-pointer"}`}
+                                            className={`flex items-center gap-2.5 px-3 py-2 text-sm select-none border-b border-border last:border-b-0 ${hasLocs ? "text-text-muted cursor-default" : "text-text-secondary cursor-pointer hover:bg-surface"}`}
                                         >
                                             <Checkbox
                                                 checked={checked}
@@ -627,7 +627,7 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                                                     setField("shelf", next.join(", "));
                                                 }}
                                             />
-                                            {s}
+                                            Shelf {s}
                                         </label>
                                     );
                                 })}
@@ -644,17 +644,17 @@ const EditProductDialog = ({ target, setInventory, onClose, categories }: EditPr
                         return (
                             <div>
                                 <p className="text-text-secondary mb-2 block text-sm font-semibold">Position</p>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                <div className="border-border bg-surface-muted max-h-36 overflow-y-auto rounded-xl border">
                                     {positionRange.map((pos) => (
                                         <label
                                             key={pos}
-                                            className="text-text-muted flex cursor-default items-center gap-1.5 text-sm select-none"
+                                            className="text-text-muted flex cursor-default items-center gap-2.5 border-b border-border px-3 py-2 text-sm select-none last:border-b-0"
                                         >
                                             <Checkbox
                                                 checked={checkedPositions.has(pos)}
                                                 onChange={() => { }}
                                             />
-                                            {pos}
+                                            Position {pos}
                                         </label>
                                     ))}
                                 </div>
