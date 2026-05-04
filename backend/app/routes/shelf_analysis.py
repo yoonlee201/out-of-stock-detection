@@ -134,6 +134,12 @@ def _split_compliance_notes(detections: list[dict]) -> tuple[list[dict], list[st
 
 
 def _process_job(job_id: str, temp_path: str, file_name: str, user_id, app) -> None:
+    file_base = os.path.splitext(file_name)[0]
+    preprocessed_path = os.path.join(
+        os.path.dirname(temp_path),
+        f"{file_base}_job{job_id[:8]}.jpg",
+    )
+
     _semaphore.acquire()
     try:
         with _jobs_lock:
@@ -148,7 +154,11 @@ def _process_job(job_id: str, temp_path: str, file_name: str, user_id, app) -> N
 
         analyze_shelf_debug, draw_annotations, build_compliance_report = _get_shelf_tools()
 
-        debug_bundle = analyze_shelf_debug(temp_path, progress_callback=on_progress)
+        debug_bundle = analyze_shelf_debug(
+            temp_path,
+            progress_callback=on_progress,
+            preprocessed_output_path=preprocessed_path,
+        )
         raw_detections = debug_bundle["audit_results"]
         visible_detections, compliance_notes = _split_compliance_notes(raw_detections)
         detections = _attach_issue_markers(visible_detections)
@@ -214,8 +224,9 @@ def _process_job(job_id: str, temp_path: str, file_name: str, user_id, app) -> N
                 _jobs[job_id]["error"] = str(error)
     finally:
         _semaphore.release()
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        for path in (temp_path, preprocessed_path):
+            if os.path.exists(path):
+                os.remove(path)
 
 
 @shelf_analysis_blueprint.route("/analyze", methods=["POST", "OPTIONS"])
@@ -332,3 +343,17 @@ def get_analysis_history():
         }
         for log in logs
     ]), 200
+
+
+@shelf_analysis_blueprint.route("/<int:log_id>", methods=["DELETE"])
+def delete_analysis(log_id: int):
+    log = ShelfAnalysisLog.query.get(log_id)
+    if log is None:
+        return jsonify({"message": "Analysis not found."}), 404
+    try:
+        db.session.delete(log)
+        db.session.commit()
+        return jsonify({"message": "Deleted."}), 200
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({"message": f"Delete failed: {error}"}), 500

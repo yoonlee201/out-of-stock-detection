@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiGetActiveJobs, apiGetAnalysisHistory, apiSubmitAnalysis } from "../api/query/shelfAnalysis";
+import { apiDeleteAnalysis, apiGetActiveJobs, apiGetAnalysisHistory, apiSubmitAnalysis } from "../api/query/shelfAnalysis";
 import type { JobStatus, ShelfAnalysisResponse, ShelfDetection } from "../types/shelfAnalysis";
 import { mockAnalysisResults } from "../assets/data/mockData";
 import { PlusIcon } from "../_components/Icons";
@@ -42,6 +42,7 @@ const Dashboard = () => {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const tickRef = useRef<(() => Promise<void>) | null>(null);
 
     useEffect(() => {
         if (!log_id) return;
@@ -85,8 +86,6 @@ const Dashboard = () => {
         };
     }, []);
 
-    // Poll the shared active-job queue every 2 seconds. The list comes from the backend so any
-    // job in flight (regardless of which page or user submitted it) shows up here.
     useEffect(() => {
         let cancelled = false;
         const knownIds = new Set<string>();
@@ -118,9 +117,16 @@ const Dashboard = () => {
                 })),
             );
 
+            // Stop polling when nothing is in flight
+            if (active.length === 0 && knownIds.size === 0) {
+                if (pollingRef.current) {
+                    clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                }
+            }
+
             if (completedIds.length === 0) return;
 
-            // A previously-tracked job is no longer in flight — refresh history to pick up its result.
             try {
                 const entries = await apiGetAnalysisHistory();
                 if (cancelled) return;
@@ -138,14 +144,15 @@ const Dashboard = () => {
             }
         };
 
-        tick();
-        pollingRef.current = setInterval(tick, 2000);
+        tickRef.current = tick;
+
         return () => {
             cancelled = true;
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
                 pollingRef.current = null;
             }
+            tickRef.current = null;
         };
     }, []);
 
@@ -216,6 +223,12 @@ const Dashboard = () => {
 
             setActiveJobs((prev) => [...prev, ...submitted]);
             handleCloseUploadDialog();
+
+            // Start polling if it was stopped
+            if (!pollingRef.current && tickRef.current) {
+                tickRef.current();
+                pollingRef.current = setInterval(tickRef.current, 2000);
+            }
 
             if (failed.length > 0) {
                 setAnalysisError(`Failed to submit: ${failed.join(", ")}`);
@@ -312,6 +325,15 @@ const Dashboard = () => {
                                     entry={entry}
                                     selected={selectedIndex === index}
                                     onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
+                                    onDelete={async () => {
+                                        if (entry.id > 0) {
+                                            try { await apiDeleteAnalysis(entry.id); } catch { return; }
+                                        }
+                                        setHistory((prev: HistoryEntry[]) => prev.filter((_: HistoryEntry, i: number) => i !== index));
+                                        if (selectedIndex === index) setSelectedIndex(null);
+                                        else if (selectedIndex !== null && selectedIndex > index)
+                                            setSelectedIndex(selectedIndex - 1);
+                                    }}
                                 />
                             ))}
                         </div>
@@ -593,43 +615,64 @@ const ActiveJobCard = ({ job }: { job: ActiveJob }) => (
 const complianceTextClass = (score: number) =>
     score >= 90 ? "text-status-success-text" : score >= 70 ? "text-status-misplaced-text" : "text-status-missing-text";
 
-const HistoryCard = ({ entry, selected, onClick }: { entry: HistoryEntry; selected: boolean; onClick: () => void }) => {
+const HistoryCard = ({
+    entry,
+    selected,
+    onClick,
+    onDelete,
+}: {
+    entry: HistoryEntry;
+    selected: boolean;
+    onClick: () => void;
+    onDelete: () => Promise<void>;
+}) => {
     const { result, analyzedAt } = entry;
     const issueCount = (result.summary.missing_count ?? 0) + (result.summary.misplaced_count ?? 0);
     const compliance = result.compliance_report?.compliance_score;
 
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`hover:bg-surface-muted w-full rounded-2xl border px-5 py-4 text-left transition ${
-                selected ? "bg-surface-muted border-text" : "border-border"
-            }`}
+        <div
+            className={`border rounded-2xl transition ${selected ? "bg-surface-muted border-text" : "border-border"}`}
         >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{entry.fileName}</span>
-                    {selected && (
-                        <span className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
-                            Viewing
-                        </span>
-                    )}
+            <button
+                type="button"
+                onClick={onClick}
+                className="hover:bg-surface-muted w-full rounded-2xl px-5 py-4 text-left"
+            >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold">{entry.fileName}</span>
+                        {selected && (
+                            <span className="text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
+                                Viewing
+                            </span>
+                        )}
+                    </div>
+                    <div className="text-text-muted flex flex-wrap items-center gap-4 text-xs font-semibold">
+                        {compliance !== undefined && (
+                            <span className={complianceTextClass(compliance)}>{compliance}% compliance</span>
+                        )}
+                        {issueCount > 0 ? (
+                            <span className="text-status-missing-text">
+                                {issueCount} issue{issueCount === 1 ? "" : "s"}
+                            </span>
+                        ) : (
+                            <span className="text-status-success-text">No issues</span>
+                        )}
+                        <span>{analyzedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+                    </div>
                 </div>
-                <div className="text-text-muted flex flex-wrap items-center gap-4 text-xs font-semibold">
-                    {compliance !== undefined && (
-                        <span className={complianceTextClass(compliance)}>{compliance}% compliance</span>
-                    )}
-                    {issueCount > 0 ? (
-                        <span className="text-status-missing-text">
-                            {issueCount} issue{issueCount === 1 ? "" : "s"}
-                        </span>
-                    ) : (
-                        <span className="text-status-success-text">No issues</span>
-                    )}
-                    <span>{analyzedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
-                </div>
+            </button>
+            <div className="border-border flex justify-end border-t px-4 py-2">
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    className="text-text-muted hover:text-status-missing-text text-xs font-semibold transition"
+                >
+                    Delete
+                </button>
             </div>
-        </button>
+        </div>
     );
 };
 

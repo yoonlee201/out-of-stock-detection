@@ -70,6 +70,17 @@ export const apiGetJobStatus = async (jobId: string): Promise<JobStatus> => {
     }
 };
 
+export const apiDeleteAnalysis = async (id: number): Promise<void> => {
+    try {
+        await axiosAuth.delete(`/shelf-analysis/${id}`);
+    } catch (error) {
+        if (isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Failed to delete analysis.");
+        }
+        throw new Error("Failed to delete analysis.");
+    }
+};
+
 export const apiGetAnalysisHistory = async (): Promise<AnalysisHistoryEntry[]> => {
     try {
         const { data } = await axiosAuth.get<AnalysisHistoryEntry[]>("/shelf-analysis");

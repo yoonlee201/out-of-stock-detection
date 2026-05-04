@@ -149,12 +149,13 @@ def _run_planogram_audit(
 def analyze_shelf_debug(
     image_path: str,
     progress_callback: Callable[[int, float | None], None] | None = None,
+    preprocessed_output_path: str | None = None,
 ) -> dict[str, Any]:
     def report(pct: int, eta: float | None = None) -> None:
         if progress_callback:
             progress_callback(pct, eta)
 
-    processed_image_path = preprocess_shelf_image(image_path)
+    processed_image_path = preprocess_shelf_image(image_path, output_path=preprocessed_output_path)
     report(5)
     model = load_yolo_model()
     image = Image.open(processed_image_path).convert("RGB")
