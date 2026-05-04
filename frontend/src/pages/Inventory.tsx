@@ -233,7 +233,7 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
     const [statusFilter, setStatusFilter] = useState<InventoryStatus | "all">("all");
     const [sortField, setSortField] = useState<SortField>("product");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-    const [groupBy, setGroupBy] = useState<GroupField>("product");
+    const [groupBy, setGroupBy] = useState<GroupField>("none");
     const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
     const [reorderTarget, setReorderTarget] = useState<InventoryItem | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null);
@@ -337,7 +337,7 @@ const InventoryTable = ({ view, inventory, setInventory, categories }: Inventory
     const groupOptions =
         view === "customer"
             ? GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability")
-            : GROUP_OPTIONS.filter((o) => o.value !== "availability");
+            : GROUP_OPTIONS.filter((o) => o.value !== "shelfStatus" && o.value !== "availability");
 
     return (
         <>

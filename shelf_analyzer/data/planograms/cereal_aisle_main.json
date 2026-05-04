@@ -52,7 +52,8 @@
       {"slot_id":"R4-P7","row":4,"position":7,"brand":"General Mills","product":"Cheerios","variant":"Original","quantity":6},
       {"slot_id":"R4-P8","row":4,"position":8,"brand":"General Mills","product":"Cheerios","variant":"Original","quantity":7},
       {"slot_id":"R4-P9","row":4,"position":9,"brand":"Quaker","product":"Cap'n Crunch","variant":"Original","quantity":3},
-      {"slot_id":"R4-P10","row":4,"position":10,"brand":"Quaker","product":"Cap'n Crunch","variant":"Original","quantity":4}
+      {"slot_id":"R4-P10","row":4,"position":10,"brand":"Quaker","product":"Cap'n Crunch","variant":"Original","quantity":4},
+      {"slot_id":"R4-P11","row":4,"position":11,"brand":"Quaker","product":"Cap'n Crunch","variant":"Original","quantity":3}
     ]}
   ]
 }

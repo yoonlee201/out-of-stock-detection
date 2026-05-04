@@ -58,11 +58,65 @@ def _load_planogram_slots():
             ))
     return slots
 
+
+def _sync_planogram_locations():
+    """Create/update ProductLocations from the planogram for existing databases.
+
+    This deliberately preserves scanned shelf_status values for existing slots,
+    while keeping shelf/position/quantity metadata in sync with the planogram.
+    """
+    product_by_key = {
+        (prod.name.lower(), prod.brand.lower(), prod.variant.lower()): prod
+        for prod in Products.query.all()
+    }
+    locations_by_slot = {loc.slot_id: loc for loc in ProductLocations.query.all()}
+    planogram_totals: dict[int, int] = {}
+
+    for slot_id, row, position, brand, name, variant, qty in _load_planogram_slots():
+        prod = product_by_key.get((name.lower(), brand.lower(), variant.lower()))
+        if prod is None:
+            print(f"  [warn] planogram slot {slot_id} ({brand}/{name}/{variant}) has no matching product — skipping")
+            continue
+
+        planogram_totals[prod.product_id] = planogram_totals.get(prod.product_id, 0) + qty
+        loc = locations_by_slot.get(slot_id)
+        if loc is None:
+            db.session.add(ProductLocations(
+                product_id=prod.product_id,
+                slot_id=slot_id,
+                shelf=str(row),
+                position=position,
+                planogram_quantity=qty,
+                shelf_status="unknown",
+            ))
+        else:
+            loc.product_id = prod.product_id
+            loc.shelf = str(row)
+            loc.position = position
+            loc.planogram_quantity = qty
+
+    db.session.flush()
+
+    shelves_by_product: dict[int, set[str]] = {}
+    for loc in ProductLocations.query.all():
+        shelves_by_product.setdefault(loc.product_id, set()).add(loc.shelf)
+
+    for prod in Products.query.all():
+        shelves = sorted(shelves_by_product.get(prod.product_id, set()), key=lambda s: int(s) if s.isdigit() else s)
+        if shelves:
+            prod.shelf = ", ".join(shelves)
+        if prod.product_id in planogram_totals:
+            prod.original_quantity = planogram_totals[prod.product_id]
+
+    db.session.commit()
+
+
 # Note: We intentionally use the same sample data for both Employees and Customers to simplify testing with different roles. In a real application, these would likely be separate sets of users with distinct attributes and permissions.
 def _seed(app):
     with app.app_context():
         if Users.query.count() > 0:
-            print("Database already seeded — skipping.")
+            print("Database already seeded — syncing planogram locations.")
+            _sync_planogram_locations()
             return
 
         print("Seeding database...")
@@ -113,7 +167,7 @@ def _seed(app):
             ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     10,  "2",     "5",  s["cswholesale@supplyco.com"].id),
             ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     12,  "3, 4",  "5",  s["kehe@distributors.net"].id),
             ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",      8,  "3",     "5",  s["kehe@distributors.net"].id),
-            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     14,  "3, 4",  "5",  s["unfi@naturalfoods.com"].id),
+            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     17,  "3, 4",  "5",  s["unfi@naturalfoods.com"].id),
             ("Life",                     "Quaker",        "Original",     "13 oz",   "cereal", "QR-LIFE-ORIG",     17,  "4",  "5",  s["unfi@naturalfoods.com"].id),
         ]
         products = [
@@ -124,42 +178,8 @@ def _seed(app):
         ]
         db.session.add_all(products)
         db.session.flush()
-        p = {prod.qrcode: prod for prod in products}
 
-        # ------------------------------------------------------------------
-        # ProductLocations — one row per planogram slot. Match by (name, brand,
-        # variant) so the source of truth stays the planogram JSON.
-        # ------------------------------------------------------------------
-        product_by_key = {
-            (prod.name.lower(), prod.brand.lower(), prod.variant.lower()): prod
-            for prod in products
-        }
-        location_rows = []
-        for slot_id, row, position, brand, name, variant, qty in _load_planogram_slots():
-            key = (name.lower(), brand.lower(), variant.lower())
-            prod = product_by_key.get(key)
-            if prod is None:
-                print(f"  [warn] planogram slot {slot_id} ({brand}/{name}/{variant}) has no matching product — skipping")
-                continue
-            location_rows.append(ProductLocations(
-                product_id=prod.product_id,
-                slot_id=slot_id,
-                shelf=str(row),
-                position=position,
-                planogram_quantity=qty,
-                shelf_status="unknown",
-            ))
-        db.session.add_all(location_rows)
-
-        # Refresh each Products.shelf to be the joined list of shelves the
-        # product actually occupies, derived from the planogram.
-        shelves_by_product: dict[int, list[str]] = {}
-        for loc in location_rows:
-            shelves_by_product.setdefault(loc.product_id, []).append(loc.shelf)
-        for prod in products:
-            shelves = sorted(set(shelves_by_product.get(prod.product_id, [])), key=lambda s: int(s) if s.isdigit() else s)
-            if shelves:
-                prod.shelf = ", ".join(shelves)
+        _sync_planogram_locations()
 
         # ------------------------------------------------------------------
         # Users  (password hash = bcrypt("12345678"))
