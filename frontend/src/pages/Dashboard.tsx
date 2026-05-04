@@ -66,7 +66,14 @@ const Dashboard = () => {
     useEffect(() => {
         if (!log_id) return;
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
-        if (index !== -1) { handleSelectEntry(index);}
+        if (index !== -1) {
+            (async () => {
+                const entry = history[index];
+                setSelectedIndex(index);
+                const result = await apiGetAnalysisDetail(entry.id);
+                setHistory((prev) => prev.map((e, i) => (i === index ? { ...e, result } : e)));
+            })();
+        }
 
     }, [log_id, history]);
 
