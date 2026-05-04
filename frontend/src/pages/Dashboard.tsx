@@ -150,6 +150,8 @@ const Dashboard = () => {
         };
 
         tickRef.current = tick;
+        tick();
+        pollingRef.current = setInterval(tick, 2000);
 
         return () => {
             cancelled = true;
@@ -367,13 +369,6 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        onClick={handleDeleteSelected}
-                                        className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
-                                    >
-                                        Delete
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={() => setSelectedIndex(null)}
                                         className="text-text-muted hover:text-text text-sm font-semibold"
                                     >
@@ -457,6 +452,14 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            <button
+                                type="button"
+                                onClick={handleDeleteSelected}
+                                className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
+                            >
+                                Delete
+                            </button>
                         </div>
                     ) : (
                         <div className="bg-surface flex min-h-64 items-center justify-center rounded-xl p-6 shadow">
