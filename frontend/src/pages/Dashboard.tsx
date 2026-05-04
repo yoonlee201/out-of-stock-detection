@@ -66,7 +66,8 @@ const Dashboard = () => {
     useEffect(() => {
         if (!log_id) return;
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
-        if (index !== -1) setSelectedIndex(index);
+        if (index !== -1) { handleSelectEntry(index);}
+
     }, [log_id, history]);
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
