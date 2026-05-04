@@ -1,4 +1,6 @@
-from flask import Blueprint, jsonify, request
+import csv
+import io
+from flask import Blueprint, jsonify, request, Response
 from app.models import Products, Suppliers
 
 products_blueprint = Blueprint("products", __name__)
@@ -29,6 +31,34 @@ def get_products():
         })
 
     return jsonify(result), 200
+
+
+@products_blueprint.route("/export/csv", methods=["GET"])
+def export_products_csv():
+    products = Products.query.order_by(Products.product_id.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Product ID", "Name", "Type", "QR Code", "Quantity In Store", "Shelf", "Aisle", "Supplier ID"])
+
+    for product in products:
+        writer.writerow([
+            product.product_id,
+            product.name,
+            product.type,
+            product.qrcode,
+            product.quantity_in_store,
+            product.shelf,
+            product.aisle,
+            product.supplier_id,
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=inventory.csv"},
+    )
 
 
 @products_blueprint.route("/<int:product_id>", methods=["GET"])

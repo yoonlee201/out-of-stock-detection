@@ -7,6 +7,7 @@ import {
     apiDeactivateEmployee,
     apiDeleteEmployee,
 } from "../api/query/user";
+import { apiGetAlertHistory, type AlertHistoryItem } from "../api/query/alert";
 import { formatDate } from "../utils/functions";
 import { type UserRole, type EmployeeStatus, type Employee } from "../types/db";
 import { EMPLOYEE_ROLES, STATUSES, STATUS_DOT, STATUS_TEXT } from "../utils/constants";
@@ -14,6 +15,7 @@ import Sidebar from "../_components/Sidebar";
 import Dialog from "../_components/Dialog";
 import Dropdown from "../_components/Dropdown";
 import { ChevronIcon, PlusIcon, SearchIcon, TrashIcon } from "../_components/Icons";
+import { useAuth } from "../hooks/useAuth";
 
 type SortField = "firstName" | "email" | "role" | "status" | "phone" | "joinedAt";
 type SortDir = "asc" | "desc";
@@ -21,7 +23,10 @@ type GroupBy = "none" | "role" | "status";
 type EmployeeRole = Exclude<UserRole, "customer">;
 
 const Manager = () => {
+    const { user } = useAuth();
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [alertHistory, setAlertHistory] = useState<AlertHistoryItem[]>([]);
+    const [fetchingAlerts, setFetchingAlerts] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [filters, setFilters] = useState({
         search: "",
@@ -51,6 +56,15 @@ const Manager = () => {
             .catch(() => toast.error("Failed to load employees."))
             .finally(() => setFetching(false));
     }, []);
+
+    useEffect(() => {
+        if (user?.role !== "manager" && user?.role !== "supervisor") return;
+        setFetchingAlerts(true);
+        apiGetAlertHistory()
+            .then(setAlertHistory)
+            .catch(() => toast.error("Failed to load alert history."))
+            .finally(() => setFetchingAlerts(false));
+    }, [user?.role]);
 
     const handleSort = (field: SortField) => {
         setFilters((f) => ({
@@ -283,6 +297,56 @@ const Manager = () => {
                         </div>
                     )}
                 </div>
+
+                {(user?.role === "manager" || user?.role === "supervisor") && (
+                    <div className="mx-8 mb-6 rounded-md border border-gray-200 bg-white">
+                        <div className="border-b border-gray-200 px-4 py-4">
+                            <h2 className="text-md font-semibold text-gray-900">Alert History</h2>
+                            <p className="text-xs text-gray-400">Recent out-of-stock alerts sent to employees</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr className="border-b border-gray-200">
+                                        <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">Time</th>
+                                        <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
+                                        <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">Product</th>
+                                        <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">Location</th>
+                                        <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">Notified</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fetchingAlerts ? (
+                                        <tr>
+                                            <td colSpan={5} className="py-10 text-center text-gray-400">Loading…</td>
+                                        </tr>
+                                    ) : alertHistory.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="py-10 text-center text-gray-400">No alerts sent yet.</td>
+                                        </tr>
+                                    ) : (
+                                        alertHistory.map((a) => (
+                                            <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-gray-500">{formatDate(a.sent_time)}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium capitalize text-rose-700">
+                                                        {a.alert_type.replace(/_/g, " ")}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-gray-900">{a.product.name}</td>
+                                                <td className="px-4 py-3 text-gray-500">Shelf {a.product.shelf}, Aisle {a.product.aisle}</td>
+                                                <td className="px-4 py-3 text-gray-500">
+                                                    {a.user.first_name} {a.user.last_name}
+                                                    <span className="ml-1 text-xs text-gray-400">({a.user.email})</span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-3 px-8 pb-4">
                     <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-1">

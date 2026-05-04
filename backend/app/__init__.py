@@ -30,7 +30,20 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-    
+
+    # Pre-warm ML models in a background thread so they're ready before the first request
+    import threading
+    def _prewarm():
+        try:
+            from shelf_analyzer.infer import load_yolo_model
+            from shelf_analyzer.sku_identifier import load_qwen_resources
+            load_yolo_model()
+            load_qwen_resources()
+            print("ML models pre-warmed successfully.")
+        except Exception as e:
+            print(f"Model pre-warm failed (will load on first request): {e}")
+    threading.Thread(target=_prewarm, daemon=True).start()
+
     prefix = "/api/v1" if config.check_production() else ""
 
     app.register_blueprint(default_blueprint, url_prefix=f"/")

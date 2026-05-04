@@ -6,9 +6,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     env_file: ./backend/.env
+    environment:
+      - HF_HOME=/huggingface_cache
+      - TRANSFORMERS_CACHE=/huggingface_cache
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
+    volumes:
+      - ./shelf_analyzer:/usr/src/app/shelf_analyzer:ro
+      - type: bind
+        source: ./backend/space_detection/best product detection.pt
+        target: /usr/src/app/weights/best.pt
+        read_only: true
+      - hf_cache:/huggingface_cache
     depends_on:
       - db
     develop:
@@ -27,6 +37,12 @@ services:
             - "**/.git/**"
             - "**/.idea/**"
             - "**/.vscode/**"
+        - action: sync+restart
+          path: ./shelf_analyzer
+          target: /usr/src/app/shelf_analyzer
+          ignore:
+            - "**/__pycache__/**"
+            - "**/*.pyc"
   db:
     container_name: pg-oos_detection
     image: postgres:16-alpine
@@ -68,3 +84,4 @@ services:
 
 volumes:
   oos_detection-vol:
+  hf_cache:

@@ -3,12 +3,13 @@ import Sidebar from "../_components/Sidebar";
 import { apiAnalyzeShelf, type ShelfAnalysisResponse, type ShelfDetection } from "../api/query/shelfAnalysis";
 import { useAuth } from "../hooks/useAuth";
 import { apiMakeOutOfStockAlert } from "../api/query/alert";
+import { apiExportProductsCSV } from "../api/query/products";
 
 const Dashboard = () => {
     const { user } = useAuth();
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
-    const [analysisProgress, setAnalysisProgress] = useState("");
+    const [queueStatus, setQueueStatus] = useState<{ current: number; total: number; fileName: string } | null>(null);
     const [analysisError, setAnalysisError] = useState("");
     const [analysisResults, setAnalysisResults] = useState<Array<{ fileName: string; result: ShelfAnalysisResponse }>>([]);
     const [activeResultIndex, setActiveResultIndex] = useState(0);
@@ -29,7 +30,7 @@ const Dashboard = () => {
         setAnalysisResults([]);
         setActiveResultIndex(0);
         setAnalysisError("");
-        setAnalysisProgress("");
+        setQueueStatus(null);
     };
 
     const handleAnalyzeShelf = async () => {
@@ -41,14 +42,14 @@ const Dashboard = () => {
         try {
             setAnalysisLoading(true);
             setAnalysisError("");
-            setAnalysisProgress("");
+            setQueueStatus(null);
 
             const successfulResults: Array<{ fileName: string; result: ShelfAnalysisResponse }> = [];
             const failedFiles: string[] = [];
 
             for (let index = 0; index < selectedImages.length; index += 1) {
                 const imageFile = selectedImages[index];
-                setAnalysisProgress(`Analyzing ${index + 1}/${selectedImages.length}: ${imageFile.name}`);
+                setQueueStatus({ current: index + 1, total: selectedImages.length, fileName: imageFile.name });
 
                 try {
                     const result = await apiAnalyzeShelf(imageFile);
@@ -74,7 +75,7 @@ const Dashboard = () => {
             const message = err instanceof Error ? err.message : "Shelf analysis failed.";
             setAnalysisError(message);
         } finally {
-            setAnalysisProgress("");
+            setQueueStatus(null);
             setAnalysisLoading(false);
         }
     };
@@ -84,21 +85,37 @@ const Dashboard = () => {
             <Sidebar />
 
             <div className="flex-1 overflow-y-auto p-8">
-                <h1 className="mb-8 text-3xl font-semibold">Dashboard Overview</h1>
-                {(user?.role === "manager" || user?.role === "supervisor") && (
-                    <button
-                        className="bg-secondary mb-4 rounded px-4 py-2 text-white hover:bg-blue-600"
-                        onClick={async () => {
-                            try {
-                                await apiMakeOutOfStockAlert();
-                            } catch (error) {
-                                console.error("Error sending out of stock alert:", error);
-                            }
-                        }}
-                    >
-                        Send Employees Alert
-                    </button>
-                )}
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+                    <h1 className="text-3xl font-semibold">Dashboard Overview</h1>
+                    <div className="flex flex-wrap gap-2">
+                        {(user?.role === "manager" || user?.role === "supervisor") && (
+                            <button
+                                className="bg-secondary rounded px-4 py-2 text-white hover:bg-blue-600"
+                                onClick={async () => {
+                                    try {
+                                        await apiMakeOutOfStockAlert();
+                                    } catch (error) {
+                                        console.error("Error sending out of stock alert:", error);
+                                    }
+                                }}
+                            >
+                                Send Employees Alert
+                            </button>
+                        )}
+                        <button
+                            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            onClick={async () => {
+                                try {
+                                    await apiExportProductsCSV();
+                                } catch (error) {
+                                    console.error("Error exporting CSV:", error);
+                                }
+                            }}
+                        >
+                            Export Inventory CSV
+                        </button>
+                    </div>
+                </div>
 
                 <div className="mb-8 rounded-xl bg-white p-6 shadow">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -136,9 +153,19 @@ const Dashboard = () => {
                                 {analysisLoading ? "Analyzing..." : "Analyze Shelf Images"}
                             </button>
 
-                            {analysisProgress && (
-                                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
-                                    {analysisProgress}
+                            {queueStatus && (
+                                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                                    <div className="mb-2 flex items-center justify-between text-sm font-semibold text-blue-700">
+                                        <span>Processing queue</span>
+                                        <span>{queueStatus.current}/{queueStatus.total} images</span>
+                                    </div>
+                                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-200">
+                                        <div
+                                            className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                                            style={{ width: `${(queueStatus.current / queueStatus.total) * 100}%` }}
+                                        />
+                                    </div>
+                                    <p className="mt-1.5 truncate text-xs text-blue-600">{queueStatus.fileName}</p>
                                 </div>
                             )}
 
