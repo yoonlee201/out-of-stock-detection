@@ -1,10 +1,68 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import type { InventoryItem, InventoryStatus } from "../types/inventory";
+import type { InventoryItem, InventoryStatus, ProductLocation } from "../types/inventory";
 import { QUANTITY_STATUS_LABEL, quantityStatusClass, SHELF_STATUS_LABEL, shelfStatusClass } from "../utils/constants";
 import { ThreeVerticalDotsIcon } from "./Icons";
 
 const MENU_WIDTH = 144; // Tailwind w-36
+
+const groupLocationsByShelf = (locations: ProductLocation[]): [string, ProductLocation[]][] => {
+    const map = new Map<string, ProductLocation[]>();
+    for (const loc of locations) {
+        const list = map.get(loc.shelf) ?? [];
+        list.push(loc);
+        map.set(loc.shelf, list);
+    }
+    return Array.from(map.entries())
+        .map(([shelf, locs]) => [shelf, locs.sort((a, b) => a.position - b.position)] as [string, ProductLocation[]])
+        .sort(([a], [b]) => (Number(a) || 0) - (Number(b) || 0));
+};
+
+const ShelfLocationsCell = ({ item }: { item: InventoryItem }) => {
+    if (!item.locations || item.locations.length === 0) {
+        return <span className="text-text-muted">{item.shelf || "—"}</span>;
+    }
+    return (
+        <div className="space-y-1">
+            {groupLocationsByShelf(item.locations).map(([shelf, locs]) => (
+                <div key={shelf} className="flex flex-wrap items-baseline gap-1">
+                    <span className="text-text font-medium">Shelf {shelf}:</span>
+                    <span className="text-text-secondary">{locs.map((l) => `P${l.position}`).join(", ")}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const ShelfStatusCell = ({ item }: { item: InventoryItem }) => {
+    if (!item.locations || item.locations.length === 0) {
+        return (
+            <span
+                className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${shelfStatusClass(item.shelfStatus)}`}
+            >
+                {SHELF_STATUS_LABEL[item.shelfStatus] ?? item.shelfStatus}
+            </span>
+        );
+    }
+    return (
+        <div className="space-y-1">
+            {groupLocationsByShelf(item.locations).map(([shelf, locs]) => (
+                <div key={shelf} className="flex flex-wrap items-center gap-1">
+                    <span className="text-text-muted text-xs">S{shelf}:</span>
+                    {locs.map((loc) => (
+                        <span
+                            key={loc.slotId}
+                            title={`${loc.slotId} — ${SHELF_STATUS_LABEL[loc.shelfStatus] ?? loc.shelfStatus}`}
+                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap ${shelfStatusClass(loc.shelfStatus)}`}
+                        >
+                            P{loc.position} · {SHELF_STATUS_LABEL[loc.shelfStatus] ?? loc.shelfStatus}
+                        </span>
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+};
 
 export const EmployeeRow = ({
     item,
@@ -75,7 +133,9 @@ export const EmployeeRow = ({
             </td>
             <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
             <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
-            <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
+            <td className="text-text-secondary px-5 py-4 text-xs">
+                <ShelfLocationsCell item={item} />
+            </td>
             <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
             <td className="px-5 py-4">
                 <span
@@ -85,11 +145,7 @@ export const EmployeeRow = ({
                 </span>
             </td>
             <td className="px-5 py-4">
-                <span
-                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${shelfStatusClass(item.shelfStatus)}`}
-                >
-                    {SHELF_STATUS_LABEL[item.shelfStatus]}
-                </span>
+                <ShelfStatusCell item={item} />
             </td>
             <td className="text-text-muted px-5 py-4 text-xs">
                 {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
@@ -166,7 +222,9 @@ export const CustomerRow = ({ item, status }: { item: InventoryItem; status: Inv
         </td>
         <td className="text-text-muted px-5 py-4 text-xs font-medium">{item.category}</td>
         <td className="text-text-secondary px-5 py-4 text-xs">{item.aisle || "—"}</td>
-        <td className="text-text-secondary px-5 py-4 text-xs">{item.shelf || "—"}</td>
+        <td className="text-text-secondary px-5 py-4 text-xs">
+            <ShelfLocationsCell item={item} />
+        </td>
         <td className="text-text-secondary px-5 py-4 text-sm font-semibold">{item.stockCount}</td>
         <td className="px-5 py-4">
             <span

@@ -7,6 +7,10 @@ products_blueprint = Blueprint("products", __name__)
 
 
 def _serialize(product: Products) -> dict:
+    locations = sorted(
+        product.locations or [],
+        key=lambda loc: (loc.shelf, loc.position),
+    )
     return {
         "product_id": product.product_id,
         "name": product.name,
@@ -22,6 +26,17 @@ def _serialize(product: Products) -> dict:
         "supplier_id": product.supplier_id,
         "shelf_status": product.shelf_status or "unknown",
         "last_checked": product.last_checked.isoformat() if product.last_checked else None,
+        "locations": [
+            {
+                "slot_id": loc.slot_id,
+                "shelf": loc.shelf,
+                "position": loc.position,
+                "planogram_quantity": loc.planogram_quantity,
+                "shelf_status": loc.shelf_status or "unknown",
+                "last_checked": loc.last_checked.isoformat() if loc.last_checked else None,
+            }
+            for loc in locations
+        ],
     }
 
 

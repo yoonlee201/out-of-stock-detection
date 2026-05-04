@@ -2,7 +2,7 @@ from html import escape
 
 from app.core.config import config
 from app.core.db import db
-from app.models import Alerts, Products
+from app.models import Alerts, ProductLocations, Products
 from app.services.user_services import get_all_active_employees
 from app.util.send import render_email, send_email, send_sms
 from datetime import datetime
@@ -159,13 +159,16 @@ def update_shelf_status_from_detections(detections):
         return
 
     now = datetime.now()
-    # Subtractive update: each scan only DECREMENTS quantity_in_store by the
-    # number of facings newly reported missing. We never reset it back to the
-    # planogram total — once depleted, only a real restock should refill it.
+    # Subtractive: scans only decrement quantity_in_store. Per-slot status
+    # (ProductLocations.shelf_status) is set fresh from each scan; the Products
+    # row gets the worst status across its locations as a summary.
     missing_by_product: dict[int, int] = {}
-    misplaced_seen: set[int] = set()
+    misplaced_by_product: dict[int, int] = {}
     products_by_id: dict[int, Products] = {}
     unresolved_skus: list[str] = []
+
+    # Pre-load locations indexed by slot_id so we update by exact slot, not name.
+    locations_by_slot = {loc.slot_id: loc for loc in ProductLocations.query.all()}
 
     for item in detections:
         if not isinstance(item, dict):
@@ -174,30 +177,44 @@ def update_shelf_status_from_detections(detections):
         if audit_status not in ("correct", "missing", "misplaced", "unverified"):
             continue
 
-        product = _resolve_product(item)
+        slot_id = item.get("slot_id")
+        location = locations_by_slot.get(slot_id) if slot_id else None
+        product = location.product if location else _resolve_product(item)
         if product is None:
             sku = item.get("expected_sku") or item.get("sku") or {}
             unresolved_skus.append(
-                f"{sku.get('brand', '?')}/{sku.get('product_name') or sku.get('name', '?')}/{sku.get('variant', '?')}"
+                f"{slot_id or '?'} {sku.get('brand', '?')}/{sku.get('product_name') or sku.get('name', '?')}/{sku.get('variant', '?')}"
             )
             continue
 
         products_by_id[product.product_id] = product
 
         if audit_status == "missing":
-            slot_qty = (item.get("expected_sku") or {}).get("quantity")
-            slot_qty = int(slot_qty) if slot_qty is not None else 0
-            # Camera only sees the front face. gap_type hints at depth:
-            # "full" gap → assume the whole stack is gone;
-            # "partial" → front is gone but something still sits behind it.
+            slot_qty = (
+                location.planogram_quantity if location else (item.get("expected_sku") or {}).get("quantity") or 0
+            )
+            slot_qty = int(slot_qty)
             gap_type = item.get("gap_type")
             if gap_type == "partial":
                 lost = max(1, slot_qty // 2)
             else:
                 lost = slot_qty if slot_qty > 0 else 1
             missing_by_product[product.product_id] = missing_by_product.get(product.product_id, 0) + lost
-        elif audit_status == "misplaced":
-            misplaced_seen.add(product.product_id)
+
+        if audit_status == "misplaced":
+            misplaced_by_product[product.product_id] = misplaced_by_product.get(product.product_id, 0) + 1
+
+        # Per-slot status update (only when we have a location row).
+        if location is not None:
+            if audit_status == "missing":
+                location.shelf_status = "missing"
+            elif audit_status == "misplaced":
+                location.shelf_status = "misplaced"
+            elif audit_status == "correct":
+                location.shelf_status = "on_shelf"
+            else:
+                location.shelf_status = "unknown"
+            location.last_checked = now
 
     for product_id, product in products_by_id.items():
         lost = missing_by_product.get(product_id, 0)
@@ -207,9 +224,8 @@ def update_shelf_status_from_detections(detections):
         remaining = product.quantity_in_store or 0
         baseline = product.original_quantity or remaining or 1
         ratio = remaining / baseline if baseline > 0 else 0
-        # Misplaced wins over stock-level statuses: even if the product is also
-        # low/out of stock, the placement issue is what we want surfaced.
-        if product_id in misplaced_seen:
+        # Misplaced wins over stock-level statuses for the summary column.
+        if misplaced_by_product.get(product_id, 0) > 0:
             product.shelf_status = "misplaced"
         elif ratio < 0.05:
             product.shelf_status = "out_of_stock"
@@ -228,7 +244,7 @@ def update_shelf_status_from_detections(detections):
         f"unresolved={len(unresolved_skus)}"
     )
     if unresolved_skus:
-        print(f"[shelf_status] unresolved SKUs (first 10): {unresolved_skus[:10]}")
+        print(f"[shelf_status] unresolved (first 10): {unresolved_skus[:10]}")
 
 
 def send_out_of_stock_alerts(detected_items=None, shelf_analysis_log_id=None):

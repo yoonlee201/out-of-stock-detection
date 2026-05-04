@@ -2,6 +2,15 @@ import { isAxiosError } from "axios";
 import { axiosAuth } from "..";
 import type { InventoryItem, ShelfStatus } from "../../types/inventory";
 
+interface RawLocation {
+    slot_id: string;
+    shelf: string;
+    position: number;
+    planogram_quantity: number;
+    shelf_status: string;
+    last_checked: string | null;
+}
+
 interface RawProduct {
     product_id: number;
     name: string;
@@ -15,6 +24,7 @@ interface RawProduct {
     shelf: string;
     shelf_status: string;
     last_checked: string | null;
+    locations?: RawLocation[];
 }
 
 const toInventoryItem = (p: RawProduct): InventoryItem => ({
@@ -30,6 +40,14 @@ const toInventoryItem = (p: RawProduct): InventoryItem => ({
     shelf: p.shelf,
     shelfStatus: (p.shelf_status as ShelfStatus) || "unknown",
     lastChecked: p.last_checked ? new Date(p.last_checked) : new Date(0),
+    locations: (p.locations ?? []).map((loc) => ({
+        slotId: loc.slot_id,
+        shelf: loc.shelf,
+        position: loc.position,
+        planogramQuantity: loc.planogram_quantity,
+        shelfStatus: (loc.shelf_status as ShelfStatus) || "unknown",
+        lastChecked: loc.last_checked ? new Date(loc.last_checked) : null,
+    })),
 });
 
 export const apiGetProducts = async (search?: string): Promise<InventoryItem[]> => {

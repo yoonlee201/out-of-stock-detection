@@ -72,6 +72,28 @@ class Products(db.Model):
     last_checked = db.Column(db.DateTime(timezone=True), nullable=True)
 
 
+class ProductLocations(db.Model):
+    """One row per planogram slot a product occupies. Lets us track per-slot
+    placement (which shelf, which position) and per-slot detection status,
+    instead of cramming everything into a single field on Products.
+    """
+    __tablename__ = 'product_locations'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
+    slot_id = db.Column(db.String(20), unique=True, nullable=False)  # e.g. "R1-P3"
+    shelf = db.Column(db.String(20), nullable=False)                 # e.g. "1"
+    position = db.Column(db.Integer, nullable=False)                 # e.g. 3
+    planogram_quantity = db.Column(db.Integer, nullable=False, server_default='0')
+    shelf_status = db.Column(db.String(50), nullable=False, server_default='unknown')
+    last_checked = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    product = db.relationship(
+        'Products',
+        backref=db.backref('locations', lazy=True, cascade='all, delete-orphan'),
+    )
+
+
 class ShelfAnalysisLog(db.Model):
     __tablename__ = 'shelf_analysis_logs'
 

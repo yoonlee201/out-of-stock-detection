@@ -15,6 +15,7 @@ Re-seeding is safe: skipped automatically when rows already exist.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,11 +23,33 @@ from pathlib import Path
 import bcrypt
 
 # Allow running directly from the repo root as well as inside the container
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT))
 
 from app import create_app
 from app.core.db import db
-from app.models import Alerts, Employee, InventoryLogs, Products, Reorders, Suppliers, Users
+from app.models import Alerts, Employee, InventoryLogs, ProductLocations, Products, Reorders, Suppliers, Users
+
+PLANOGRAM_PATH = _REPO_ROOT / "shelf_analyzer" / "data" / "planograms" / "cereal_aisle_main.json"
+
+
+def _load_planogram_slots():
+    """Return [(slot_id, row, position, brand, product, variant, quantity), ...]"""
+    with PLANOGRAM_PATH.open() as f:
+        planogram = json.load(f)
+    slots = []
+    for row in planogram.get("rows", []):
+        for slot in row.get("slots", []):
+            slots.append((
+                slot["slot_id"],
+                int(slot["row"]),
+                int(slot["position"]),
+                slot.get("brand", ""),
+                slot.get("product", ""),
+                slot.get("variant", ""),
+                int(slot.get("quantity") or 0),
+            ))
+    return slots
 
 # Note: We intentionally use the same sample data for both Employees and Customers to simplify testing with different roles. In a real application, these would likely be separate sets of users with distinct attributes and permissions.
 def _seed(app):
@@ -76,14 +99,14 @@ def _seed(app):
             ("Wheaties",                 "General Mills", "Original",     "15.6 oz", "cereal", "QR-WHTY-ORIG",      8,  "1",  "5",  s["kehe@distributors.net"].id),
             ("Rice Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-RICE-ORIG",     11,  "2",  "5",  s["kehe@distributors.net"].id),
             ("Rice Squares",             "Great Value",   "Original",     "14 oz",   "cereal", "QR-RSQR-ORIG",      7,  "2",  "5",  s["cswholesale@supplyco.com"].id),
-            ("Corn Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-CORN-ORIG",     14,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Cheerios",                 "General Mills", "Oat Crunch",   "14 oz",   "cereal", "QR-CHRO-OATC",     16,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Cheerios",                 "General Mills", "Original",     "12 oz",   "cereal", "QR-CHRO-ORIG",     13,  "4",  "5",  s["kehe@distributors.net"].id),
-            ("Maple Cheerios",           "General Mills", "Maple",        "12 oz",   "cereal", "QR-MAPL-ORIG",      9,  "2",  "5",  s["kehe@distributors.net"].id),
-            ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     10,  "2",  "5",  s["cswholesale@supplyco.com"].id),
-            ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     12,  "3",  "5",  s["kehe@distributors.net"].id),
-            ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",      8,  "3",  "5",  s["kehe@distributors.net"].id),
-            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     14,  "3",  "5",  s["unfi@naturalfoods.com"].id),
+            ("Corn Chex",                "General Mills", "Original",     "12 oz",   "cereal", "QR-CORN-ORIG",     14,  "2, 3",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Oat Crunch",   "14 oz",   "cereal", "QR-CHRO-OATC",     16,  "2, 3",  "5",  s["kehe@distributors.net"].id),
+            ("Cheerios",                 "General Mills", "Original",     "12 oz",   "cereal", "QR-CHRO-ORIG",     13,  "4",     "5",  s["kehe@distributors.net"].id),
+            ("Maple Cheerios",           "General Mills", "Maple",        "12 oz",   "cereal", "QR-MAPL-ORIG",      9,  "2",     "5",  s["kehe@distributors.net"].id),
+            ("Toasted O's",              "Great Value",   "Original",     "12 oz",   "cereal", "QR-TOAS-ORIG",     10,  "2",     "5",  s["cswholesale@supplyco.com"].id),
+            ("Rice Krispies",            "Kellogg's",     "Original",     "12 oz",   "cereal", "QR-KRSP-ORIG",     12,  "3, 4",  "5",  s["kehe@distributors.net"].id),
+            ("Multi Grain Cheerios",     "General Mills", "Multi Grain",  "12 oz",   "cereal", "QR-MGRN-ORIG",      8,  "3",     "5",  s["kehe@distributors.net"].id),
+            ("Cap'n Crunch",             "Quaker",        "Original",     "14 oz",   "cereal", "QR-CAPN-ORIG",     14,  "3, 4",  "5",  s["unfi@naturalfoods.com"].id),
             ("Life",                     "Quaker",        "Original",     "13 oz",   "cereal", "QR-LIFE-ORIG",     17,  "4",  "5",  s["unfi@naturalfoods.com"].id),
         ]
         products = [
@@ -95,6 +118,41 @@ def _seed(app):
         db.session.add_all(products)
         db.session.flush()
         p = {prod.qrcode: prod for prod in products}
+
+        # ------------------------------------------------------------------
+        # ProductLocations — one row per planogram slot. Match by (name, brand,
+        # variant) so the source of truth stays the planogram JSON.
+        # ------------------------------------------------------------------
+        product_by_key = {
+            (prod.name.lower(), prod.brand.lower(), prod.variant.lower()): prod
+            for prod in products
+        }
+        location_rows = []
+        for slot_id, row, position, brand, name, variant, qty in _load_planogram_slots():
+            key = (name.lower(), brand.lower(), variant.lower())
+            prod = product_by_key.get(key)
+            if prod is None:
+                print(f"  [warn] planogram slot {slot_id} ({brand}/{name}/{variant}) has no matching product — skipping")
+                continue
+            location_rows.append(ProductLocations(
+                product_id=prod.product_id,
+                slot_id=slot_id,
+                shelf=str(row),
+                position=position,
+                planogram_quantity=qty,
+                shelf_status="unknown",
+            ))
+        db.session.add_all(location_rows)
+
+        # Refresh each Products.shelf to be the joined list of shelves the
+        # product actually occupies, derived from the planogram.
+        shelves_by_product: dict[int, list[str]] = {}
+        for loc in location_rows:
+            shelves_by_product.setdefault(loc.product_id, []).append(loc.shelf)
+        for prod in products:
+            shelves = sorted(set(shelves_by_product.get(prod.product_id, [])), key=lambda s: int(s) if s.isdigit() else s)
+            if shelves:
+                prod.shelf = ", ".join(shelves)
 
         # ------------------------------------------------------------------
         # Users  (password hash = bcrypt("12345678"))
