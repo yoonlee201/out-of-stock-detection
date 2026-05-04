@@ -75,7 +75,7 @@ const Dashboard = () => {
             })();
         }
 
-    }, [log_id, history]);
+    }, [log_id]);
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
     const analysisResult = selectedEntry?.result ?? null;
