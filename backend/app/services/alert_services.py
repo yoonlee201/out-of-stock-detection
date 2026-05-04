@@ -8,22 +8,17 @@ from app.util.send import render_email, send_email, send_sms
 from datetime import datetime
 
 
-def _resolve_product(item):
-    """Try to match a detection's expected/actual SKU to a row in Products.
-    Returns (Products row | None). Used to enrich alert emails with shelf/aisle
-    AND to decrement inventory when a slot scans as missing.
-    """
-    if not isinstance(item, dict):
+def _useful(value):
+    # Blanks and the planogram's "unknown" placeholder mean "no filter".
+    return value and str(value).strip().lower() not in ("", "unknown")
+
+
+def _resolve_product_by_sku(sku):
+    if not isinstance(sku, dict):
         return None
-    sku = item.get("expected_sku") or item.get("sku") or {}
     name = sku.get("product_name") or sku.get("name")
-    if not name or str(name).strip().lower() in ("", "unknown"):
+    if not _useful(name):
         return None
-
-    def _useful(value):
-        # Treat blanks and the planogram's "unknown" placeholder as no-filter.
-        return value and str(value).strip().lower() not in ("", "unknown")
-
     query = Products.query.filter(Products.name == name)
     brand = sku.get("brand")
     if _useful(brand):
@@ -35,6 +30,18 @@ def _resolve_product(item):
     if _useful(size):
         query = query.filter(Products.size == size)
     return query.first()
+
+
+def _resolve_product(item):
+    """Resolve the Products row this detection is *about*.
+    Always the slot's expected SKU: for missing/misplaced/correct, the row we
+    care about is the one the planogram says belongs in that slot. The actual
+    detected SKU (item['sku']) is only used as a fallback if there's no
+    expected SKU on the entry.
+    """
+    if not isinstance(item, dict):
+        return None
+    return _resolve_product_by_sku(item.get("expected_sku") or item.get("sku"))
 
 
 def _describe_sku(sku: dict | None) -> str:
@@ -200,12 +207,14 @@ def update_shelf_status_from_detections(detections):
         remaining = product.quantity_in_store or 0
         baseline = product.original_quantity or remaining or 1
         ratio = remaining / baseline if baseline > 0 else 0
-        if ratio < 0.05:
+        # Misplaced wins over stock-level statuses: even if the product is also
+        # low/out of stock, the placement issue is what we want surfaced.
+        if product_id in misplaced_seen:
+            product.shelf_status = "misplaced"
+        elif ratio < 0.05:
             product.shelf_status = "out_of_stock"
         elif ratio < 0.15:
             product.shelf_status = "low_stock"
-        elif product_id in misplaced_seen and lost == 0:
-            product.shelf_status = "misplaced"
         else:
             product.shelf_status = "on_shelf"
         product.last_checked = now
