@@ -415,13 +415,6 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        onClick={handleDeleteSelected}
-                                        className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
-                                    >
-                                        Delete
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={() => setSelectedIndex(null)}
                                         className="text-text-muted hover:text-text text-sm font-semibold"
                                     >
