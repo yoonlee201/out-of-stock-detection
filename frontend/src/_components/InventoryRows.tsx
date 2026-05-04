@@ -232,11 +232,11 @@ export const CustomerRow = ({ item, status }: { item: InventoryItem; status: Inv
             <td className="text-text-muted px-5 py-4 text-xs">
                 {item.lastChecked.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
             </td>
-            <td className="px-5 py-4">
+            <td className="px-5 py-4 w-1/8">
                 {" "}
                 {needsAssistance && (
-                    <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold whitespace-nowrap text-yellow-800">
-                        Ask for help
+                    <span className="inline-block rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap text-muted">
+                        In store — ask for assistance
                     </span>
                 )}
             </td>
