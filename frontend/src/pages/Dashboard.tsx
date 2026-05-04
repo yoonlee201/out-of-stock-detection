@@ -66,12 +66,18 @@ const Dashboard = () => {
     useEffect(() => {
         if (!log_id) return;
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
-        if (index !== -1) setSelectedIndex(index);
+        if (index === -1) return;
+        setSelectedIndex(index);
+        const entry = history[index];
+        if (!entry || entry.result !== null) return;
+        setDetailLoading(true);
+        apiGetAnalysisDetail(entry.id)
+            .then((result) => setHistory((prev) => prev.map((e, i) => (i === index ? { ...e, result } : e))))
+            .catch(() => {})
+            .finally(() => setDetailLoading(false));
     }, [log_id, history]);
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
-    console.log("Selected entry:", selectedEntry);
-    console.log("Selected entry result:", selectedIndex);
     const analysisResult = selectedEntry?.result ?? null;
 
     const issueDetections = useMemo(() => {
