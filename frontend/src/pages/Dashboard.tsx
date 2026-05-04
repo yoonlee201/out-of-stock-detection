@@ -667,7 +667,7 @@ const HistoryCard = ({
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                    className="text-text-muted hover:text-status-missing-text text-xs font-semibold transition"
+                    className="text-status-missing-text hover:bg-status-missing-bg rounded-lg px-3 py-1 text-xs font-semibold transition"
                 >
                     Delete
                 </button>
