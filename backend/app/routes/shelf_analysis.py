@@ -334,15 +334,35 @@ def get_analysis_history():
         .limit(limit)
         .all()
     )
-    return jsonify([
-        {
+    items = []
+    for log in logs:
+        try:
+            data = json.loads(log.result_json)
+        except Exception:
+            data = {}
+        summary = data.get("summary") or {}
+        compliance = data.get("compliance_report") or {}
+        items.append({
             "id": log.id,
             "file_name": log.file_name,
             "created_at": log.created_at.isoformat(),
-            "result": json.loads(log.result_json),
-        }
-        for log in logs
-    ]), 200
+            "missing_count": summary.get("missing_count", 0),
+            "misplaced_count": summary.get("misplaced_count", 0),
+            "compliance_score": compliance.get("compliance_score"),
+        })
+    return jsonify(items), 200
+
+
+@shelf_analysis_blueprint.route("/<int:log_id>", methods=["GET"])
+def get_analysis_detail(log_id: int):
+    log = ShelfAnalysisLog.query.get(log_id)
+    if log is None:
+        return jsonify({"message": "Analysis not found."}), 404
+    try:
+        result = json.loads(log.result_json)
+    except Exception:
+        return jsonify({"message": "Failed to parse analysis result."}), 500
+    return jsonify(result), 200
 
 
 @shelf_analysis_blueprint.route("/<int:log_id>", methods=["DELETE"])
