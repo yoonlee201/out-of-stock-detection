@@ -15,7 +15,7 @@ from flask import Blueprint, current_app, jsonify, request
 from PIL import Image
 
 from app.core.db import db
-from app.models import ShelfAnalysisLog
+from app.models import Alerts, ShelfAnalysisLog
 from app.services.alert_services import send_out_of_stock_alerts, update_shelf_status_from_detections
 from app.util.auth import _get_current_user
 
@@ -371,6 +371,7 @@ def delete_analysis(log_id: int):
     if log is None:
         return jsonify({"message": "Analysis not found."}), 404
     try:
+        Alerts.query.filter_by(shelf_analysis_log_id=log_id).update({"shelf_analysis_log_id": None})
         db.session.delete(log)
         db.session.commit()
         return jsonify({"message": "Deleted."}), 200
