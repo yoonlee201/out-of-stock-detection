@@ -173,6 +173,23 @@ const Inventory = () => {
         };
     }, [inventory]);
 
+    const handleCsvUpload = async (file: File) => {
+        setCsvUploading(true);
+        setInventoryError(null);
+
+        try {
+            const result = await apiUploadProductsCsv(file);
+            const refreshed = await apiGetProducts();
+            setInventory(refreshed ?? []);
+            alert(`CSV uploaded successfully. Added ${result.added_count} products.`);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "CSV upload failed.");
+        } finally {
+            setCsvUploading(false);
+            if (csvInputRef.current) csvInputRef.current.value = "";
+        }
+    };
+
     const categories = useMemo(() => [...new Set(inventory.map((item) => item.category))].sort(), [inventory]);
 
     if (loading || !user) return <Loading message="Checking authentication..." fullscreen={false} />;
