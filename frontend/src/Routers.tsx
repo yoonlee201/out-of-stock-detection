@@ -5,6 +5,7 @@ import { useAuth } from "./hooks/useAuth";
 import { type User } from "./types/db";
 import useRouter from "./hooks/useRouter";
 import Sidebar from "./_components/Sidebar";
+import HelpBot from "./_components/HelpBot";
 
 const DashboardLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +37,7 @@ const DashboardLayout = () => {
             <main className="text-text flex-1 overflow-y-auto p-4 pt-16 sm:p-6 sm:pt-16 lg:ml-64 lg:p-8 lg:pt-8">
                 <Outlet />
             </main>
+            <HelpBot />
         </div>
     );
 };
