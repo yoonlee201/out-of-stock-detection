@@ -119,3 +119,14 @@ export const apiUpdateProduct = async (
         throw new Error("Failed to update product.");
     }
 };
+
+export const apiUploadProductsCsv = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { data } = await axiosAuth.post("/products/upload-csv", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return data;
+};
