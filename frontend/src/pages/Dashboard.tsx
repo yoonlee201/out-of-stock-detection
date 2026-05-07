@@ -66,7 +66,15 @@ const Dashboard = () => {
     useEffect(() => {
         if (!log_id) return;
         const index = history.findIndex((entry) => entry.id === parseInt(log_id, 10));
-        if (index !== -1) setSelectedIndex(index);
+        if (index === -1) return;
+        setSelectedIndex(index);
+        const entry = history[index];
+        if (!entry || entry.result !== null) return;
+        setDetailLoading(true);
+        apiGetAnalysisDetail(entry.id)
+            .then((result) => setHistory((prev) => prev.map((e, i) => (i === index ? { ...e, result } : e))))
+            .catch(() => {})
+            .finally(() => setDetailLoading(false));
     }, [log_id, history]);
 
     const selectedEntry = selectedIndex !== null ? (history[selectedIndex] ?? null) : null;
@@ -152,18 +160,25 @@ const Dashboard = () => {
             try {
                 const entries = await apiGetAnalysisHistory();
                 if (cancelled) return;
-                setHistory(
-                    entries.map((e) => ({
-                        id: e.id,
-                        fileName: e.file_name,
-                        analyzedAt: new Date(e.created_at),
-                        missingCount: e.missing_count,
-                        misplacedCount: e.misplaced_count,
-                        complianceScore: e.compliance_score,
-                        result: null,
-                    })),
-                );
+                const newEntries = entries.map((e) => ({
+                    id: e.id,
+                    fileName: e.file_name,
+                    analyzedAt: new Date(e.created_at),
+                    missingCount: e.missing_count,
+                    misplacedCount: e.misplaced_count,
+                    complianceScore: e.compliance_score,
+                    result: null as ShelfAnalysisResponse | null,
+                }));
+                setHistory(newEntries);
                 setSelectedIndex(0);
+                if (newEntries[0]) {
+                    apiGetAnalysisDetail(newEntries[0].id)
+                        .then((result) => {
+                            if (cancelled) return;
+                            setHistory((prev) => prev.map((e, i) => (i === 0 ? { ...e, result } : e)));
+                        })
+                        .catch(() => {});
+                }
             } catch {
                 // leave history as-is; the next tick will try again
             }
@@ -229,12 +244,12 @@ const Dashboard = () => {
     };
 
     const handleSelectEntry = async (index: number) => {
-        if (selectedIndex === index) {
+        const entry = history[index];
+        if (selectedIndex === index && entry?.result !== null) {
             setSelectedIndex(null);
             return;
         }
         setSelectedIndex(index);
-        const entry = history[index];
         if (!entry || entry.result !== null) return;
         setDetailLoading(true);
         try {
@@ -408,13 +423,6 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        onClick={handleDeleteSelected}
-                                        className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
-                                    >
-                                        Delete
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={() => setSelectedIndex(null)}
                                         className="text-text-muted hover:text-text text-sm font-semibold"
                                     >
@@ -506,6 +514,14 @@ const Dashboard = () => {
                                 </div>
                             </div>
                             )}
+
+                            <button
+                                type="button"
+                                onClick={handleDeleteSelected}
+                                className="text-status-missing-text hover:bg-status-missing-bg rounded-xl px-3 py-1.5 text-sm font-semibold transition"
+                            >
+                                Delete
+                            </button>
                         </div>
                     ) : (
                         <div className="bg-surface flex min-h-64 items-center justify-center rounded-xl p-6 shadow">
