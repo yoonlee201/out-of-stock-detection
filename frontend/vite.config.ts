@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
                 "/shelf-analysis": { target: backendTarget, changeOrigin: true },
                 "/alerts": { target: backendTarget, changeOrigin: true },
                 "/reorders": { target: backendTarget, changeOrigin: true },
+                "/helpbot": { target: backendTarget, changeOrigin: true },
             },
         },
     };

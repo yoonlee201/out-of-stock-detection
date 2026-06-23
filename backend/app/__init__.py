@@ -13,6 +13,7 @@ from .routes.products import products_blueprint
 from .routes.shelf_analysis import shelf_analysis_blueprint
 from .routes.alert import alert_blueprint
 from .routes.reorders import reorders_blueprint
+from .routes.helpbot import helpbot_blueprint
 
 
 # CSP for a pure JSON API: no scripts, styles, or frames should ever be loaded
@@ -79,5 +80,6 @@ def create_app() -> Flask:
     app.register_blueprint(shelf_analysis_blueprint, url_prefix=f"{prefix}/shelf-analysis")
     app.register_blueprint(alert_blueprint,          url_prefix=f"{prefix}/alerts")
     app.register_blueprint(reorders_blueprint,       url_prefix=f"{prefix}/reorders")
+    app.register_blueprint(helpbot_blueprint,        url_prefix=f"{prefix}/helpbot")
 
     return app
